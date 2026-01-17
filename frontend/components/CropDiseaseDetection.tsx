@@ -14,25 +14,25 @@ interface DetectionResult {
 // Function to format AI response into structured sections
 const formatAIResponse = (response: string): JSX.Element => {
   console.log('Raw AI Response:', response); // Debug log
-  
+
   const sections: { [key: string]: string[] } = {};
   let currentSection = '';
   let currentContent: string[] = [];
 
   const lines = response.split('\n');
-  
+
   lines.forEach((line, index) => {
     const trimmedLine = line.trim();
-    
+
     // Skip empty lines
     if (!trimmedLine) return;
-    
+
     // Check for multiple section header patterns
     let sectionMatch: RegExpMatchArray | null = null;
-    
+
     // Pattern 1: **1. Crop Identification:**
     sectionMatch = trimmedLine.match(/^\*\*(\d+)\.\s*([^*]+):\*\*(.*)$/);
-    
+
     // Pattern 2: **Crop Identification:**
     if (!sectionMatch) {
       sectionMatch = trimmedLine.match(/^\*\*([^*:]+):\*\*(.*)$/);
@@ -40,7 +40,7 @@ const formatAIResponse = (response: string): JSX.Element => {
         sectionMatch = [sectionMatch[0], '', sectionMatch[1], sectionMatch[2]]; // Adjust to match Pattern 1 structure
       }
     }
-    
+
     // Pattern 3: **1. Crop:** or **2. Disease/Problem:** (shorter format)
     if (!sectionMatch) {
       sectionMatch = trimmedLine.match(/^\*\*(\d+)\.\s*([^*:]+):\*\*(.*)$/);
@@ -48,7 +48,7 @@ const formatAIResponse = (response: string): JSX.Element => {
         sectionMatch = [sectionMatch[0], sectionMatch[1], sectionMatch[2], sectionMatch[3]]; // Adjust structure
       }
     }
-    
+
     // Pattern 4: 1. Crop: (without asterisks)
     if (!sectionMatch) {
       sectionMatch = trimmedLine.match(/^(\d+)\.\s*([^:]+):(.*)$/);
@@ -56,27 +56,27 @@ const formatAIResponse = (response: string): JSX.Element => {
         sectionMatch = [sectionMatch[0], sectionMatch[1], sectionMatch[2], sectionMatch[3]]; // Adjust structure
       }
     }
-    
+
     if (sectionMatch) {
       // Save previous section
       if (currentSection && currentContent.length > 0) {
         sections[currentSection] = currentContent;
       }
-      
+
       // Start new section
       currentSection = sectionMatch[2].trim();
       currentContent = [];
-      
+
       // Add the content after the colon if any
       const afterColon = sectionMatch[3] ? sectionMatch[3].trim() : '';
       if (afterColon) {
         currentContent.push(afterColon);
       }
-      
+
       console.log(`Found section: "${currentSection}" at line ${index}`); // Debug log
       return;
     }
-    
+
     // Check for sub-headers (like "**Fungicide application:**")
     const subHeaderMatch = trimmedLine.match(/^\*\*([^*]+):\*\*(.*)$/);
     if (subHeaderMatch) {
@@ -87,18 +87,18 @@ const formatAIResponse = (response: string): JSX.Element => {
       }
       return;
     }
-    
+
     // Regular content
     currentContent.push(trimmedLine);
   });
-  
+
   // Save the last section
   if (currentSection && currentContent.length > 0) {
     sections[currentSection] = currentContent;
   }
-  
+
   console.log('Parsed sections:', Object.keys(sections)); // Debug log
-  
+
   // If no sections were found, treat the entire response as one section
   if (Object.keys(sections).length === 0) {
     sections['AI Analysis'] = lines.filter(line => line.trim());
@@ -148,15 +148,15 @@ const formatAIResponse = (response: string): JSX.Element => {
     }
     return [];
   };
-  
+
   const cropInfo = findSection(['Crop Identification', 'crop', 'plant identification']);
   const diseaseInfo = findSection(['Disease', 'Problem Symptoms', 'symptoms', 'issue', 'diagnosis']);
   const treatmentInfo = findSection(['Treatment', 'cure', 'medicine', 'fungicide']);
-  
+
   // If we only have one section (likely unstructured response), show it differently
   const sectionKeys = Object.keys(sections);
   const isUnstructured = sectionKeys.length === 1 && sectionKeys[0] === 'AI Analysis';
-  
+
   return (
     <div className="space-y-6">
       {/* Quick Summary Card - only show if we have structured data */}
@@ -188,7 +188,7 @@ const formatAIResponse = (response: string): JSX.Element => {
           </div>
         </div>
       )}
-      
+
       {/* Handle unstructured response differently */}
       {isUnstructured && (
         <div className="bg-white border border-gray-200 rounded-lg p-4">
@@ -201,10 +201,10 @@ const formatAIResponse = (response: string): JSX.Element => {
               // Define formatting function for unstructured content
               const formatTextForUnstructured = (text: string) => {
                 let formatted = text;
-                
+
                 // Highlight scientific names in italics
                 formatted = formatted.replace(/\*([^*]+)\*/g, '<em class="text-blue-600 font-medium">$1</em>');
-                
+
                 // Bold important keywords and phrases (same as structured content)
                 const importantKeywords = [
                   'Early Blight', 'Late Blight', 'Leaf Spot', 'Powdery Mildew', 'Bacterial Wilt', 'Mosaic Virus',
@@ -218,18 +218,18 @@ const formatAIResponse = (response: string): JSX.Element => {
                   'air circulation', 'Weed control', 'Sanitation', 'certified seed',
                   'immediately', 'regularly', 'avoid', 'prevent', 'reduce spread'
                 ];
-                
+
                 importantKeywords.forEach(keyword => {
                   const regex = new RegExp(`\\b(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi');
                   formatted = formatted.replace(regex, '<strong class="text-gray-900 font-bold">$1</strong>');
                 });
-                
+
                 // Highlight temperatures and measurements
                 formatted = formatted.replace(/(\d+[-–]\d+°[CF]|\d+°[CF]|\d+%)/g, '<span class="bg-blue-100 text-blue-800 px-1 py-0.5 rounded text-xs font-medium">$1</span>');
-                
+
                 // Make "Important" phrases stand out more
                 formatted = formatted.replace(/(Important[^:]*:)/gi, '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-bold text-sm">⚠️ $1</span>');
-                
+
                 return { __html: formatted };
               };
 
@@ -239,7 +239,7 @@ const formatAIResponse = (response: string): JSX.Element => {
                     <div className="flex items-start space-x-3 ml-4 p-2">
                       <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
                       <span className="text-gray-700 text-sm leading-relaxed"
-                            dangerouslySetInnerHTML={formatTextForUnstructured(paragraph.substring(2))}
+                        dangerouslySetInnerHTML={formatTextForUnstructured(paragraph.substring(2))}
                       />
                     </div>
                   ) : paragraph.startsWith('**') && paragraph.endsWith('**') ? (
@@ -248,7 +248,7 @@ const formatAIResponse = (response: string): JSX.Element => {
                     </h6>
                   ) : (
                     <p className="text-gray-700 text-sm leading-relaxed mb-2"
-                       dangerouslySetInnerHTML={formatTextForUnstructured(paragraph)}
+                      dangerouslySetInnerHTML={formatTextForUnstructured(paragraph)}
                     />
                   )}
                 </div>
@@ -257,7 +257,7 @@ const formatAIResponse = (response: string): JSX.Element => {
           </div>
         </div>
       )}
-      
+
       {/* Show structured sections only if not unstructured */}
       {!isUnstructured && Object.entries(sections).map(([title, content], index) => (
         <div key={index} className={`border rounded-lg p-4 ${getSectionColor(title)}`}>
@@ -276,14 +276,14 @@ const formatAIResponse = (response: string): JSX.Element => {
                   </h6>
                 );
               }
-              
+
               // Handle bullet points
               if (item.startsWith('* ') || item.startsWith('- ')) {
                 const bulletContent = item.substring(2);
-                const isImportant = bulletContent.toLowerCase().includes('always') || 
-                                  bulletContent.toLowerCase().includes('important') ||
-                                  bulletContent.toLowerCase().includes('strictly');
-                                  
+                const isImportant = bulletContent.toLowerCase().includes('always') ||
+                  bulletContent.toLowerCase().includes('important') ||
+                  bulletContent.toLowerCase().includes('strictly');
+
                 return (
                   <div key={itemIndex} className={`flex items-start space-x-3 ml-4 p-2 rounded ${isImportant ? 'bg-yellow-50' : ''}`}>
                     <span className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${isImportant ? 'bg-yellow-500' : 'bg-gray-400'}`}></span>
@@ -293,67 +293,67 @@ const formatAIResponse = (response: string): JSX.Element => {
                   </div>
                 );
               }
-              
+
               // Handle regular content
               const formatText = (text: string) => {
                 let formatted = text;
-                
+
                 // Highlight scientific names in italics
                 formatted = formatted.replace(/\*([^*]+)\*/g, '<em class="text-blue-600 font-medium">$1</em>');
-                
+
                 // Bold important keywords and phrases
                 const importantKeywords = [
                   // Disease names
                   'Early Blight', 'Late Blight', 'Leaf Spot', 'Powdery Mildew', 'Bacterial Wilt', 'Mosaic Virus',
                   'Fusarium', 'Alternaria', 'Phytophthora', 'Septoria',
-                  
+
                   // Safety and warnings
                   'Always follow label instructions', 'follow label instructions', 'label instructions',
                   'Never exceed', 'Consult', 'Important Note', 'Important Disclaimer', 'WARNING', 'CAUTION',
                   'certified', 'extension office', 'crop consultant',
-                  
+
                   // Treatment methods
                   'Fungicide', 'chlorothalonil', 'mancozeb', 'copper-based', 'strobilurin',
                   'Remove infected', 'destroy infected', 'burn or bury',
-                  
+
                   // Prevention measures
                   'Crop Rotation', 'Disease-resistant', 'resistant varieties', 'Proper spacing',
                   'air circulation', 'Weed control', 'Sanitation', 'certified seed',
-                  
+
                   // Critical actions
                   'immediately', 'regularly', 'avoid', 'prevent', 'reduce spread',
                   'good drainage', 'proper ventilation'
                 ];
-                
+
                 // Apply bold formatting to important keywords
                 importantKeywords.forEach(keyword => {
                   const regex = new RegExp(`\\b(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi');
                   formatted = formatted.replace(regex, '<strong class="text-gray-900 font-bold">$1</strong>');
                 });
-                
+
                 // Highlight temperatures and measurements
                 formatted = formatted.replace(/(\d+[-–]\d+°[CF]|\d+°[CF]|\d+%)/g, '<span class="bg-blue-100 text-blue-800 px-1 py-0.5 rounded text-xs font-medium">$1</span>');
-                
+
                 // Highlight dosage and application rates
                 formatted = formatted.replace(/(\d+[\.,]?\d*\s*(ml|g|kg|L|liter|gram|kilogram)\/[^,\s]+)/gi, '<span class="bg-green-100 text-green-800 px-1 py-0.5 rounded text-xs font-medium">$1</span>');
-                
+
                 // Make "Important" phrases stand out more
                 formatted = formatted.replace(/(Important[^:]*:)/gi, '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-bold text-sm">⚠️ $1</span>');
-                
+
                 return { __html: formatted };
               };
-              
+
               return (
-                <p key={itemIndex} 
-                   className="text-gray-700 text-sm leading-relaxed"
-                   dangerouslySetInnerHTML={formatText(item)}
+                <p key={itemIndex}
+                  className="text-gray-700 text-sm leading-relaxed"
+                  dangerouslySetInnerHTML={formatText(item)}
                 />
               );
             })}
           </div>
         </div>
       ))}
-      
+
       {/* Important Note Section - only show if we have structured content */}
       {!isUnstructured && (
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
@@ -386,6 +386,7 @@ export function CropDiseaseDetection() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -402,23 +403,23 @@ export function CropDiseaseDetection() {
 
   const startCamera = async () => {
     setCameraError(null);
-    
+
     try {
       // Check if getUserMedia is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Camera not supported on this device');
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
           facingMode: 'environment', // Use back camera on mobile
           width: { ideal: 1280 },
           height: { ideal: 720 }
-        } 
+        }
       });
       setCameraStream(stream);
       setShowCamera(true);
-      
+
       // Start video stream
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -426,13 +427,13 @@ export function CropDiseaseDetection() {
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
-      
-      const errorMessage = language === 'en' 
-        ? 'Unable to access camera. Please check permissions or use gallery option.' 
-        : language === 'mr' 
-        ? 'कॅमेरा वापरू शकत नाही. कृपया परवानग्या तपासा किंवा गॅलरी पर्याय वापरा.'
-        : 'कैमरा एक्सेस नहीं कर सका। कृपया अनुमतियां जांचें या गैलरी विकल्प का उपयोग करें।';
-      
+
+      const errorMessage = language === 'en'
+        ? 'Unable to access camera. Please check permissions or use gallery option.'
+        : language === 'mr'
+          ? 'कॅमेरा वापरू शकत नाही. कृपया परवानग्या तपासा किंवा गॅलरी पर्याय वापरा.'
+          : 'कैमरा एक्सेस नहीं कर सका। कृपया अनुमतियां जांचें या गैलरी विकल्प का उपयोग करें।';
+
       setCameraError(errorMessage);
       alert(errorMessage);
     }
@@ -443,21 +444,21 @@ export function CropDiseaseDetection() {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       const context = canvas.getContext('2d');
-      
+
       if (context) {
         // Set canvas dimensions to match video
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        
+
         // Draw the video frame to canvas
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
+
         // Convert to base64 image
         const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
         setSelectedImage(imageDataUrl);
         setResult(null);
         setAiTextResult(null);
-        
+
         // Close camera
         stopCamera();
       }
@@ -483,9 +484,9 @@ export function CropDiseaseDetection() {
 
   const analyzeImage = () => {
     if (!selectedImage) return;
-    
+
     setIsAnalyzing(true);
-    
+
     // Call backend AI vision; fallback to mock on failure
     (async () => {
       try {
@@ -493,34 +494,39 @@ export function CropDiseaseDetection() {
         const query = language === 'en'
           ? 'Identify crop and likely disease. Give symptoms, causes, treatments (safe doses), and prevention in simple bullet points.'
           : language === 'mr'
-          ? 'पीक आणि संभाव्य रोग ओळखा. लक्षणे, कारणे, उपचार (सुरक्षित डोस) आणि प्रतिबंध साध्या बिंदूंमध्ये द्या.'
-          : 'फसल और संभावित रोग पहचानें। लक्षण, कारण, उपचार (सुरक्षित मात्रा) और बचाव सरल बिंदुओं में दें।';
-        
+            ? 'पीक आणि संभाव्य रोग ओळखा. लक्षणे, कारणे, उपचार (सुरक्षित डोस) आणि प्रतिबंध साध्या बिंदूंमध्ये द्या.'
+            : 'फसल और संभावित रोग पहचानें। लक्षण, कारण, उपचार (सुरक्षित मात्रा) और बचाव सरल बिंदुओं में दें।';
+
         console.log('Analyzing image with AI service...');
         const cacheStatsBefore = aiService.getCacheStats();
         console.log('Cache stats before analysis:', cacheStatsBefore);
-        
+
         const text = await aiService.analyzeCropImage(base64, query, language);
-        
+
         const cacheStatsAfter = aiService.getCacheStats();
         console.log('AI response received:', text.substring(0, 100) + '...');
         console.log('Cache stats after analysis:', cacheStatsAfter);
-        
+
         // Check if this was a cached result
         const wasCached = cacheStatsBefore.size === cacheStatsAfter.size;
         setIsCachedResult(wasCached);
-        
+
         // Check if this is a fallback response (contains warning message)
         const isFallbackResponse = text.includes('⚠️') || text.includes('सामान्य निदान');
         if (isFallbackResponse) {
           console.log('Fallback response detected - AI service was unavailable');
         }
-        
+
         setAiTextResult(text);
         setResult(null);
+
+        // Auto-scroll to results after a short delay
+        setTimeout(() => {
+          resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
       } catch (error) {
         console.error('Crop analysis error:', error);
-        
+
         // Fallback to quick mock if AI not available
         const mockResults: DetectionResult[] = [
           {
@@ -574,317 +580,359 @@ export function CropDiseaseDetection() {
       </div>
 
       {!selectedImage ? (
-        <div className="bg-white rounded-xl shadow-sm border-2 border-dashed border-gray-300 p-8">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-              <Camera className="w-8 h-8 text-green-600" />
+        <div className="relative overflow-hidden rounded-2xl shadow-premium animate-fadeIn">
+          {/* Animated gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-accent-50 to-primary-100 animate-gradient"></div>
+
+          {/* Glassmorphism card */}
+          <div className="relative glass rounded-2xl p-8 m-1">
+            <div className="text-center space-y-6">
+              {/* Icon with glow effect */}
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary-400 to-accent-400 rounded-full blur-xl opacity-50 animate-pulse-slow"></div>
+                <div className="relative w-20 h-20 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full flex items-center justify-center mx-auto shadow-glow-md">
+                  <Camera className="w-10 h-10 text-white" />
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent mb-3">
+                  {t('uploadImage')}
+                </h3>
+                <p className="text-gray-700 text-sm mb-4 font-medium">
+                  {language === 'en' ? 'Upload photo in JPG, PNG or JPEG format (Max 5MB)' :
+                    language === 'mr' ? 'JPG, PNG किंवा JPEG फॉर्मेटमध्ये फोटो अपलोड करा (जास्तीत जास्त 5MB)' :
+                      'JPG, PNG या JPEG फॉर्मेट में फोटो अपलोड करें (अधिकतम 5MB)'}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="group relative flex items-center justify-center space-x-2 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white px-8 py-4 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-glow-md overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                  <Upload className="w-5 h-5 relative z-10" />
+                  <span className="font-semibold relative z-10">{language === 'en' ? 'Choose from Gallery' : language === 'mr' ? 'गॅलरीतून निवडा' : 'गैलरी से चुनें'}</span>
+                </button>
+
+                <button
+                  onClick={startCamera}
+                  className="group relative flex items-center justify-center space-x-2 bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 text-white px-8 py-4 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-glow-md overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                  <Camera className="w-5 h-5 relative z-10" />
+                  <span className="font-semibold relative z-10">{t('takePhoto')}</span>
+                </button>
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">{t('uploadImage')}</h3>
-              <p className="text-gray-600 text-sm mb-4">
-                {language === 'en' ? 'Upload photo in JPG, PNG or JPEG format (Max 5MB)' : 
-                 language === 'mr' ? 'JPG, PNG किंवा JPEG फॉर्मेटमध्ये फोटो अपलोड करा (जास्तीत जास्त 5MB)' :
-                 'JPG, PNG या JPEG फॉर्मेट में फोटो अपलोड करें (अधिकतम 5MB)'}
-              </p>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-colors"
-              >
-                <Upload className="w-5 h-5" />
-                <span>{language === 'en' ? 'Choose from Gallery' : language === 'mr' ? 'गॅलरीतून निवडा' : 'गैलरी से चुनें'}</span>
-              </button>
-              
-              <button 
-                onClick={startCamera}
-                className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition-colors"
-              >
-                <Camera className="w-5 h-5" />
-                <span>{t('takePhoto')}</span>
-              </button>
-            </div>
-            
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
-              className="hidden"
-            />
           </div>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-slideUp">
           {/* Image Preview */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">{t('uploadedImage')}</h3>
+          <div className="glass rounded-2xl shadow-premium border border-white/50 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">{t('uploadedImage')}</h3>
               <button
                 onClick={resetDetection}
-                className="text-gray-500 hover:text-red-600 p-1"
+                className="text-gray-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-all duration-200"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="flex flex-col lg:flex-row gap-6">
               <div className="lg:w-1/2">
-                <img
-                  src={selectedImage}
-                  alt="Uploaded crop"
-                  className="w-full h-64 object-cover rounded-lg border"
-                />
+                <div className="relative group overflow-hidden rounded-xl shadow-lg">
+                  <img
+                    src={selectedImage}
+                    alt="Uploaded crop"
+                    className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                </div>
               </div>
-              
+
               <div className="lg:w-1/2 space-y-4">
-                {!result && !isAnalyzing && (
-                  <div className="text-center p-6">
-                    <Zap className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                {!result && !isAnalyzing && !aiTextResult && (
+                  <div className="text-center p-6 bg-gradient-to-br from-primary-50 to-accent-50 rounded-xl border border-primary-100">
+                    <div className="relative inline-block mb-4">
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary-400 to-accent-400 rounded-full blur-lg opacity-50"></div>
+                      <Zap className="relative w-12 h-12 text-primary-600" />
+                    </div>
                     <h4 className="text-lg font-semibold text-gray-800 mb-2">
                       {language === 'en' ? 'Ready for Analysis' : language === 'mr' ? 'विश्लेषणासाठी तयार' : 'विश्लेषण के लिए तैयार'}
                     </h4>
                     <p className="text-gray-600 mb-4">{t('cropCheckDescription')}</p>
                     <button
                       onClick={analyzeImage}
-                      className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-colors"
+                      className="group relative bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600 text-white px-8 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-glow-md font-semibold overflow-hidden"
                     >
-                      {t('analyzeNow')}
+                      <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                      <span className="relative z-10">{t('analyzeNow')}</span>
                     </button>
                   </div>
                 )}
-                
+
                 {isAnalyzing && (
-                  <div className="text-center p-6">
-                    <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <div className="text-center p-6 bg-gradient-to-br from-primary-50 to-accent-50 rounded-xl border border-primary-100">
+                    <div className="relative w-12 h-12 mx-auto mb-4">
+                      <div className="absolute inset-0 border-4 border-primary-200 rounded-full"></div>
+                      <div className="absolute inset-0 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
                     <h4 className="text-lg font-semibold text-gray-800 mb-2">{t('analyzing')}</h4>
                     <p className="text-gray-600">{t('analyzingCrop')}</p>
                   </div>
                 )}
-                
-                {/* AI Text Result - Formatted */}
-                {!isAnalyzing && aiTextResult && (
-                  <div className="text-left border rounded-lg bg-white border-gray-200 overflow-hidden shadow-sm">
-                    <div className="bg-gradient-to-r from-green-500 to-green-600 px-4 py-3 text-white">
-                      <h4 className="text-lg font-semibold flex items-center justify-between">
-                        <div className="flex items-center">
-                          <CheckCircle className="w-5 h-5 mr-2" />
-                          {language === 'en' ? 'AI Diagnosis Report' : language === 'mr' ? 'AI निदान रिपोर्ट' : 'AI निदान रिपोर्ट'}
-                        </div>
-                        {isCachedResult && (
-                          <span className="text-xs bg-white/20 px-2 py-1 rounded">
-                            Cached
-                          </span>
-                        )}
-                      </h4>
-                    </div>
-                    <div className="p-4 sm:p-6 max-h-[500px] overflow-y-auto">
-                      {formatAIResponse(aiTextResult)}
-                    </div>
-                    <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <button className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm transition-colors">
-                          {language === 'en' ? 'Consult Expert' : language === 'mr' ? 'तज्ञांशी सल्लामसलत करा' : 'विशेषज्ञ से सलाह लें'}
-                        </button>
-                        <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm transition-colors">
-                          {language === 'en' ? 'Order Medicine' : language === 'mr' ? 'औषध ऑर्डर करा' : 'दवाई ऑर्डर करें'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
 
-          {/* Results */}
-          {!isAnalyzing && !aiTextResult && result && (
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <div className="flex items-center space-x-2 mb-4">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-                <h3 className="text-lg font-semibold text-gray-800">{t('results')}</h3>
-              </div>
-              
-              <div className="space-y-6">
-                {/* Disease Identification */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-gray-800">पहचाना गया रोग</h4>
-                    <div className="flex items-center space-x-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getSeverityColor(result.severity)}`}>
-                        {result.severity === 'low' ? 'कम गंभीर' : result.severity === 'medium' ? 'मध्यम गंभीर' : 'अत्यधिक गंभीर'}
-                      </span>
-                      <span className="text-sm text-gray-600">{result.confidence}% निश्चितता</span>
+          {/* AI Text Result - Formatted - Full Width Section */}
+          {!isAnalyzing && aiTextResult && (
+            <div ref={resultsRef} className="glass rounded-2xl shadow-premium border border-white/50 p-6 animate-fadeIn">
+              <div className="text-left rounded-xl overflow-hidden">
+                <div className="bg-gradient-to-r from-primary-500 to-accent-500 px-4 py-3 text-white rounded-t-xl">
+                  <h4 className="text-lg font-semibold flex items-center justify-between">
+                    <div className="flex items-center">
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      {language === 'en' ? 'AI Diagnosis Report' : language === 'mr' ? 'AI निदान रिपोर्ट' : 'AI निदान रिपोर्ट'}
                     </div>
-                  </div>
-                  <p className="text-lg text-gray-800 font-medium">{result.disease}</p>
-                </div>
-
-                {/* Treatment */}
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-800 mb-3 flex items-center space-x-2">
-                    <span>उपचार</span>
+                    {isCachedResult && (
+                      <span className="text-xs bg-white/20 px-2 py-1 rounded">
+                        Cached
+                      </span>
+                    )}
                   </h4>
-                  <p className="text-gray-700">{result.treatment}</p>
                 </div>
-
-                {/* Prevention */}
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-800 mb-3">बचाव के तरीके</h4>
-                  <ul className="space-y-2">
-                    {result.prevention.map((tip, index) => (
-                      <li key={index} className="flex items-start space-x-2">
-                        <span className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></span>
-                        <span className="text-gray-700">{tip}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <div className="p-4 sm:p-6 max-h-[600px] overflow-y-auto bg-white rounded-b-xl">
+                  {formatAIResponse(aiTextResult)}
                 </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg transition-colors">
-                    विशेषज्ञ से बात करें
-                  </button>
-                  <button className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg transition-colors">
-                    दवाई ऑर्डर करें
-                  </button>
-                  <button 
-                    onClick={resetDetection}
-                    className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 px-4 rounded-lg transition-colors"
-                  >
-                    {language === 'en' ? 'Check New Photo' : language === 'mr' ? 'नवीन फोटो तपासा' : 'नई फोटो जांचें'}
-                  </button>
-                  {import.meta.env.DEV && (
-                    <button 
-                      onClick={() => {
-                        aiService.clearCache();
-                        console.log('Cache cleared manually');
-                      }}
-                      className="bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-lg transition-colors text-sm"
-                    >
-                      Clear Cache (Dev)
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-t border-gray-200 rounded-b-xl">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white py-2 px-4 rounded-lg text-sm transition-all duration-200 transform hover:scale-105 font-semibold">
+                      {language === 'en' ? 'Consult Expert' : language === 'mr' ? 'तज्ञांशी सल्लामसलत करा' : 'विशेषज्ञ से सलाह लें'}
                     </button>
-                  )}
+                    <button className="flex-1 bg-gradient-to-r from-accent-600 to-accent-700 hover:from-accent-700 hover:to-accent-800 text-white py-2 px-4 rounded-lg text-sm transition-all duration-200 transform hover:scale-105 font-semibold">
+                      {language === 'en' ? 'Order Medicine' : language === 'mr' ? 'औषध ऑर्डर करा' : 'दवाई ऑर्डर करें'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           )}
-        </div>
-      )}
 
-      {/* Tips Section */}
-      <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
-        <h3 className="text-lg font-semibold text-blue-800 mb-4">
-          {language === 'en' ? 'Tips for Better Results' : language === 'mr' ? 'उत्तम परिणामांसाठी टिप्स' : 'बेहतर परिणाम के लिए टिप्स'}
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex items-start space-x-2">
-            <span className="w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
-            <span className="text-blue-700 text-sm">
-              {language === 'en' ? 'Take clear, sharp photos' : language === 'mr' ? 'स्वच्छ आणि स्पष्ट फोटो घ्या' : 'साफ और स्पष्ट फोटो लें'}
-            </span>
-          </div>
-          <div className="flex items-start space-x-2">
-            <span className="w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
-            <span className="text-blue-700 text-sm">
-              {language === 'en' ? 'Use natural lighting' : language === 'mr' ? 'नैसर्गिक प्रकाशात फोटो घ्या' : 'प्राकृतिक रोशनी में फोटो लें'}
-            </span>
-          </div>
-          <div className="flex items-start space-x-2">
-            <span className="w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
-            <span className="text-blue-700 text-sm">
-              {language === 'en' ? 'Show the diseased area close-up' : language === 'mr' ? 'रोगग्रस्त भाग जवळून दाखवा' : 'रोग ग्रस्त भाग को करीब से दिखाएं'}
-            </span>
-          </div>
-          <div className="flex items-start space-x-2">
-            <span className="w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
-            <span className="text-blue-700 text-sm">
-              {language === 'en' ? 'Include the full leaf or fruit' : language === 'mr' ? 'पान किंवा फळाचा पूर्ण भाग दाखवा' : 'पत्ती या फल का पूरा हिस्सा दिखाएं'}
-            </span>
-          </div>
-        </div>
-      </div>
+          {/* Fallback Results (old format) */}
+          {!isAnalyzing && !aiTextResult && result && (
+            <div className="glass rounded-2xl shadow-premium border border-white/50 p-6">
+              <div className="bg-white rounded-xl shadow-sm border p-6">
+                <div className="flex items-center space-x-2 mb-4">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                  <h3 className="text-lg font-semibold text-gray-800">{t('results')}</h3>
+                </div>
 
-      {/* Camera Modal */}
-      {showCamera && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
-          <div className="w-full h-full max-w-4xl max-h-screen flex flex-col">
-            {/* Camera Header */}
-            <div className="flex items-center justify-between p-4 bg-black/50">
-              <h3 className="text-white text-lg font-semibold">
-                {language === 'en' ? 'Take Photo' : language === 'mr' ? 'फोटो काढा' : 'फोटो लें'}
-              </h3>
-              <button
-                onClick={stopCamera}
-                className="text-white hover:text-red-400 p-2"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Camera View */}
-            <div className="flex-1 flex items-center justify-center p-4">
-              <div className="relative w-full max-w-2xl aspect-video bg-black rounded-lg overflow-hidden">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover"
-                />
-                
-                {/* Camera Guidelines */}
-                <div className="absolute inset-0 pointer-events-none">
-                  <div className="w-full h-full border-2 border-white/20 rounded-lg">
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-white/50 rounded-lg">
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-white text-sm">
-                        {language === 'en' ? 'Focus the crop here' : language === 'mr' ? 'पीक येथे फोकस करा' : 'फसल को यहाँ फोकस करें'}
+                <div className="space-y-6">
+                  {/* Disease Identification */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-gray-800">पहचाना गया रोग</h4>
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getSeverityColor(result.severity)}`}>
+                          {result.severity === 'low' ? 'कम गंभीर' : result.severity === 'medium' ? 'मध्यम गंभीर' : 'अत्यधिक गंभीर'}
+                        </span>
+                        <span className="text-sm text-gray-600">{result.confidence}% निश्चितता</span>
                       </div>
                     </div>
+                    <p className="text-lg text-gray-800 font-medium">{result.disease}</p>
+                  </div>
+
+                  {/* Treatment */}
+                  <div className="border rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center space-x-2">
+                      <span>उपचार</span>
+                    </h4>
+                    <p className="text-gray-700">{result.treatment}</p>
+                  </div>
+
+                  {/* Prevention */}
+                  <div className="border rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-800 mb-3">बचाव के तरीके</h4>
+                    <ul className="space-y-2">
+                      {result.prevention.map((tip, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <span className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></span>
+                          <span className="text-gray-700">{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg transition-colors">
+                      विशेषज्ञ से बात करें
+                    </button>
+                    <button className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg transition-colors">
+                      दवाई ऑर्डर करें
+                    </button>
+                    <button
+                      onClick={resetDetection}
+                      className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 px-4 rounded-lg transition-colors"
+                    >
+                      {language === 'en' ? 'Check New Photo' : language === 'mr' ? 'नवीन फोटो तपासा' : 'नई फोटो जांचें'}
+                    </button>
+                    {import.meta.env.DEV && (
+                      <button
+                        onClick={() => {
+                          aiService.clearCache();
+                          console.log('Cache cleared manually');
+                        }}
+                        className="bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-lg transition-colors text-sm"
+                      >
+                        Clear Cache (Dev)
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
+          )}
 
-            {/* Camera Controls */}
-            <div className="p-6 bg-black/50">
-              <div className="flex items-center justify-center space-x-6">
-                <button
-                  onClick={stopCamera}
-                  className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
-                >
-                  {language === 'en' ? 'Cancel' : language === 'mr' ? 'रद्द करा' : 'रद्द करें'}
-                </button>
-                
-                <button
-                  onClick={capturePhoto}
-                  className="px-8 py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors flex items-center space-x-2"
-                >
-                  <Camera className="w-6 h-6" />
-                  <span className="font-semibold">
-                    {language === 'en' ? 'Capture' : language === 'mr' ? 'कॅप्चर' : 'कैप्चर'}
+
+          {/* Tips Section */}
+          <div className="relative overflow-hidden rounded-2xl shadow-premium animate-fadeIn">
+            <div className="absolute inset-0 bg-gradient-to-br from-accent-50 via-primary-50 to-accent-100 animate-gradient"></div>
+            <div className="relative glass rounded-2xl p-6 m-1">
+              <h3 className="text-xl font-bold bg-gradient-to-r from-accent-600 to-primary-600 bg-clip-text text-transparent mb-6">
+                {language === 'en' ? '💡 Tips for Better Results' : language === 'mr' ? '💡 उत्तम परिणामांसाठी टिप्स' : '💡 बेहतर परिणाम के लिए टिप्स'}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-start space-x-3 p-3 bg-white/50 rounded-lg hover:bg-white/70 transition-all duration-200">
+                  <span className="w-6 h-6 bg-gradient-to-br from-accent-400 to-accent-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-xs font-bold">✓</span>
                   </span>
-                </button>
-                
-                <div className="w-16"></div> {/* Spacer for balance */}
-              </div>
-              
-              <div className="mt-4 text-center">
-                <p className="text-white/70 text-sm">
-                  {language === 'en' 
-                    ? 'Position the diseased part of the crop within the frame and tap capture'
-                    : language === 'mr' 
-                    ? 'फसलाचा रोगग्रस्त भाग फ्रेममध्ये ठेवा आणि कॅप्चर दाबा'
-                    : 'फसल के रोगग्रस्त हिस्से को फ्रेम में रखें और कैप्चर दबाएं'}
-                </p>
+                  <span className="text-gray-700 text-sm font-medium">
+                    {language === 'en' ? 'Take clear, sharp photos' : language === 'mr' ? 'स्वच्छ आणि स्पष्ट फोटो घ्या' : 'साफ और स्पष्ट फोटो लें'}
+                  </span>
+                </div>
+                <div className="flex items-start space-x-3 p-3 bg-white/50 rounded-lg hover:bg-white/70 transition-all duration-200">
+                  <span className="w-6 h-6 bg-gradient-to-br from-accent-400 to-accent-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-xs font-bold">✓</span>
+                  </span>
+                  <span className="text-gray-700 text-sm font-medium">
+                    {language === 'en' ? 'Use natural lighting' : language === 'mr' ? 'नैसर्गिक प्रकाशात फोटो घ्या' : 'प्राकृतिक रोशनी में फोटो लें'}
+                  </span>
+                </div>
+                <div className="flex items-start space-x-3 p-3 bg-white/50 rounded-lg hover:bg-white/70 transition-all duration-200">
+                  <span className="w-6 h-6 bg-gradient-to-br from-accent-400 to-accent-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-xs font-bold">✓</span>
+                  </span>
+                  <span className="text-gray-700 text-sm font-medium">
+                    {language === 'en' ? 'Show the diseased area close-up' : language === 'mr' ? 'रोगग्रस्त भाग जवळून दाखवा' : 'रोग ग्रस्त भाग को करीब से दिखाएं'}
+                  </span>
+                </div>
+                <div className="flex items-start space-x-3 p-3 bg-white/50 rounded-lg hover:bg-white/70 transition-all duration-200">
+                  <span className="w-6 h-6 bg-gradient-to-br from-accent-400 to-accent-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-xs font-bold">✓</span>
+                  </span>
+                  <span className="text-gray-700 text-sm font-medium">
+                    {language === 'en' ? 'Include the full leaf or fruit' : language === 'mr' ? 'पान किंवा फळाचा पूर्ण भाग दाखवा' : 'पत्ती या फल का पूरा हिस्सा दिखाएं'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Hidden canvas for photo capture */}
-          <canvas ref={canvasRef} className="hidden" />
+          {/* Camera Modal */}
+          {showCamera && (
+            <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center animate-fadeIn">
+              <div className="w-full h-full max-w-4xl max-h-screen flex flex-col">
+                {/* Camera Header */}
+                <div className="flex items-center justify-between p-4 glass-dark">
+                  <h3 className="text-white text-lg font-semibold flex items-center space-x-2">
+                    <Camera className="w-5 h-5" />
+                    <span>{language === 'en' ? 'Take Photo' : language === 'mr' ? 'फोटो काढा' : 'फोटो लें'}</span>
+                  </h3>
+                  <button
+                    onClick={stopCamera}
+                    className="text-white hover:text-red-400 p-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* Camera View */}
+                <div className="flex-1 flex items-center justify-center p-4">
+                  <div className="relative w-full max-w-2xl aspect-video bg-black rounded-lg overflow-hidden">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover"
+                    />
+
+                    {/* Camera Guidelines */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div className="w-full h-full border-2 border-white/20 rounded-lg">
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-white/50 rounded-lg">
+                          <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-white text-sm">
+                            {language === 'en' ? 'Focus the crop here' : language === 'mr' ? 'पीक येथे फोकस करा' : 'फसल को यहाँ फोकस करें'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Camera Controls */}
+                <div className="p-6 bg-black/50">
+                  <div className="flex items-center justify-center space-x-6">
+                    <button
+                      onClick={stopCamera}
+                      className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                    >
+                      {language === 'en' ? 'Cancel' : language === 'mr' ? 'रद्द करा' : 'रद्द करें'}
+                    </button>
+
+                    <button
+                      onClick={capturePhoto}
+                      className="px-8 py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors flex items-center space-x-2"
+                    >
+                      <Camera className="w-6 h-6" />
+                      <span className="font-semibold">
+                        {language === 'en' ? 'Capture' : language === 'mr' ? 'कॅप्चर' : 'कैप्चर'}
+                      </span>
+                    </button>
+
+                    <div className="w-16"></div> {/* Spacer for balance */}
+                  </div>
+
+                  <div className="mt-4 text-center">
+                    <p className="text-white/70 text-sm">
+                      {language === 'en'
+                        ? 'Position the diseased part of the crop within the frame and tap capture'
+                        : language === 'mr'
+                          ? 'फसलाचा रोगग्रस्त भाग फ्रेममध्ये ठेवा आणि कॅप्चर दाबा'
+                          : 'फसल के रोगग्रस्त हिस्से को फ्रेम में रखें और कैप्चर दबाएं'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Hidden canvas for photo capture */}
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+          )}
         </div>
       )}
     </div>
