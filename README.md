@@ -1,188 +1,320 @@
 
-# Kisan Sathi — AI-Powered Agricultural Assistant
+# KisanSaathi — AI-Powered Agricultural Assistant
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg)
+![React](https://img.shields.io/badge/React-18.3-61dafb.svg)
+![Node.js](https://img.shields.io/badge/Node.js-Express-green.svg)
 
-Kisan Sathi is an intelligent, multilingual digital assistant designed to empower farmers across India. It combines AI, real-time government data, and machine learning to provide actionable insights on crop health, market trends, and government schemes — all in a simple and farmer-friendly interface.
+KisanSaathi is an intelligent, multilingual digital assistant designed to empower farmers across India. It combines AI, real-time government data, and machine learning to provide actionable insights on crop health, market trends, and government schemes — all in a simple and farmer-friendly interface.
 
 ## 🚀 Key Features
 
-1. 🧠 Crop Disease Detection
+### 🧠 AI-Powered Chatbot
+- Conversational AI assistant powered by Google Gemini
+- Multilingual support (English, Hindi, Marathi)
+- Real-time responses via WebSocket
+- Context-aware farming advice
 
-- Upload or capture crop images to identify diseases instantly.
-- Uses CNN-based image classification (ResNet/MobileNet).
-- Provides treatment suggestions and prevention guidance.
+### 🌾 Crop Disease Detection
+- Upload or capture crop images to identify diseases instantly
+- AI-powered image analysis using Gemini Vision API
+- Treatment suggestions and prevention guidance
+- Disease history tracking
 
-2. 💰 Market Price Analysis & Forecasting
+### 💰 Market Price Analysis
+- Real-time mandi price data integration
+- Price trend visualization with interactive charts
+- Historical price analysis
+- Market insights and forecasting
 
-- Fetches live mandi price data from the official Agmarknet API and eNAM sources.
-- Shows nearby market prices and trends for crops.
-- Uses ARIMA / LSTM models for short-term price forecasting.
+### 🏛️ Government Schemes Discovery
+- Browse latest agricultural schemes
+- Filter by state, crop, and eligibility
+- Detailed scheme information and application links
+- Personalized scheme recommendations
 
-3. 🏛️ Government Schemes Discovery
-
-- Dynamically fetches latest schemes using the MyScheme API (no hard-coded data).
-- Filters by state, crop, and eligibility.
-- Summarizes details in simple local language via Gemini AI.
-
-4. 🗣️ Multilingual Support
-
-- Interact with the app in English, Hindi, or Marathi.
-- Supports both text and voice queries.
-- Integrates Google Cloud Translation API and Text-to-Speech for conversational use.
+### 📱 User-Friendly Interface
+- Modern, responsive design
+- Dark/Light theme support
+- Real-time notifications
+- Offline capability (PWA ready)
 
 ---
 
 ## 🧩 System Architecture
 
-Farmer Mobile/Web App
-	↓
-FastAPI Backend API
-   ├── /disease-detect  → TensorFlow/PyTorch Model
-   ├── /market-prices   → Agmarknet / eNAM APIs
-   ├── /schemes         → MyScheme API
-   └── /chat            → Gemini AI Summarization
-	↓
-Databases
-   ├── PostgreSQL (data + user)
-   └── Redis (cache)
+```
+┌─────────────────────────────────────┐
+│   React + TypeScript Frontend       │
+│   (Vite, TailwindCSS, Recharts)    │
+└──────────────┬──────────────────────┘
+               │ HTTP/WebSocket
+┌──────────────▼──────────────────────┐
+│   Express.js Backend (TypeScript)   │
+│   ├── /api/auth     → JWT Auth     │
+│   ├── /api/ai       → Gemini AI    │
+│   ├── /api/profile  → User Data    │
+│   └── /api/users    → User Mgmt    │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│         MongoDB Database            │
+│   (User, Profile, Chat History)    │
+└─────────────────────────────────────┘
+```
 
 ---
 
-## 🧠 AI & NLP Stack
+## 🧠 AI & Technology Stack
 
-- Crop Image Classification: TensorFlow / PyTorch (ResNet / MobileNet)
-- Market Price Forecast: ARIMA / LSTM (scikit-learn, statsmodels)
-- Conversational AI: Gemini 1.5 Flash / Pro
-- NLP Translation: IndicTrans2 / Google Translate API
-- Voice Interface: Google Speech API / gTTS
+### Frontend
+- **Framework**: React 18.3 with TypeScript
+- **Build Tool**: Vite 5.4
+- **Styling**: TailwindCSS + Custom CSS
+- **Charts**: Recharts for data visualization
+- **Icons**: Lucide React
+- **Real-time**: Socket.IO Client
+
+### Backend
+- **Runtime**: Node.js with Express.js
+- **Language**: TypeScript 5.5
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: JWT (jsonwebtoken) + bcryptjs
+- **AI Integration**: Google Gemini API (@google/generative-ai)
+- **Real-time**: Socket.IO
+- **Security**: Helmet, CORS, Rate Limiting
+- **Logging**: Morgan
+
+### AI & ML
+- **Conversational AI**: Google Gemini 1.5 Flash/Pro
+- **Image Analysis**: Gemini Vision API for crop disease detection
+- **Voice Interface**: Google Cloud Speech & Text-to-Speech APIs (planned)
 
 ---
 
 ## 🔌 Data Sources
 
-- Market Prices: Agmarknet (data.gov.in) — Daily mandi-wise crop prices
-- Government Schemes: MyScheme API — Real-time central & state scheme data
-- Crop Images: Custom / PlantVillage Dataset — Training dataset for disease detection
-- Weather (optional): IMD / OpenWeatherMap — For predictive price modeling
+- **Market Prices**: Agmarknet API (data.gov.in) — Daily mandi-wise crop prices
+- **Government Schemes**: MyScheme API — Real-time central & state scheme data
+- **Crop Disease**: Gemini Vision API for image-based disease detection
+- **Weather Data**: OpenWeatherMap API (planned integration)
 
 ---
 
-## ⚙️ Tech Stack (suggested)
+## � Project Structure
 
-- Frontend: React (Web) / Flutter (Mobile)
-- Backend: FastAPI / Flask (Python)
-- Database: PostgreSQL / MySQL
-- Cache: Redis
-- AI Agent: Google Gemini API
-- Hosting: GCP / AWS / Vercel
-- Deployment: Docker / Kubernetes
+```
+KisanSaathi/
+├── frontend/              # React + TypeScript frontend
+│   ├── components/        # Reusable UI components
+│   ├── contexts/          # React context providers
+│   ├── hooks/             # Custom React hooks
+│   ├── services/          # API service layer
+│   └── types/             # TypeScript type definitions
+├── server/                # Express.js backend
+│   └── src/
+│       ├── config/        # Database and app configuration
+│       ├── controllers/   # Route controllers
+│       ├── middleware/    # Custom middleware
+│       ├── models/        # MongoDB models
+│       ├── routes/        # API routes
+│       ├── services/      # Business logic services
+│       └── types/         # TypeScript types
+├── .env                   # Root environment variables
+└── package.json           # Root package with dev scripts
+```
 
 ---
 
 ## 💡 How It Works
 
-1. Farmer asks a query or uploads an image.
-2. Backend routes the query to the right module (Disease, Price, or Schemes).
-3. Gemini AI summarizes or interprets the result.
-4. The response is displayed in the user’s preferred language or voice output.
+1. **User Interaction**: Farmer interacts via web interface (text/voice/image upload)
+2. **Frontend Processing**: React app validates input and sends request to backend
+3. **API Routing**: Express.js routes request to appropriate controller
+4. **AI Processing**: 
+   - Chat queries → Gemini API for conversational responses
+   - Image uploads → Gemini Vision API for disease detection
+   - Data queries → MongoDB for historical data
+5. **Real-time Updates**: WebSocket (Socket.IO) for live notifications
+6. **Response Delivery**: Results displayed in user's preferred language
 
 ---
 
-## 📦 Quick Setup (Development)
+## � Quick Setup (Development)
 
-> These commands are adapted for PowerShell on Windows. Adjust as needed for macOS/Linux.
+> These commands are optimized for Windows PowerShell. Adjust as needed for macOS/Linux.
 
-1. Clone the repository
+### Prerequisites
+- Node.js 18+ and npm
+- MongoDB (local or cloud instance)
+- Google Gemini API key
 
-```powershell
-git clone https://github.com/yourusername/kisan-sathi.git
-cd kisan-sathi
-```
-
-2. Create and activate virtual environment (recommended)
+### 1. Clone the repository
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+git clone https://github.com/ShahidKhan232/KisanSaathi.git
+cd KisanSaathi
 ```
 
-3. Install dependencies
+### 2. Install dependencies
 
 ```powershell
-pip install -r requirements.txt
+# Install root dependencies (includes concurrently for dev)
+npm install
+
+# Install server dependencies
+cd server
+npm install
+cd ..
 ```
 
-4. Set environment variables
+### 3. Set up environment variables
 
-Create a `.env` file in the project root or backend folder and add the following (example):
+Create `.env` file in the **root directory**:
 
 ```env
-GEMINI_API_KEY=your_gemini_api_key
-MYSHEME_API_URL=https://api.myscheme.gov.in/schemes
-AGMARKNET_API_URL=https://data.gov.in/resource/current-daily-price-various-commodities-various-markets-mandi
-DATABASE_URL=postgresql://user:password@localhost:5432/kisan_sathi
-REDIS_URL=redis://localhost:6379/0
+# Client Configuration
+VITE_API_URL=http://localhost:5001
+VITE_WS_URL=http://localhost:5001
+
+# Server Configuration (used by server/.env)
+PORT=5001
+NODE_ENV=development
 ```
 
-5. Run the server (FastAPI example)
+Create `server/.env` file:
 
-```powershell
-uvicorn app.main:app --reload
+```env
+# Server Port
+PORT=5001
+NODE_ENV=development
+
+# MongoDB Connection
+MONGODB_URI=mongodb://localhost:27017/kisansaathi
+# OR use MongoDB Atlas:
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/kisansaathi
+
+# JWT Secret (generate a secure random string)
+JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
+
+# Google Gemini API
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# CORS Configuration
+CLIENT_ORIGIN=http://localhost:5173
+
+# Optional: External APIs
+AGMARKNET_API_URL=https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070
+MYSCHEME_API_URL=https://www.myscheme.gov.in/api/v1/schemes
 ```
 
-6. (Optional) Run front-end dev server
-
-If a frontend lives in a separate folder (e.g., `web/` or `client/`), follow its README. Commonly:
+### 4. Start the development servers
 
 ```powershell
-cd client
-npm install
+# Start both frontend and backend concurrently
 npm run dev
+
+# OR start them separately:
+# Terminal 1 - Frontend
+npm run dev:client
+
+# Terminal 2 - Backend
+npm run dev:server
+```
+
+The application will be available at:
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:5001
+- **API Health Check**: http://localhost:5001/api/health
+
+### 5. Build for production
+
+```powershell
+# Build both frontend and backend
+npm run build
+
+# Start production server
+cd server
+npm start
 ```
 
 ---
 
 ## 🌍 Future Enhancements
 
-- Voice-based virtual assistant for regional languages.
-- Integration with IoT sensors for soil & weather-based recommendations.
-- Crop yield prediction using satellite data.
-- WhatsApp & Telegram bot versions of Kisan Sathi.
+- **Advanced ML Models**: Implement custom CNN models for more accurate disease detection
+- **Price Forecasting**: ARIMA/LSTM models for market price predictions
+- **Voice Assistant**: Full voice-based interaction in regional languages
+- **IoT Integration**: Connect with soil sensors and weather stations
+- **Crop Yield Prediction**: Satellite imagery analysis for yield forecasting
+- **Multi-platform**: WhatsApp & Telegram bot versions
+- **Offline Mode**: Progressive Web App (PWA) with offline capabilities
+- **Community Features**: Farmer forums and knowledge sharing
+- **E-commerce Integration**: Direct market linkage for selling produce
 
 ---
 
-## 👥 Team & Credits
+## � API Endpoints
 
-Developed by:
-Department of Computer Science & Engineering (AI/ML)
-[Your Institute Name]
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
 
-Data Sources:
-- Ministry of Agriculture & Farmers Welfare
-- Ministry of Statistics & Programme Implementation
-- MyScheme (Govt. of India)
-- data.gov.in
+### AI Features
+- `POST /api/ai/chat` - Chat with AI assistant
+- `POST /api/ai/disease-detect` - Detect crop diseases from images
+
+### User Management
+- `GET /api/profile` - Get user profile
+- `PUT /api/profile` - Update user profile
+- `GET /api/users` - List users (admin)
+
+### Health Checks
+- `GET /api/health` - Server health status
+- `GET /api/health/database` - Database connection status
 
 ---
 
-## License
+## 👥 Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
 
 This project is licensed under the MIT License — see the [LICENSE](./LICENSE) file for details.
 
 ---
 
-## 📌 Notes
+## � Acknowledgments
 
-- This `README` is a project-level overview. Move or adapt sections into `server/README.md` or `client/README.md` if you split the project later.
-- Consider adding a `README.dev.md` with full local build/run instructions and a `docker-compose.yml` for quick local development with Postgres and Redis.
+**Developed by**: Shahid Khan  
+**Department**: Computer Science & Engineering (AI/ML)
+
+**Data Sources**:
+- Ministry of Agriculture & Farmers Welfare
+- Ministry of Statistics & Programme Implementation
+- MyScheme (Government of India)
+- data.gov.in
+- Google Gemini AI
 
 ---
 
-If you'd like, I can also:
+## 📞 Support
 
-- Create `server/.env.example` with placeholders
-- Add a `docker-compose.yml` to run Postgres and Redis locally
-- Add GitHub Actions to run tests and lints on PRs
+For issues, questions, or suggestions:
+- **GitHub Issues**: [Create an issue](https://github.com/ShahidKhan232/KisanSaathi/issues)
+- **Email**: Contact the development team
 
-Tell me which of those you'd like next.
+---
+
+**Made with ❤️ for Indian Farmers**
