@@ -1,19 +1,48 @@
-import jwt from 'jsonwebtoken';
+import type { Request, Response, NextFunction } from 'express';
+import { verifyToken, getTokenFromHeader, type JwtPayload } from '../utils/jwt.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me';
-
-interface TokenPayload {
-  userId: string;
-  email: string;
-  iat?: number;
-  exp?: number;
+// Extend Express Request type to include user
+export interface AuthRequest extends Request {
+  user?: JwtPayload;
 }
 
-export const verifyToken = async (token: string): Promise<TokenPayload> => {
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
-    return decoded;
-  } catch (error) {
-    throw new Error('Invalid token');
+export const authRequired = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  const token = getTokenFromHeader(req.headers.authorization);
+
+  if (!token) {
+    res.status(401).json({ error: 'Unauthorized: No token provided' });
+    return;
   }
+
+  const payload = verifyToken(token);
+
+  if (!payload) {
+    res.status(401).json({ error: 'Unauthorized: Invalid token' });
+    return;
+  }
+
+  req.user = payload;
+  next();
+};
+
+// Optional auth - sets user if token is valid, but doesn't require it
+export const authOptional = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  const token = getTokenFromHeader(req.headers.authorization);
+
+  if (token) {
+    const payload = verifyToken(token);
+    if (payload) {
+      req.user = payload;
+    }
+  }
+
+  next();
 };

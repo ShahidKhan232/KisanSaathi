@@ -1,6 +1,6 @@
 import { Server as HttpServer } from 'node:http';
 import { Server, Socket } from 'socket.io';
-import { verifyToken } from '../middleware/auth.js';
+import { verifyToken } from '../utils/jwt.js';
 
 export class WebSocketManager {
   private io: Server;
@@ -26,9 +26,13 @@ export class WebSocketManager {
         if (!token) {
           throw new Error('Authentication error');
         }
-        
-        const decoded = await verifyToken(token);
-        socket.data.userId = decoded.userId;
+
+        const decoded = verifyToken(token);
+        if (!decoded) {
+          throw new Error('Invalid token');
+        }
+
+        socket.data.userId = decoded.id; // Changed from decoded.userId to decoded.id
         next();
       } catch (error) {
         next(new Error('Authentication error'));
@@ -39,7 +43,7 @@ export class WebSocketManager {
   private setupEventHandlers() {
     this.io.on('connection', (socket: Socket) => {
       const userId = socket.data.userId;
-      
+
       // Track user connections
       this.addUserSocket(userId, socket.id);
 

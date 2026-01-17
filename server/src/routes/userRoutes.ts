@@ -1,7 +1,8 @@
 import express, { Request, Response } from 'express';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
-import { UserProfile } from '../types.js';
+import type { UserProfile } from '../types.js';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -27,12 +28,12 @@ router.get('/:userId/profile', (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
     const authUserId = req.headers.authorization?.replace('Bearer ', '');
-    
+
     // Verify user is fetching their own profile
     if (!authUserId || authUserId !== userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    
+
     // Return profile or create default if it doesn't exist
     let profile = sampleUserProfiles[userId];
     if (!profile) {
@@ -48,7 +49,7 @@ router.get('/:userId/profile', (req: Request, res: Response) => {
       };
       sampleUserProfiles[userId] = profile;
     }
-    
+
     res.json(profile);
   } catch (error) {
     console.error('Error fetching user profile:', error);
@@ -62,12 +63,12 @@ router.patch('/:userId/profile', (req: Request, res: Response) => {
     const { userId } = req.params;
     const authUserId = req.headers.authorization?.replace('Bearer ', '');
     const updates = req.body;
-    
+
     // Verify user is updating their own profile
     if (!authUserId || authUserId !== userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    
+
     // Create default profile if it doesn't exist
     if (!sampleUserProfiles[userId]) {
       sampleUserProfiles[userId] = {
@@ -81,14 +82,14 @@ router.patch('/:userId/profile', (req: Request, res: Response) => {
         previousApplications: []
       };
     }
-    
+
     // Update profile
     sampleUserProfiles[userId] = {
       ...sampleUserProfiles[userId],
       ...updates,
       lastUpdated: new Date().toISOString()
     };
-    
+
     res.json(sampleUserProfiles[userId]);
   } catch (error) {
     console.error('Error updating user profile:', error);
