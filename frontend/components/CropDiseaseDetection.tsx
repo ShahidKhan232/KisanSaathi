@@ -663,7 +663,7 @@ export function CropDiseaseDetection() {
               </div>
 
               <div className="lg:w-1/2 space-y-4">
-                {!result && !isAnalyzing && (
+                {!result && !isAnalyzing && !aiTextResult && (
                   <div className="text-center p-6 bg-gradient-to-br from-primary-50 to-accent-50 rounded-xl border border-primary-100">
                     <div className="relative inline-block mb-4">
                       <div className="absolute inset-0 bg-gradient-to-r from-primary-400 to-accent-400 rounded-full blur-lg opacity-50"></div>
@@ -693,44 +693,47 @@ export function CropDiseaseDetection() {
                     <p className="text-gray-600">{t('analyzingCrop')}</p>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
 
-                {/* AI Text Result - Formatted */}
-                {!isAnalyzing && aiTextResult && (
-                  <div ref={resultsRef}>
-                    <div className="text-left rounded-xl glass border border-white/50 overflow-hidden shadow-premium animate-fadeIn">
-                      <div className="bg-gradient-to-r from-primary-500 to-accent-500 px-4 py-3 text-white">
-                        <h4 className="text-lg font-semibold flex items-center justify-between">
-                          <div className="flex items-center">
-                            <CheckCircle className="w-5 h-5 mr-2" />
-                            {language === 'en' ? 'AI Diagnosis Report' : language === 'mr' ? 'AI निदान रिपोर्ट' : 'AI निदान रिपोर्ट'}
-                          </div>
-                          {isCachedResult && (
-                            <span className="text-xs bg-white/20 px-2 py-1 rounded">
-                              Cached
-                            </span>
-                          )}
-                        </h4>
-                      </div>
-                      <div className="p-4 sm:p-6 max-h-[500px] overflow-y-auto">
-                        {formatAIResponse(aiTextResult)}
-                      </div>
-                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-t border-gray-200">
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <button className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white py-2 px-4 rounded-lg text-sm transition-all duration-200 transform hover:scale-105 font-semibold">
-                            {language === 'en' ? 'Consult Expert' : language === 'mr' ? 'तज्ञांशी सल्लामसलत करा' : 'विशेषज्ञ से सलाह लें'}
-                          </button>
-                          <button className="flex-1 bg-gradient-to-r from-accent-600 to-accent-700 hover:from-accent-700 hover:to-accent-800 text-white py-2 px-4 rounded-lg text-sm transition-all duration-200 transform hover:scale-105 font-semibold">
-                            {language === 'en' ? 'Order Medicine' : language === 'mr' ? 'औषध ऑर्डर करा' : 'दवाई ऑर्डर करें'}
-                          </button>
-                        </div>
-                      </div>
+          {/* AI Text Result - Formatted - Full Width Section */}
+          {!isAnalyzing && aiTextResult && (
+            <div ref={resultsRef} className="glass rounded-2xl shadow-premium border border-white/50 p-6 animate-fadeIn">
+              <div className="text-left rounded-xl overflow-hidden">
+                <div className="bg-gradient-to-r from-primary-500 to-accent-500 px-4 py-3 text-white rounded-t-xl">
+                  <h4 className="text-lg font-semibold flex items-center justify-between">
+                    <div className="flex items-center">
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      {language === 'en' ? 'AI Diagnosis Report' : language === 'mr' ? 'AI निदान रिपोर्ट' : 'AI निदान रिपोर्ट'}
                     </div>
-                )}
+                    {isCachedResult && (
+                      <span className="text-xs bg-white/20 px-2 py-1 rounded">
+                        Cached
+                      </span>
+                    )}
+                  </h4>
+                </div>
+                <div className="p-4 sm:p-6 max-h-[600px] overflow-y-auto bg-white rounded-b-xl">
+                  {formatAIResponse(aiTextResult)}
+                </div>
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-t border-gray-200 rounded-b-xl">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white py-2 px-4 rounded-lg text-sm transition-all duration-200 transform hover:scale-105 font-semibold">
+                      {language === 'en' ? 'Consult Expert' : language === 'mr' ? 'तज्ञांशी सल्लामसलत करा' : 'विशेषज्ञ से सलाह लें'}
+                    </button>
+                    <button className="flex-1 bg-gradient-to-r from-accent-600 to-accent-700 hover:from-accent-700 hover:to-accent-800 text-white py-2 px-4 rounded-lg text-sm transition-all duration-200 transform hover:scale-105 font-semibold">
+                      {language === 'en' ? 'Order Medicine' : language === 'mr' ? 'औषध ऑर्डर करा' : 'दवाई ऑर्डर करें'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-            </div>
+          )}
 
-            {/* Results */}
-            {!isAnalyzing && !aiTextResult && result && (
+          {/* Fallback Results (old format) */}
+          {!isAnalyzing && !aiTextResult && result && (
+            <div className="glass rounded-2xl shadow-premium border border-white/50 p-6">
               <div className="bg-white rounded-xl shadow-sm border p-6">
                 <div className="flex items-center space-x-2 mb-4">
                   <CheckCircle className="w-6 h-6 text-green-600" />
@@ -801,9 +804,9 @@ export function CropDiseaseDetection() {
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-      )}
+            </div>
+          )}
+
 
           {/* Tips Section */}
           <div className="relative overflow-hidden rounded-2xl shadow-premium animate-fadeIn">
@@ -931,5 +934,7 @@ export function CropDiseaseDetection() {
             </div>
           )}
         </div>
-      );
+      )}
+    </div>
+  );
 }
