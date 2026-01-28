@@ -11,7 +11,7 @@ export let mongoReady = false;
  */
 export const connectDatabase = async (): Promise<void> => {
     if (!MONGO_URI) {
-        console.warn('⚠️  MONGO_URI not set. Using in-memory storage.');
+        console.warn('⚠️  MONGO_URI not set. Using in-memory storage. DATA WILL BE LOST ON RESTART.');
         return;
     }
 
@@ -44,7 +44,7 @@ export const connectDatabase = async (): Promise<void> => {
                 console.log(`   Retrying in ${RETRY_DELAY / 1000} seconds...`);
                 await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
             } else {
-                console.warn('   Max retries reached. Using in-memory storage as fallback.');
+                console.warn('   Max retries reached. Using in-memory storage as fallback. DATA WILL BE LOST ON RESTART.');
             }
         }
     }

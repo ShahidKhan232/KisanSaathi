@@ -3,6 +3,7 @@ import { User, Edit, MapPin, Phone, Mail, CreditCard, Settings, LogOut, Volume, 
 import { Modal } from './Modal';
 import { useLanguage } from '../hooks/useLanguage';
 import { useAuth } from '../hooks/useAuth';
+import { socketService } from '../services/socketService';
 
 import { useVoice } from '../hooks/useVoice';
 
@@ -52,11 +53,11 @@ export function Profile() {
       controllerRef.current?.abort();
       const ctrl = new AbortController();
       controllerRef.current = ctrl;
-      const res = await fetch(`${backendUrl}/api/profile`, { 
-        headers: { Authorization: `Bearer ${token}` }, 
-        signal: ctrl.signal 
+      const res = await fetch(`${backendUrl}/api/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: ctrl.signal
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setFromResponse(data);
@@ -79,60 +80,50 @@ export function Profile() {
     if (!token) return;
 
     fetchProfile();
-    
+
     // Poll every 5s when not editing
-    const pollId = setInterval(() => { 
+    const pollId = setInterval(() => {
       if (document.visibilityState === 'visible') {
-        fetchProfile(); 
+        fetchProfile();
       }
     }, 5000);
 
     // Refetch on window focus/visibility
     const onFocus = () => fetchProfile();
-    const onVisibility = () => { 
-      if (document.visibilityState === 'visible') fetchProfile(); 
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') fetchProfile();
     };
-    
-    // WebSocket connection for real-time updates
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/api/profile/ws`;
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ token }));
-    };
-    
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'profile_update') {
-          setFromResponse(data.profile);
-          setLastUpdated(new Date());
-        } else if (data.type === 'stats_update') {
-          setStats({
-            totalCrops: data.stats.totalCrops || stats.totalCrops,
-            schemesApplied: data.stats.schemesApplied || stats.schemesApplied,
-            monthlyEarnings: data.stats.monthlyEarnings || stats.monthlyEarnings,
-            membershipYears: data.stats.membershipYears || stats.membershipYears,
-            lastUpdate: new Date()
-          });
-        }
-      } catch (err) {
-        console.error('WebSocket message error:', err);
+
+    // Connect to Socket.IO
+    socketService.connect(token); // Passing token as userId/auth token
+
+    // Subscribe to profile updates
+    const handleProfileUpdate = (data: any) => {
+      if (data.profile) {
+        setFromResponse(data.profile);
+        setLastUpdated(new Date());
+      }
+      if (data.stats) {
+        setStats({
+          totalCrops: data.stats.totalCrops || stats.totalCrops,
+          schemesApplied: data.stats.schemesApplied || stats.schemesApplied,
+          monthlyEarnings: data.stats.monthlyEarnings || stats.monthlyEarnings,
+          membershipYears: data.stats.membershipYears || stats.membershipYears,
+          lastUpdate: new Date()
+        });
       }
     };
 
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', onVisibility);
-    
+    socketService.subscribe('profile:update', handleProfileUpdate);
+
     return () => {
       clearInterval(pollId);
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
       controllerRef.current?.abort();
-      ws.close();
+      socketService.unsubscribe('profile:update');
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backendUrl, token, isEditing]);
 
   // Stats state
@@ -169,44 +160,44 @@ export function Profile() {
   // Add stats fetching to the useEffect
   useEffect(() => {
     if (!token) return;
-    
+
     fetchStats();
     const statsInterval = setInterval(fetchStats, 30000); // Update every 30 seconds
-    
+
     return () => clearInterval(statsInterval);
   }, [token, backendUrl]);
 
   const statsDisplay = [
-    { 
-      label: t('totalCrops'), 
+    {
+      label: t('totalCrops'),
       value: stats.totalCrops.toString(),
       color: 'text-green-600',
       loading: loading,
       formatter: (v: string) => v
     },
-    { 
-      label: t('schemesApplied'), 
+    {
+      label: t('schemesApplied'),
       value: stats.schemesApplied.toString(),
       color: 'text-blue-600',
       loading: loading,
       formatter: (v: string) => v
     },
-    { 
-      label: language === 'en' ? 'This Month Earnings' : language === 'mr' ? 'या महिन्याची कमाई' : 'इस महीने कमाई', 
+    {
+      label: language === 'en' ? 'This Month Earnings' : language === 'mr' ? 'या महिन्याची कमाई' : 'इस महीने कमाई',
       value: stats.monthlyEarnings.toString(),
       color: 'text-purple-600',
       loading: loading,
       formatter: (v: string) => `₹${parseInt(v).toLocaleString('en-IN')}`
     },
-    { 
-      label: language === 'en' ? 'Membership' : language === 'mr' ? 'सदस्यत्व' : 'सदस्यता', 
+    {
+      label: language === 'en' ? 'Membership' : language === 'mr' ? 'सदस्यत्व' : 'सदस्यता',
       value: stats.membershipYears.toString(),
       color: 'text-orange-600',
       loading: loading,
-      formatter: (v: string) => language === 'en' 
-        ? `${v} Years` 
-        : language === 'mr' 
-          ? `${v} वर्षे` 
+      formatter: (v: string) => language === 'en'
+        ? `${v} Years`
+        : language === 'mr'
+          ? `${v} वर्षे`
           : `${v} साल`
     }
   ];
@@ -265,9 +256,9 @@ export function Profile() {
   };
 
   const menuItems = [
-    { 
-      icon: Settings, 
-      label: t('settings'), 
+    {
+      icon: Settings,
+      label: t('settings'),
       action: () => setShowSettings(true),
       dialog: showSettings,
       setDialog: setShowSettings,
@@ -297,9 +288,9 @@ export function Profile() {
         </div>
       )
     },
-    { 
-      icon: CreditCard, 
-      label: t('paymentHistory'), 
+    {
+      icon: CreditCard,
+      label: t('paymentHistory'),
       action: () => {
         setShowPayments(true);
         fetchPayments();
@@ -314,10 +305,10 @@ export function Profile() {
           <div className="space-y-4">
             {payments.length === 0 ? (
               <p className="text-gray-500 text-center py-4">
-                {language === 'en' 
-                  ? 'No payment history found' 
-                  : language === 'mr' 
-                    ? 'कोणताही पेमेंट हिस्टरी सापडला नाही' 
+                {language === 'en'
+                  ? 'No payment history found'
+                  : language === 'mr'
+                    ? 'कोणताही पेमेंट हिस्टरी सापडला नाही'
                     : 'कोई भुगतान इतिहास नहीं मिला'}
               </p>
             ) : (
@@ -330,11 +321,10 @@ export function Profile() {
                     </div>
                     <div className="text-right">
                       <p className="font-medium">₹{payment.amount}</p>
-                      <p className={`text-sm ${
-                        payment.status === 'success' ? 'text-green-500' : 
-                        payment.status === 'pending' ? 'text-yellow-500' : 
-                        'text-red-500'
-                      }`}>
+                      <p className={`text-sm ${payment.status === 'success' ? 'text-green-500' :
+                          payment.status === 'pending' ? 'text-yellow-500' :
+                            'text-red-500'
+                        }`}>
                         {payment.status}
                       </p>
                     </div>
@@ -346,9 +336,9 @@ export function Profile() {
         </div>
       )
     },
-    { 
-      icon: Phone, 
-      label: t('helpSupport'), 
+    {
+      icon: Phone,
+      label: t('helpSupport'),
       action: () => setShowSupport(true),
       dialog: showSupport,
       setDialog: setShowSupport,
@@ -360,62 +350,62 @@ export function Profile() {
           <div className="space-y-4">
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-800">
               <p className="font-medium mb-1">
-                {language === 'en' 
-                  ? 'Customer Support' 
-                  : language === 'mr' 
-                    ? 'ग्राहक सहाय्य' 
+                {language === 'en'
+                  ? 'Customer Support'
+                  : language === 'mr'
+                    ? 'ग्राहक सहाय्य'
                     : 'ग्राहक सहायता'}
               </p>
               <p className="text-sm">
-                {language === 'en' 
-                  ? 'Call us: 1800-123-4567 (Toll Free)' 
-                  : language === 'mr' 
-                    ? 'आम्हाला कॉल करा: 1800-123-4567 (टोल फ्री)' 
+                {language === 'en'
+                  ? 'Call us: 1800-123-4567 (Toll Free)'
+                  : language === 'mr'
+                    ? 'आम्हाला कॉल करा: 1800-123-4567 (टोल फ्री)'
                     : 'हमें कॉल करें: 1800-123-4567 (टोल फ्री)'}
               </p>
               <p className="text-sm">
-                {language === 'en' 
-                  ? 'Email: support@kisansathi.com' 
+                {language === 'en'
+                  ? 'Email: support@kisansathi.com'
                   : 'ईमेल: support@kisansathi.com'}
               </p>
             </div>
-            
+
             <div className="space-y-2">
               <textarea
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 rows={4}
-                placeholder={language === 'en' 
-                  ? 'Type your message here...' 
-                  : language === 'mr' 
-                    ? 'येथे आपला संदेश टाइप करा...' 
+                placeholder={language === 'en'
+                  ? 'Type your message here...'
+                  : language === 'mr'
+                    ? 'येथे आपला संदेश टाइप करा...'
                     : 'यहां अपना संदेश टाइप करें...'}
               ></textarea>
-              <button 
+              <button
                 className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                 onClick={() => submitSupportMessage("User's message")}
               >
-                {language === 'en' 
-                  ? 'Send Message' 
-                  : language === 'mr' 
-                    ? 'संदेश पाठवा' 
+                {language === 'en'
+                  ? 'Send Message'
+                  : language === 'mr'
+                    ? 'संदेश पाठवा'
                     : 'संदेश भेजें'}
               </button>
             </div>
 
             <div className="space-y-4 mt-6">
               <h4 className="font-medium">
-                {language === 'en' 
-                  ? 'Previous Messages' 
-                  : language === 'mr' 
-                    ? 'मागील संदेश' 
+                {language === 'en'
+                  ? 'Previous Messages'
+                  : language === 'mr'
+                    ? 'मागील संदेश'
                     : 'पिछले संदेश'}
               </h4>
               {supportMessages.length === 0 ? (
                 <p className="text-gray-500 text-center py-4">
-                  {language === 'en' 
-                    ? 'No messages yet' 
-                    : language === 'mr' 
-                      ? 'अजून कोणतेही संदेश नाहीत' 
+                  {language === 'en'
+                    ? 'No messages yet'
+                    : language === 'mr'
+                      ? 'अजून कोणतेही संदेश नाहीत'
                       : 'अभी तक कोई संदेश नहीं'}
                 </p>
               ) : (
@@ -433,10 +423,9 @@ export function Profile() {
                           {msg.response}
                         </p>
                       )}
-                      <span className={`text-xs ${
-                        msg.status === 'answered' ? 'text-green-500' : 'text-yellow-500'
-                      }`}>
-                        {msg.status === 'answered' 
+                      <span className={`text-xs ${msg.status === 'answered' ? 'text-green-500' : 'text-yellow-500'
+                        }`}>
+                        {msg.status === 'answered'
                           ? (language === 'en' ? 'Answered' : language === 'mr' ? 'उत्तर दिले' : 'उत्तर दिया गया')
                           : (language === 'en' ? 'Pending' : language === 'mr' ? 'प्रलंबित' : 'लंबित')
                         }
@@ -450,11 +439,11 @@ export function Profile() {
         </div>
       )
     },
-    { 
-      icon: LogOut, 
-      label: t('logout'), 
-      action: () => { logout(); }, 
-      danger: true 
+    {
+      icon: LogOut,
+      label: t('logout'),
+      action: () => { logout(); },
+      danger: true
     }
   ];
 
@@ -464,9 +453,9 @@ export function Profile() {
     try {
       const res = await fetch(`${backendUrl}/api/profile`, {
         method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json', 
-          Authorization: `Bearer ${token}` 
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
           name: profile.name,
@@ -486,9 +475,9 @@ export function Profile() {
         // Immediately refresh from server to reflect any server-side changes
         await fetchProfile();
         // Show success message
-        const successMsg = language === 'en' 
+        const successMsg = language === 'en'
           ? 'Profile updated successfully'
-          : language === 'mr' 
+          : language === 'mr'
             ? 'प्रोफाइल यशस्वीरित्या अपडेट केले'
             : 'प्रोफ़ाइल सफलतापूर्वक अपडेट किया गया';
         // You might want to add a toast/notification system here
@@ -592,9 +581,9 @@ export function Profile() {
                 </span>
               ) : (
                 <span>
-                  {language === 'en' 
-                    ? `Last updated: ${lastUpdated.toLocaleTimeString()}` 
-                    : language === 'mr' 
+                  {language === 'en'
+                    ? `Last updated: ${lastUpdated.toLocaleTimeString()}`
+                    : language === 'mr'
                       ? `शेवटचे अपडेट: ${lastUpdated.toLocaleTimeString()}`
                       : `आखरी अपडेट: ${lastUpdated.toLocaleTimeString()}`
                   }
@@ -628,7 +617,7 @@ export function Profile() {
                 <input
                   type="text"
                   value={profile.name}
-                  onChange={(e) => setProfile({...profile, name: e.target.value})}
+                  onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               ) : (
@@ -642,7 +631,7 @@ export function Profile() {
                 <input
                   type="text"
                   value={profile.phone}
-                  onChange={(e) => setProfile({...profile, phone: e.target.value})}
+                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               ) : (
@@ -659,7 +648,7 @@ export function Profile() {
                 <input
                   type="email"
                   value={profile.email}
-                  onChange={(e) => setProfile({...profile, email: e.target.value})}
+                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               ) : (
@@ -675,7 +664,7 @@ export function Profile() {
               {isEditing ? (
                 <textarea
                   value={profile.location}
-                  onChange={(e) => setProfile({...profile, location: e.target.value})}
+                  onChange={(e) => setProfile({ ...profile, location: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                   rows={2}
                 />
@@ -692,7 +681,7 @@ export function Profile() {
                 <input
                   type="text"
                   value={profile.landSize}
-                  onChange={(e) => setProfile({...profile, landSize: e.target.value})}
+                  onChange={(e) => setProfile({ ...profile, landSize: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               ) : (
@@ -717,16 +706,16 @@ export function Profile() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               ) : (
-              <div className="flex flex-wrap gap-2 mt-1">
-                {profile.crops.map((crop, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full"
-                  >
-                    {crop}
-                  </span>
-                ))}
-              </div>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {profile.crops.map((crop, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full"
+                    >
+                      {crop}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -736,11 +725,11 @@ export function Profile() {
                 <input
                   type="text"
                   value={profile.kccNumber}
-                  onChange={(e) => setProfile({...profile, kccNumber: e.target.value})}
+                  onChange={(e) => setProfile({ ...profile, kccNumber: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 font-mono"
                 />
               ) : (
-              <p className="text-gray-800 font-mono">{profile.kccNumber}</p>
+                <p className="text-gray-800 font-mono">{profile.kccNumber}</p>
               )}
             </div>
 
@@ -750,11 +739,11 @@ export function Profile() {
                 <input
                   type="text"
                   value={profile.aadhaar}
-                  onChange={(e) => setProfile({...profile, aadhaar: e.target.value})}
+                  onChange={(e) => setProfile({ ...profile, aadhaar: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 font-mono"
                 />
               ) : (
-              <p className="text-gray-800 font-mono">{profile.aadhaar}</p>
+                <p className="text-gray-800 font-mono">{profile.aadhaar}</p>
               )}
             </div>
 
@@ -764,11 +753,11 @@ export function Profile() {
                 <input
                   type="text"
                   value={profile.bankAccount}
-                  onChange={(e) => setProfile({...profile, bankAccount: e.target.value})}
+                  onChange={(e) => setProfile({ ...profile, bankAccount: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
               ) : (
-              <p className="text-gray-800">{profile.bankAccount}</p>
+                <p className="text-gray-800">{profile.bankAccount}</p>
               )}
             </div>
           </div>
@@ -785,11 +774,10 @@ export function Profile() {
               <div key={index}>
                 <button
                   onClick={item.action}
-                  className={`flex items-center space-x-3 p-4 rounded-lg transition-colors text-left w-full ${
-                    item.danger
+                  className={`flex items-center space-x-3 p-4 rounded-lg transition-colors text-left w-full ${item.danger
                       ? 'bg-red-50 hover:bg-red-100 text-red-600'
                       : 'bg-gray-50 hover:bg-gray-100 text-gray-800'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="font-medium">{item.label}</span>
@@ -797,8 +785,8 @@ export function Profile() {
 
                 {/* Render Modal for Settings, Payment History and Support */}
                 {!item.danger && item.dialog !== undefined && (
-                  <Modal 
-                    show={item.dialog} 
+                  <Modal
+                    show={item.dialog}
                     onClose={() => item.setDialog(false)}
                   >
                     {item.content}

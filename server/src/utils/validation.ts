@@ -12,11 +12,11 @@ export const LoginSchema = z.object({
 });
 
 export const ProfileSchema = z.object({
-    name: z.string().min(1).optional(),
-    phone: z.string().min(3).optional(),
+    name: z.string().optional(),
+    phone: z.string().optional(),
     email: z.string().email().optional(),
-    location: z.string().min(1).optional(),
-    landSize: z.string().min(1).optional(),
+    location: z.string().optional(),
+    landSize: z.string().optional(),
     crops: z.array(z.string()).optional(),
     kccNumber: z.string().optional(),
     aadhaar: z.string().optional(),

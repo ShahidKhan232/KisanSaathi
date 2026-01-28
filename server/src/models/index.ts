@@ -27,5 +27,8 @@ export { CropInfoModel, ICropInfo, ICropInfoDoc } from './CropInfo.js';
 // Weather Data
 export { WeatherDataModel, IWeatherData, IWeatherDataDoc } from './WeatherData.js';
 
+// Crop Recommendation History
+export { CropRecommendationModel, ICropRecommendation, ICropRecommendationDoc } from './CropRecommendation.js';
+
 // In-Memory Storage (fallback)
 export * from './InMemoryStorage.js';

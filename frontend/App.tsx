@@ -6,6 +6,7 @@ import { ChatBot } from './components/ChatBot';
 import { CropDiseaseDetection } from './components/CropDiseaseDetection';
 import { PricePrediction } from './components/PricePrediction';
 import { SchemeRecommendations } from './components/SchemeRecommendations';
+import { CropRecommendation } from './components/CropRecommendation';
 import { Profile } from './components/Profile';
 import { Landing } from './components/Landing';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -13,7 +14,7 @@ import { VoiceProvider } from './contexts/VoiceContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './hooks/useAuth';
 
-type ActiveTab = 'dashboard' | 'disease' | 'prices' | 'schemes' | 'profile';
+type ActiveTab = 'dashboard' | 'disease' | 'prices' | 'schemes' | 'profile' | 'recommendation';
 
 function AppInner() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
@@ -31,6 +32,7 @@ function AppInner() {
                 {activeTab === 'disease' && <CropDiseaseDetection />}
                 {activeTab === 'prices' && <PricePrediction />}
                 {activeTab === 'schemes' && <SchemeRecommendations />}
+                {activeTab === 'recommendation' && <CropRecommendation />}
                 {activeTab === 'profile' && <Profile />}
               </>
             ) : (

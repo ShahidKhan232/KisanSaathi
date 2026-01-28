@@ -20,6 +20,10 @@ import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import cropRoutes from './routes/cropRecommendation.routes.js';
+import marketPriceRoutes from './routes/marketPrice.routes.js';
+import governmentSchemeRoutes from './routes/governmentScheme.routes.js';
+import priceAlertRoutes from './routes/priceAlert.routes.js';
 
 // Services
 import { WebSocketManager } from './services/WebSocketManager.js';
@@ -83,11 +87,13 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/crop', cropRoutes);
 
-// TODO: Add remaining routes as they are created
-// app.use('/api/alerts', alertRoutes);
-// app.use('/api/prices', priceRoutes);
-// app.use('/api/schemes', schemeRoutes);
+app.api_routes_registered = true; // Flag for debug
+
+app.use('/api/alerts', priceAlertRoutes);
+app.use('/api/prices', marketPriceRoutes);
+app.use('/api/schemes', governmentSchemeRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
@@ -118,6 +124,7 @@ const httpServer = createServer(app);
 
 // Initialize WebSocket
 const wsManager = new WebSocketManager(httpServer);
+app.set('wsManager', wsManager);
 console.log('✅ WebSocket manager initialized');
 
 // Start server

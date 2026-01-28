@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm:dev:client\" \"npm:dev:server\"",
+    "dev": "concurrently \"npm:dev:frontend\" \"npm:dev:backend\"",
+    "dev:frontend": "vite",
+    "dev:backend": "npm run dev --prefix server",
     "dev:client": "vite",
     "dev:server": "npm run dev --prefix server",
     "build": "npm run build:client && npm run build:server",

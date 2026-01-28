@@ -1,7 +1,7 @@
 import mongoose, { Schema, model, Model, Document } from 'mongoose';
 
 export interface IAlert {
-    userId: string;
+    userId: mongoose.Types.ObjectId;
     crop: string;
     targetPrice: number;
     createdAt: Date;
@@ -18,7 +18,7 @@ export interface IAlert {
 export interface IAlertDoc extends Document, IAlert { }
 
 const PriceAlertSchema = new Schema<IAlertDoc>({
-    userId: { type: String, required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     crop: { type: String, required: true },
     targetPrice: { type: Number, required: true },
     createdAt: { type: Date, default: Date.now },

@@ -5,6 +5,7 @@ import { mongoReady } from '../config/database.js';
 import { ProfileSchema, type ProfileInput } from '../utils/validation.js';
 import type { AuthRequest } from '../middleware/auth.js';
 import mongoose from 'mongoose';
+import { WebSocketManager } from '../services/WebSocketManager.js';
 
 export const getProfile = async (req: AuthRequest, res: Response): Promise<void> => {
     const { id } = req.user!;
@@ -110,6 +111,16 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
             console.log(`Profile updated successfully for user ${id}`);
             const { _id, email, name, phone, location, landSize, crops, kccNumber, aadhaar, bankAccount } = user as any;
 
+            // Emit real-time update
+            const wsManager = req.app.get('wsManager') as WebSocketManager;
+            if (wsManager) {
+                wsManager.emitToUser(id, 'profile:update', {
+                    profile: {
+                        name, phone, email, location, landSize, crops, kccNumber, aadhaar, bankAccount
+                    }
+                });
+            }
+
             res.json({
                 id: String(_id),
                 email,
@@ -139,6 +150,20 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
         userIdToProfile[id] = updated;
 
         console.log(`Profile updated in memory for user ${id}`);
+
+        // Emit real-time update (Memory Fallback)
+        const wsManager = req.app.get('wsManager') as WebSocketManager;
+        if (wsManager) {
+            wsManager.emitToUser(id, 'profile:update', {
+                profile: {
+                    name: mem.name ?? null,
+                    email: mem.email,
+                    ...updated,
+                    crops: updated.crops ?? []
+                }
+            });
+        }
+
         res.json({
             id,
             email: mem.email,
@@ -149,5 +174,38 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
     } catch (error) {
         console.error('Profile update error:', error);
         res.status(500).json({ error: 'Failed to update profile' });
+    }
+};
+
+export const getProfileStats = async (req: AuthRequest, res: Response): Promise<void> => {
+    const { id } = req.user!;
+    try {
+        // Placeholder stats logic - replace with actual DB queries later
+        // In a real app, you'd verify mongoReady, then aggregate count of crops, schemes, etc.
+
+        let stats = {
+            totalCrops: 0,
+            schemesApplied: 2, // Mock data
+            monthlyEarnings: 24500, // Mock data
+            membershipYears: 1 // Mock data
+        };
+
+        if (mongoReady) {
+            const user = await UserModel.findById(id).lean();
+            if (user && (user as any).crops) {
+                stats.totalCrops = (user as any).crops.length;
+            }
+        } else {
+            const user = usersMemory.find(u => u.id === id);
+            const prof = userIdToProfile[id];
+            if (prof && prof.crops) {
+                stats.totalCrops = prof.crops.length;
+            }
+        }
+
+        res.json(stats);
+    } catch (error) {
+        console.error('Stats fetch error:', error);
+        res.status(500).json({ error: 'Failed to load stats' });
     }
 };

@@ -1,8 +1,12 @@
 import { Request, Response } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { CropDiseaseModel } from '../models/CropDisease.js';
+import { ChatHistoryModel } from '../models/ChatHistory.js';
+import { AuthRequest } from '../middleware/auth.js';
+import mongoose from 'mongoose';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
 // Initialize Gemini AI
 let genAI: GoogleGenerativeAI | null = null;
@@ -18,7 +22,8 @@ if (GEMINI_API_KEY) {
  */
 export const chat = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { message, systemPrompt } = req.body;
+        const { message, systemPrompt, sessionId } = req.body;
+        const user = (req as AuthRequest).user;
 
         if (!message) {
             res.status(400).json({ error: 'Message is required' });
@@ -46,6 +51,52 @@ export const chat = async (req: Request, res: Response): Promise<void> => {
             const result = await model.generateContent(fullPrompt);
             const response = await result.response;
             const text = response.text();
+
+            // Save chat history if user is authenticated
+            if (user && user.id) {
+                try {
+                    // Use provided sessionId or generate a new one
+                    // If no sessionId provided, we create a new conversation
+                    const effectiveSessionId = sessionId || new mongoose.Types.ObjectId().toString();
+
+                    let chatHistory = await ChatHistoryModel.findOne({
+                        userId: user.id,
+                        sessionId: effectiveSessionId
+                    });
+
+                    if (!chatHistory) {
+                        chatHistory = new ChatHistoryModel({
+                            userId: user.id,
+                            sessionId: effectiveSessionId,
+                            messages: []
+                        });
+                    }
+
+                    chatHistory.messages.push({
+                        role: 'user',
+                        content: message,
+                        timestamp: new Date()
+                    });
+
+                    chatHistory.messages.push({
+                        role: 'assistant',
+                        content: text,
+                        timestamp: new Date()
+                    });
+
+                    chatHistory.updatedAt = new Date();
+                    await chatHistory.save();
+
+                    console.log(`✅ Chat history saved for user ${user.id}, session ${effectiveSessionId}`);
+
+                    // Return sessionId so client can continue conversation
+                    res.json({ text, sessionId: effectiveSessionId });
+                    return;
+                } catch (dbError) {
+                    console.error('❌ Error saving chat history:', dbError);
+                    // Continue to return response even if save fails
+                }
+            }
 
             res.json({ text });
         } catch (error: any) {
@@ -83,6 +134,7 @@ export const chat = async (req: Request, res: Response): Promise<void> => {
 export const analyzeImage = async (req: Request, res: Response): Promise<void> => {
     try {
         const { imageBase64, query, systemPrompt } = req.body;
+        const user = (req as AuthRequest).user;
 
         if (!imageBase64) {
             res.status(400).json({ error: 'Image is required' });
@@ -102,7 +154,17 @@ export const analyzeImage = async (req: Request, res: Response): Promise<void> =
         }
 
         try {
-            const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+            console.log(`🤖 Using Gemini Model: ${GEMINI_MODEL}`);
+            console.log(`👤 User Authenticated: ${user ? 'YES (' + user.id + ')' : 'NO'}`);
+
+            // If user is logged in, we request raw JSON to parse and save
+            // If not, we just return text as before (or we can always request JSON and format it)
+            // Let's always request JSON for consistency
+
+            const model = genAI.getGenerativeModel({
+                model: GEMINI_MODEL,
+                generationConfig: { responseMimeType: "application/json" }
+            });
 
             // Prepare the image part
             const imagePart = {
@@ -112,19 +174,85 @@ export const analyzeImage = async (req: Request, res: Response): Promise<void> =
                 }
             };
 
+            const jsonStructurePrompt = `
+            You are an expert plant pathologist. Analyze the provided image and query.
+            Return a JSON object with this exact structure:
+            {
+                "cropName": "name of crop",
+                "detectedDisease": "name of disease or 'Healthy'",
+                "confidence": number between 0 and 100,
+                "symptoms": ["symptom 1", "symptom 2"],
+                "treatment": "detailed treatment advice",
+                "preventionTips": ["tip 1", "tip 2"],
+                "isPlant": boolean
+            }
+            If the image is not a plant, set isPlant to false.
+            `;
+
             // Combine system prompt and query
-            const fullPrompt = systemPrompt
-                ? `${systemPrompt}\n\n${query}`
-                : query;
+            const fullPrompt = `${jsonStructurePrompt}\n\n${systemPrompt || ''}\n\n${query}`;
 
             // Generate content with image and text
+            console.log('📤 Sending request to Gemini Vision API...');
             const result = await model.generateContent([fullPrompt, imagePart]);
             const response = await result.response;
-            const text = response.text();
+            const jsonText = response.text();
+            console.log('✅ Gemini analysis received');
 
-            res.json({ text, fallback: false });
+            let analysisData;
+            try {
+                analysisData = JSON.parse(jsonText);
+            } catch (e) {
+                console.error('Failed to parse JSON response:', jsonText);
+                throw new Error('Invalid JSON response from AI');
+            }
+
+            // Save to database if user is authenticated
+            if (user && user.id && analysisData.isPlant) {
+                try {
+                    await CropDiseaseModel.create({
+                        userId: user.id,
+                        cropName: analysisData.cropName || 'Unknown',
+                        imageUrl: '', // We don't save the base64 to DB to avoid size limits, ideally upload to S3/Cloudinary
+                        detectedDisease: analysisData.detectedDisease,
+                        confidence: analysisData.confidence,
+                        symptoms: analysisData.symptoms,
+                        treatment: analysisData.treatment,
+                        preventionTips: analysisData.preventionTips,
+                        detectedAt: new Date()
+                    });
+                    console.log(`✅ Disease analysis saved to database for user ${user.id}`);
+                } catch (dbError) {
+                    console.error('❌ Error saving disease record:', dbError);
+                }
+            }
+
+            // Format text for frontend display (backward compatibility)
+            const formattedText = `**Disease:** ${analysisData.detectedDisease} (${analysisData.confidence}% confidence)
+            
+**Symptoms:**
+${analysisData.symptoms.map((s: string) => `• ${s}`).join('\n')}
+
+**Treatment:**
+${analysisData.treatment}
+
+**Prevention:**
+${analysisData.preventionTips.map((s: string) => `• ${s}`).join('\n')}`;
+
+            res.json({
+                text: formattedText,
+                data: analysisData,
+                fallback: false
+            });
+
         } catch (error: any) {
-            console.error('Gemini Vision API error:', error);
+            console.error('❌ Gemini Vision API error:', error);
+
+            // Log full error details
+            if (error.response) {
+                console.error('Response status:', error.response.status);
+                console.error('Response statusText:', error.response.statusText);
+            }
 
             // Handle rate limiting
             if (error.message?.includes('quota') || error.message?.includes('rate limit')) {

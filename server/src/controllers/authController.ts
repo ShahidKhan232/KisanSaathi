@@ -45,6 +45,7 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
         }
 
         // In-memory fallback
+        console.warn('⚠️  Using in-memory storage for registration. Data will be lost on restart.');
         const exists = usersMemory.some(u => u.email === email);
         if (exists) {
             res.status(409).json({ error: 'Email already registered' });
