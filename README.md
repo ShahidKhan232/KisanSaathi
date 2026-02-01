@@ -103,7 +103,7 @@ KisanSaathi is an intelligent, multilingual digital assistant designed to empowe
 ---
 
 ## � Project Structure
-
+```
 KisanSaathi/
 ├── package.json           # Root workspace configuration
 ├── frontend/              # Frontend project (Workspace A)
@@ -121,7 +121,7 @@ KisanSaathi/
 │   ├── package.json       # Backend dependencies
 │   └── .env               # Backend environment variables
 └── README.md              # Project documentation
-
+```
 ---
 
 ## 💡 How It Works
