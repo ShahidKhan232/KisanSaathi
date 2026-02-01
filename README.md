@@ -104,26 +104,23 @@ KisanSaathi is an intelligent, multilingual digital assistant designed to empowe
 
 ## � Project Structure
 
-```
 KisanSaathi/
-├── frontend/              # React + TypeScript frontend
-│   ├── components/        # Reusable UI components
-│   ├── contexts/          # React context providers
-│   ├── hooks/             # Custom React hooks
-│   ├── services/          # API service layer
-│   └── types/             # TypeScript type definitions
-├── server/                # Express.js backend
-│   └── src/
-│       ├── config/        # Database and app configuration
-│       ├── controllers/   # Route controllers
-│       ├── middleware/    # Custom middleware
-│       ├── models/        # MongoDB models
-│       ├── routes/        # API routes
-│       ├── services/      # Business logic services
-│       └── types/         # TypeScript types
-├── .env                   # Root environment variables
-└── package.json           # Root package with dev scripts
-```
+├── package.json           # Root workspace configuration
+├── frontend/              # Frontend project (Workspace A)
+│   ├── src/               # React + TypeScript source code
+│   │   ├── components/    # Reusable UI components
+│   │   ├── contexts/      # React context providers
+│   │   ├── hooks/         # Custom React hooks
+│   │   ├── services/      # API service layer
+│   │   └── types/         # TypeScript type definitions
+│   ├── package.json       # Frontend dependencies
+│   ├── vite.config.ts     # Vite configuration
+│   └── .env               # Frontend environment variables
+├── server/                # Express.js Backend (Workspace B)
+│   ├── src/               # Backend source code
+│   ├── package.json       # Backend dependencies
+│   └── .env               # Backend environment variables
+└── README.md              # Project documentation
 
 ---
 
@@ -160,27 +157,17 @@ cd KisanSaathi
 ### 2. Install dependencies
 
 ```powershell
-# Install root dependencies (includes concurrently for dev)
+# Install all dependencies (Frontend & Backend) using Workspaces
 npm install
-
-# Install server dependencies
-cd server
-npm install
-cd ..
 ```
 
 ### 3. Set up environment variables
 
-Create `.env` file in the **root directory**:
+Create `.env` file in the **frontend directory** (`d:/KisanSaathi/frontend/.env`):
 
 ```env
 # Client Configuration
-VITE_API_URL=http://localhost:5001
-VITE_WS_URL=http://localhost:5001
-
-# Server Configuration (used by server/.env)
-PORT=5001
-NODE_ENV=development
+VITE_SERVER_URL=http://localhost:5001
 ```
 
 Create `server/.env` file:
@@ -215,12 +202,13 @@ MYSCHEME_API_URL=https://www.myscheme.gov.in/api/v1/schemes
 # Start both frontend and backend concurrently
 npm run dev
 
-# OR start them separately:
+# OR start them separately in different terminals:
+
 # Terminal 1 - Frontend
-npm run dev:client
+npm run dev:frontend
 
 # Terminal 2 - Backend
-npm run dev:server
+npm run dev:backend
 ```
 
 The application will be available at:
