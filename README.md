@@ -22,11 +22,14 @@ KisanSaathi is an intelligent, multilingual digital assistant designed to empowe
 - Treatment suggestions and prevention guidance
 - Disease history tracking
 
-### 💰 Market Price Analysis
-- Real-time mandi price data integration
-- Price trend visualization with interactive charts
-- Historical price analysis
-- Market insights and forecasting
+### 💰 AI-Generated Market Prices
+- **AI-Powered Pricing**: Daily market prices generated using Google Gemini AI
+- **25 Major Crops**: Wheat, Rice, Cotton, Soybean, Vegetables, Pulses, and more
+- **Multi-Market Coverage**: Prices from major mandis across multiple states
+- **Modern UI**: Premium design with gradients, glassmorphism effects, and animations
+- **Real-time Status**: Live AI price generation status and freshness indicators
+- **Smart Filters**: Filter by crop, market, state, and district
+- **Automated Updates**: Daily price refresh via cron jobs
 
 ### 🏛️ Government Schemes Discovery
 - Browse latest agricultural schemes
@@ -83,6 +86,7 @@ KisanSaathi is an intelligent, multilingual digital assistant designed to empowe
 - **Authentication**: JWT (jsonwebtoken) + bcryptjs
 - **AI Integration**: Google Gemini API (@google/generative-ai)
 - **Real-time**: Socket.IO
+- **Scheduling**: Node-cron for automated tasks
 - **Security**: Helmet, CORS, Rate Limiting
 - **Logging**: Morgan
 
@@ -95,33 +99,44 @@ KisanSaathi is an intelligent, multilingual digital assistant designed to empowe
 
 ## 🔌 Data Sources
 
-- **Market Prices**: Agmarknet API (data.gov.in) — Daily mandi-wise crop prices
+- **Market Prices**: Google Gemini AI — AI-generated daily prices for 25+ crops across multiple markets
 - **Government Schemes**: MyScheme API — Real-time central & state scheme data
 - **Crop Disease**: Gemini Vision API for image-based disease detection
 - **Weather Data**: OpenWeatherMap API (planned integration)
+- **Price Automation**: Node-cron for scheduled daily price generation
 
 ---
 
-## � Project Structure
+## 📁 Project Structure
 ```
 KisanSaathi/
 ├── package.json           # Root workspace configuration
 ├── frontend/              # Frontend project (Workspace A)
 │   ├── src/               # React + TypeScript source code
-│   │   ├── components/    # Reusable UI components
-│   │   ├── contexts/      # React context providers
-│   │   ├── hooks/         # Custom React hooks
-│   │   ├── services/      # API service layer
+│   │   ├── components/    # 17 React components (with README.md)
+│   │   ├── contexts/      # 4 React context providers (with README.md)
+│   │   ├── hooks/         # 8 custom React hooks (with README.md)
+│   │   ├── services/      # 8 API service modules (with README.md)
 │   │   └── types/         # TypeScript type definitions
 │   ├── package.json       # Frontend dependencies
 │   ├── vite.config.ts     # Vite configuration
 │   └── .env               # Frontend environment variables
 ├── server/                # Express.js Backend (Workspace B)
 │   ├── src/               # Backend source code
+│   │   ├── controllers/   # 14 API controllers (with README.md)
+│   │   ├── services/      # Business logic services (with README.md)
+│   │   ├── routes/        # 15 API route definitions (with README.md)
+│   │   ├── models/        # 11 MongoDB schemas (with README.md)
+│   │   ├── utils/         # 6 utility scripts & cron jobs (with README.md)
+│   │   ├── middleware/    # Authentication & validation
+│   │   ├── config/        # Database & app configuration
+│   │   └── types/         # TypeScript interfaces
 │   ├── package.json       # Backend dependencies
 │   └── .env               # Backend environment variables
 └── README.md              # Project documentation
 ```
+
+> **📚 Comprehensive Documentation**: Each major directory contains a detailed README.md file documenting all components, their features, usage patterns, and best practices. See [Documentation Summary](./docs/documentation_summary.md) for complete overview.
 ---
 
 ## 💡 How It Works
@@ -252,7 +267,13 @@ npm start
 
 ### AI Features
 - `POST /api/ai/chat` - Chat with AI assistant
-- `POST /api/ai/disease-detect` - Detect crop diseases from images
+- `POST /api/crop-disease/detect` - Detect crop diseases from images
+- `GET /api/crop-disease/history` - Get disease detection history
+
+### Market Prices (AI-Generated)
+- `GET /api/market-prices` - Get all AI-generated prices (with filters)
+- `GET /api/market-prices/ai-status` - Get AI price generation status
+- `POST /api/market-prices/fetch-ai-prices` - Manually trigger AI price generation (auth required)
 
 ### User Management
 - `GET /api/profile` - Get user profile
@@ -262,6 +283,68 @@ npm start
 ### Health Checks
 - `GET /api/health` - Server health status
 - `GET /api/health/database` - Database connection status
+
+> **📖 Complete API Reference**: See [Routes README](./server/src/routes/README.md) for detailed endpoint documentation with parameters, authentication requirements, and examples.
+
+---
+
+## 🤖 AI Market Price Generation
+
+### Overview
+KisanSaathi uses Google Gemini AI to generate realistic daily market prices for 25+ major Indian crops across multiple markets and states.
+
+### Features
+- **Daily Generation**: Automated cron job runs at midnight IST
+- **25 Crops Covered**: Cereals, pulses, oilseeds, vegetables, cash crops, and spices
+- **Multi-Market**: 2-3 markets per crop across different states
+- **Realistic Pricing**: Considers seasonal patterns, regional variations, and supply-demand
+- **Database Integration**: Automatically saves/updates prices in MongoDB
+
+### Crops Included
+- **Cereals**: Wheat, Rice, Maize, Bajra, Jowar
+- **Pulses**: Gram, Tur, Moong, Urad, Masoor
+- **Oilseeds**: Soybean, Groundnut, Mustard, Sunflower
+- **Cash Crops**: Cotton, Sugarcane
+- **Vegetables**: Potato, Onion, Tomato, Cabbage, Cauliflower
+- **Spices**: Chili, Turmeric, Coriander, Cumin
+
+### Usage
+
+#### View AI Prices
+Navigate to Market Prices page to see AI-generated prices with:
+- Modern gradient UI with glassmorphism effects
+- Real-time AI status indicators
+- Smart filters by crop, market, state, district
+- Price cards with hover animations
+
+#### Manual Price Generation
+```bash
+cd server
+npm run build
+node dist/utils/generateInitialPrices.js
+```
+
+#### Create Sample Data (for testing)
+```bash
+cd server
+npm run build
+node dist/utils/createSamplePrices.js
+```
+
+### Automation
+Prices are automatically generated daily at midnight IST via cron job:
+- Checks if prices are stale (>24 hours)
+- Generates new prices using Gemini AI
+- Updates database with fresh data
+- Logs success/failure for monitoring
+
+### Configuration
+Set `GEMINI_API_KEY` in `server/.env`:
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Get your API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
 
 ---
 
