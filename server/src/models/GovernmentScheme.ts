@@ -14,6 +14,9 @@ export interface IGovernmentScheme {
     websiteUrl?: string;
     lastUpdated: Date;
     isActive: boolean;
+    deadline?: string;
+    matchScore?: number;
+    applicationStatus?: 'available' | 'applied' | 'approved';
 }
 
 export interface IGovernmentSchemeDoc extends Document, IGovernmentScheme {
@@ -33,7 +36,10 @@ const GovernmentSchemeSchema = new Schema<IGovernmentSchemeDoc>({
     documentsRequired: { type: [String], default: [] },
     websiteUrl: { type: String, trim: true },
     lastUpdated: { type: Date, default: Date.now },
-    isActive: { type: Boolean, default: true, index: true }
+    isActive: { type: Boolean, default: true, index: true },
+    deadline: { type: String },
+    matchScore: { type: Number, min: 0, max: 100 },
+    applicationStatus: { type: String, enum: ['available', 'applied', 'approved'], default: 'available' }
 }, {
     timestamps: true
 });

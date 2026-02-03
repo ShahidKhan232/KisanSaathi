@@ -24,6 +24,10 @@ import cropRoutes from './routes/cropRecommendation.routes.js';
 import marketPriceRoutes from './routes/marketPrice.routes.js';
 import governmentSchemeRoutes from './routes/governmentScheme.routes.js';
 import priceAlertRoutes from './routes/priceAlert.routes.js';
+import chatHistoryRoutes from './routes/chatHistory.routes.js';
+import cropDiseaseRoutes from './routes/cropDisease.routes.js';
+import cropInfoRoutes from './routes/cropInfo.routes.js';
+import weatherDataRoutes from './routes/weatherData.routes.js';
 
 // Services
 import { WebSocketManager } from './services/WebSocketManager.js';
@@ -94,6 +98,12 @@ app.api_routes_registered = true; // Flag for debug
 app.use('/api/alerts', priceAlertRoutes);
 app.use('/api/prices', marketPriceRoutes);
 app.use('/api/schemes', governmentSchemeRoutes);
+
+// New routes for database collections
+app.use('/api/chat', chatHistoryRoutes);
+app.use('/api/diseases', cropDiseaseRoutes);
+app.use('/api/crops', cropInfoRoutes);
+app.use('/api/weather', weatherDataRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

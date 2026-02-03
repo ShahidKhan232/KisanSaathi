@@ -117,11 +117,10 @@ export function Dashboard() {
             <button
               onClick={refreshWeather}
               disabled={loading}
-              className={`p-2 rounded-lg border transition-colors ${
-                loading 
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200'
-              }`}
+              className={`p-2 rounded-lg border transition-colors ${loading
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200'
+                }`}
               title="Refresh weather data"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -265,7 +264,7 @@ export function Dashboard() {
             </div>
           )}
         </div>
-        
+
         {crops.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {crops.map((crop, index) => (
@@ -277,16 +276,15 @@ export function Dashboard() {
                     <p className="text-sm text-gray-600">{crop.days} {t('days')}</p>
                   </div>
                 </div>
-                <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                  crop.status === 'healthy' 
-                    ? 'bg-green-100 text-green-800' 
-                    : crop.status === 'excellent'
+                <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${crop.status === 'healthy'
+                  ? 'bg-green-100 text-green-800'
+                  : crop.status === 'excellent'
                     ? 'bg-blue-100 text-blue-800'
                     : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {crop.status === 'healthy' ? `✓ ${t('healthy')}` : 
-                   crop.status === 'excellent' ? `★ ${t('excellent') || 'Excellent'}` :
-                   `⚠ ${t('attention')}`}
+                  }`}>
+                  {crop.status === 'healthy' ? `✓ ${t('healthy')}` :
+                    crop.status === 'excellent' ? `★ ${t('excellent') || 'Excellent'}` :
+                      `⚠ ${t('attention')}`}
                 </div>
               </div>
             ))}
@@ -321,7 +319,7 @@ export function Dashboard() {
             </button>
           </div>
         </div>
-        
+
         <div className="space-y-3">
           {alertsLoading && realTimeAlerts.length === 0 ? (
             <div className="text-center py-4 text-gray-500">
@@ -365,12 +363,11 @@ export function Dashboard() {
               return (
                 <div key={alert.id} className={`p-4 rounded-lg border-l-4 ${getPriorityColors(alert.priority)}`}>
                   <div className="flex items-start space-x-3">
-                    <div className={`mt-0.5 ${
-                      alert.priority === 'critical' ? 'text-red-600' :
+                    <div className={`mt-0.5 ${alert.priority === 'critical' ? 'text-red-600' :
                       alert.priority === 'high' ? 'text-red-600' :
-                      alert.priority === 'medium' ? 'text-yellow-600' :
-                      'text-blue-600'
-                    }`}>
+                        alert.priority === 'medium' ? 'text-yellow-600' :
+                          'text-blue-600'
+                      }`}>
                       {getIcon(alert.type)}
                     </div>
                     <div className="flex-1">

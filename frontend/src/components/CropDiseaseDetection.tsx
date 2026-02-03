@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, Zap, CheckCircle, X } from 'lucide-react';
+import { Camera, Upload, Zap, CheckCircle, X, History } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { aiService } from '../services/aiService';
+import { cropDiseaseAPI } from '../services/apiService';
+import { DiseaseHistory } from './DiseaseHistory';
 
 interface DetectionResult {
   disease: string;
@@ -9,6 +11,10 @@ interface DetectionResult {
   treatment: string;
   prevention: string[];
   severity: 'low' | 'medium' | 'high';
+}
+
+interface CropDiseaseDetectionProps {
+  // No props needed anymore
 }
 
 // Function to format AI response into structured sections
@@ -373,7 +379,7 @@ const formatAIResponse = (response: string): JSX.Element => {
   );
 };
 
-export function CropDiseaseDetection() {
+export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
   const { t, language } = useLanguage();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -383,6 +389,7 @@ export function CropDiseaseDetection() {
   const [showCamera, setShowCamera] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -520,6 +527,101 @@ export function CropDiseaseDetection() {
         setAiTextResult(text);
         setResult(null);
 
+        // Save disease detection to database (async, don't block UI)
+        try {
+          const token = localStorage.getItem('token');
+          console.log('💾 Attempting to save disease detection to database...');
+          console.log('   Authentication token present:', !!token);
+
+          if (!token) {
+            console.warn('⚠️ No authentication token found - user may not be logged in');
+            console.warn('   Disease detection will not be saved to database');
+          }
+
+          if (token) {
+            // Extract disease information from AI response
+            console.log('🔍 Extracting disease information from AI response...');
+            const diseaseMatch = text.match(/(?:disease|problem|issue)[:\s]+([^\n.]+)/i);
+            const cropMatch = text.match(/(?:crop|plant)[:\s]+([^\n.]+)/i);
+            const treatmentMatch = text.match(/(?:treatment|cure|medicine)[:\s]+([^\n.]+)/i);
+
+            console.log('   Crop match:', cropMatch ? cropMatch[1].trim() : 'NOT FOUND');
+            console.log('   Disease match:', diseaseMatch ? diseaseMatch[1].trim() : 'NOT FOUND');
+            console.log('   Treatment match:', treatmentMatch ? 'FOUND' : 'NOT FOUND');
+
+            // Extract symptoms (look for bullet points or numbered lists)
+            const symptomsMatches = text.match(/(?:symptom|sign)[s]?[:\s]+([^\n]+(?:\n[-•*]\s*[^\n]+)*)/i);
+            const symptoms: string[] = [];
+            if (symptomsMatches && symptomsMatches[1]) {
+              const symptomText = symptomsMatches[1];
+              const bulletPoints = symptomText.match(/[-•*]\s*([^\n]+)/g);
+              if (bulletPoints) {
+                symptoms.push(...bulletPoints.map(s => s.replace(/^[-•*]\s*/, '').trim()));
+              } else {
+                symptoms.push(symptomText.trim());
+              }
+            }
+
+            // Extract prevention tips
+            const preventionMatches = text.match(/(?:prevention|prevent|avoid)[:\s]+([^\n]+(?:\n[-•*]\s*[^\n]+)*)/i);
+            const preventionTips: string[] = [];
+            if (preventionMatches && preventionMatches[1]) {
+              const preventionText = preventionMatches[1];
+              const bulletPoints = preventionText.match(/[-•*]\s*([^\n]+)/g);
+              if (bulletPoints) {
+                preventionTips.push(...bulletPoints.map(s => s.replace(/^[-•*]\s*/, '').trim()));
+              } else {
+                preventionTips.push(preventionText.trim());
+              }
+            }
+
+            console.log('   Extracted symptoms:', symptoms.length, 'items');
+            console.log('   Extracted prevention tips:', preventionTips.length, 'items');
+
+            const dataToSave = {
+              cropName: cropMatch ? cropMatch[1].trim() : 'Unknown',
+              imageUrl: selectedImage,
+              detectedDisease: diseaseMatch ? diseaseMatch[1].trim() : 'Disease detected',
+              confidence: 85, // Default confidence since AI doesn't provide exact percentage
+              symptoms: symptoms.length > 0 ? symptoms : ['Symptoms detected in image'],
+              treatment: treatmentMatch ? treatmentMatch[1].trim() : text.substring(0, 200),
+              preventionTips: preventionTips.length > 0 ? preventionTips : ['Follow recommended practices']
+            };
+
+            console.log('📤 Sending data to API:', {
+              cropName: dataToSave.cropName,
+              detectedDisease: dataToSave.detectedDisease,
+              confidence: dataToSave.confidence,
+              symptomsCount: dataToSave.symptoms.length,
+              preventionTipsCount: dataToSave.preventionTips.length,
+              hasImage: !!dataToSave.imageUrl
+            });
+
+            const savedDetection = await cropDiseaseAPI.saveDiseaseDetection(dataToSave);
+
+            console.log('✅ Disease detection saved to database successfully!');
+            console.log('   Saved ID:', savedDetection._id);
+            console.log('   Crop:', savedDetection.cropName);
+            console.log('   Disease:', savedDetection.detectedDisease);
+          }
+        } catch (error) {
+          console.error('❌ Failed to save disease detection to database:');
+          console.error('   Error type:', error instanceof Error ? error.constructor.name : typeof error);
+          console.error('   Error message:', error instanceof Error ? error.message : String(error));
+
+          // Log axios error details if available
+          if (error && typeof error === 'object' && 'response' in error) {
+            const axiosError = error as any;
+            console.error('   HTTP Status:', axiosError.response?.status);
+            console.error('   Response data:', axiosError.response?.data);
+            console.error('   Request URL:', axiosError.config?.url);
+          }
+
+          console.error('   Full error object:', error);
+          console.warn('⚠️ Detection still works, but data was not saved to database');
+          // Continue without blocking - detection still works even if save fails
+        }
+
         // Auto-scroll to results after a short delay
         setTimeout(() => {
           resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -575,7 +677,20 @@ export function CropDiseaseDetection() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('cropDiagnosis')}</h2>
+        <div className="flex items-center justify-center space-x-4 mb-2">
+          <h2 className="text-2xl font-bold text-gray-800">{t('cropDiagnosis')}</h2>
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium shadow-sm ${showHistory
+              ? 'bg-gray-600 hover:bg-gray-700 text-white'
+              : 'bg-green-600 hover:bg-green-700 text-white'
+              }`}
+            title={showHistory ? 'Hide history' : 'View disease detection history'}
+          >
+            <History className="w-4 h-4" />
+            <span>{showHistory ? 'Hide History' : 'View History'}</span>
+          </button>
+        </div>
         <p className="text-gray-600">{t('cropCheckDescription')}</p>
       </div>
 

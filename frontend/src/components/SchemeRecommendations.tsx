@@ -58,82 +58,59 @@ interface Scheme {
 // Fetch schemes from backend API with language support
 const fetchSchemes = async (language: 'en' | 'hi' | 'mr'): Promise<Scheme[]> => {
   try {
-    const response = await fetch(`/api/schemes/${language}`);
+    const response = await fetch(`/api/schemes?language=${language}`);
     if (!response.ok) {
       throw new Error('Failed to fetch schemes');
     }
-    return await response.json();
+    const data = await response.json();
+
+    // Transform backend data to match frontend expectations
+    // Backend returns _id (MongoDB ObjectId) but frontend expects id
+    return data.map((scheme: any) => ({
+      ...scheme,
+      id: scheme._id || scheme.schemeId, // Use _id as id, fallback to schemeId
+      name: scheme.schemeName,
+      description: scheme.description,
+      benefit: scheme.benefits?.join(', ') || 'N/A',
+      eligibility: scheme.eligibility || [],
+      documents: scheme.documentsRequired || [],
+      applicationStatus: scheme.applicationStatus || 'available' as const,
+      deadline: scheme.deadline || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      category: mapCategory(scheme.category),
+      matchScore: scheme.matchScore || 70,
+      websiteUrl: scheme.websiteUrl,
+      // Preserve all other fields from backend
+      schemeId: scheme.schemeId,
+      department: scheme.department,
+      applicationProcess: scheme.applicationProcess,
+      lastUpdated: scheme.lastUpdated,
+      isActive: scheme.isActive
+    }));
   } catch (error) {
     console.error('Error fetching schemes:', error);
     // Fallback to basic schemes if API fails
-    return getFallbackSchemes(language);
+    return getFallbackSchemes();
   }
 };
 
+// Helper function to map backend category to frontend category type
+const mapCategory = (backendCategory: string): 'subsidy' | 'loan' | 'insurance' | 'direct-benefit' | 'digital' | 'infrastructure' => {
+  const categoryMap: Record<string, 'subsidy' | 'loan' | 'insurance' | 'direct-benefit' | 'digital' | 'infrastructure'> = {
+    'Direct Benefit': 'direct-benefit',
+    'Insurance': 'insurance',
+    'Loan': 'loan',
+    'Subsidy': 'subsidy',
+    'Infrastructure': 'infrastructure',
+    'Digital Services': 'digital'
+  };
+  return categoryMap[backendCategory] || 'subsidy';
+};
+
 // Fallback schemes for when API is unavailable
-const getFallbackSchemes = (lang: 'en' | 'hi' | 'mr'): Scheme[] => {
-  if (lang === 'en') {
-    return [
-      {
-        id: '1',
-        name: 'PM-KISAN Scheme',
-        description: 'Financial assistance of ₹6000 per year for small and marginal farmers',
-        benefit: '₹6000 per year (3 installments of ₹2000)',
-        eligibility: ['Up to 2 hectares agricultural land', 'Aadhaar card required', 'Bank account required'],
-        documents: ['Aadhaar Card', 'Bank Passbook', 'Land Documents'],
-        applicationStatus: 'available',
-        deadline: '2025-12-31',
-        category: 'direct-benefit',
-        matchScore: 95,
-        features: ['Direct Benefit Transfer', 'Aadhaar Linkage', 'Mobile Verification'],
-        websiteUrl: 'https://pmkisan.gov.in',
-        successRate: 92.5,
-        avgProcessingDays: 15,
-        beneficiariesCount: 11000000
-      }
-    ];
-  } else if (lang === 'mr') {
-    return [
-      {
-        id: '1',
-        name: 'PM-KISAN योजना',
-        description: 'लहान व सीमांत शेतकऱ्यांना दरवर्षी ₹6000 प्रत्यक्ष आर्थिक मदत',
-        benefit: 'दरवर्षी ₹6000 (₹2000 च्या 3 हप्त्यात)',
-        eligibility: ['2 हेक्टर पर्यंत शेतजमीन', 'आधार कार्ड आवश्यक', 'बँक खाते आवश्यक'],
-        documents: ['आधार कार्ड', 'बँक पासबुक', 'जमीन कागदपत्रे'],
-        applicationStatus: 'available',
-        deadline: '2025-12-31',
-        category: 'direct-benefit',
-        matchScore: 95,
-        features: ['प्रत्यक्ष फायदा हस्तांतरण', 'आधार लिंकेज', 'मोबाइल पडताळणी'],
-        websiteUrl: 'https://pmkisan.gov.in',
-        successRate: 92.5,
-        avgProcessingDays: 15,
-        beneficiariesCount: 11000000
-      }
-    ];
-  }
-  
-  // Default Hindi
-  return [
-    {
-      id: '1',
-      name: 'PM-KISAN योजना',
-      description: 'छोटे और सीमांत किसानों को प्रति वर्ष ₹6000 की प्रत्यक्ष आर्थिक सहायता',
-      benefit: '₹6000 प्रति वर्ष (₹2000 की 3 किस्त)',
-      eligibility: ['2 हेक्टेयर तक कृषि भूमि', 'आधार कार्ड आवश्यक', 'बैंक खाता आवश्यक'],
-      documents: ['आधार कार्ड', 'बैंक पासबुक', 'भूमि दस्तावेज'],
-      applicationStatus: 'available',
-      deadline: '2025-12-31',
-      category: 'direct-benefit',
-      matchScore: 95,
-      features: ['प्रत्यक्ष लाभ हस्तांतरण', 'आधार लिंकेज', 'मोबाइल वेरिफिकेशन'],
-      websiteUrl: 'https://pmkisan.gov.in',
-      successRate: 92.5,
-      avgProcessingDays: 15,
-      beneficiariesCount: 11000000
-    }
-  ];
+// Return empty array to show error state instead of hardcoded data
+const getFallbackSchemes = (): Scheme[] => {
+  console.error('API unavailable, returning empty schemes array');
+  return [];
 };
 
 export function SchemeRecommendations() {
@@ -217,27 +194,27 @@ export function SchemeRecommendations() {
 
       const res = await fetch('/api/schemes/apply', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user.id}`
         },
-        body: JSON.stringify({ 
-          schemeId, 
+        body: JSON.stringify({
+          schemeId,
           applicationData,
-          userId: user.id 
+          userId: user.id
         })
       });
 
       if (res.ok) {
         const response = await res.json();
         console.log('Application submitted successfully:', response);
-        
+
         // Show success message to user
         alert(`Application submitted successfully!\nApplication Number: ${response.application.applicationNumber}\nEstimated Processing Time: ${response.application.estimatedProcessingDays} days`);
-        
+
         // Socket will update UI when server confirms application
-        socket.emit('scheme:apply', { 
-          schemeId, 
+        socket.emit('scheme:apply', {
+          schemeId,
           applicationNumber: response.application.applicationNumber,
           status: 'submitted'
         });
@@ -256,7 +233,7 @@ export function SchemeRecommendations() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const res = await fetch(`/api/documents/${documentId}/upload`, {
         method: 'POST',
         headers: {
@@ -301,7 +278,7 @@ export function SchemeRecommendations() {
     };
 
     const handleDocumentStatus = (data: DocumentStatusEvent) => {
-      setSchemes(prev => prev.map(scheme => 
+      setSchemes(prev => prev.map(scheme =>
         scheme.id === data.schemeId && scheme.progress ? {
           ...scheme,
           progress: {
@@ -351,10 +328,10 @@ export function SchemeRecommendations() {
     const loadSchemes = async () => {
       try {
         setLoading(true);
-        
+
         // Fetch schemes from backend API
         const schemes = await fetchSchemes(language);
-        
+
         if (!isActive) return;
 
         // Process schemes with AI service
@@ -394,13 +371,8 @@ export function SchemeRecommendations() {
       } catch (err) {
         if (isActive) {
           setError(err as Error);
-          // Set fallback scheme data
-          const fallback = await getFallbackSchemes(language);
-          setSchemes([{
-            ...fallback[0],
-            applicationStatus: 'approved',
-            reasonCodes: ['LAND_SIZE_MATCH', 'HIGH_APPROVAL_RATE']
-          }]);
+          // Set empty schemes on error - no hardcoded fallback
+          setSchemes([]);
         }
       } finally {
         if (isActive) {
@@ -433,7 +405,7 @@ export function SchemeRecommendations() {
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         scheme.name.toLowerCase().includes(query) ||
         scheme.description.toLowerCase().includes(query) ||
         scheme.benefit.toLowerCase().includes(query) ||
@@ -456,7 +428,7 @@ export function SchemeRecommendations() {
 
     // Complexity is determined by number of documents and eligibility criteria
     const complexity = scheme.documents.length + scheme.eligibility.length <= 3 ? 'easy' :
-                      scheme.documents.length + scheme.eligibility.length <= 6 ? 'medium' : 'hard';
+      scheme.documents.length + scheme.eligibility.length <= 6 ? 'medium' : 'hard';
     if (filters.complexity !== 'all' && complexity !== filters.complexity) return false;
 
     return true;
@@ -511,7 +483,7 @@ export function SchemeRecommendations() {
             <Users className="w-6 h-6" />
             <h3 className="text-lg font-semibold">{t('personalInfo')}</h3>
           </div>
-          <button 
+          <button
             className="text-white/80 hover:text-white"
             onClick={() => {
               // Open edit dialog or modal
@@ -574,8 +546,8 @@ export function SchemeRecommendations() {
                     language === 'en'
                       ? 'Toggle KCC status?'
                       : language === 'mr'
-                      ? 'KCC स्थिती बदलायची?'
-                      : 'KCC स्थिति बदलें?'
+                        ? 'KCC स्थिती बदलायची?'
+                        : 'KCC स्थिति बदलें?'
                   )) {
                     updateKCCStatus(!userProfile?.hasKCC);
                   }
@@ -625,11 +597,10 @@ export function SchemeRecommendations() {
             <button
               key={category.value}
               onClick={() => setSelectedCategory(category.value)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap border ${
-                selectedCategory === category.value
-                  ? 'bg-green-500 text-white border-green-500'
-                  : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'
-              }`}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap border ${selectedCategory === category.value
+                ? 'bg-green-500 text-white border-green-500'
+                : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'
+                }`}
             >
               {category.label}
             </button>
@@ -757,14 +728,14 @@ export function SchemeRecommendations() {
                           <div className="flex items-center space-x-1 text-gray-600">
                             <TrendingUp className="w-4 h-4" />
                             <span>
-                              {Math.round(scheme.metrics.approvalRate * 100)}% 
+                              {Math.round(scheme.metrics.approvalRate * 100)}%
                               {language === 'en' ? ' approval rate' : language === 'mr' ? '% मंजुरी दर' : '% स्वीकृति दर'}
                             </span>
                           </div>
                           <div className="flex items-center space-x-1 text-gray-600">
                             <Clock className="w-4 h-4" />
                             <span>
-                              {scheme.metrics.avgProcessingDays} 
+                              {scheme.metrics.avgProcessingDays}
                               {language === 'en' ? ' days avg.' : language === 'mr' ? ' दिवस सरासरी' : ' दिन औसत'}
                             </span>
                           </div>
@@ -779,18 +750,18 @@ export function SchemeRecommendations() {
                           <span key={index} className="inline-flex items-center px-2 py-1 rounded-full bg-green-50 text-green-600 text-xs">
                             <Zap className="w-3 h-3 mr-1" />
                             {code === 'LAND_SIZE_MATCH' ? t('landSizeMatch') :
-                            code === 'CROP_MATCH' ? t('cropMatch') :
-                            code === 'HIGH_APPROVAL_RATE' ? t('highSuccessRate') :
-                            code === 'QUICK_PROCESSING' ? t('quickProcessing') :
-                            code === 'POPULAR_SCHEME' ? t('popularScheme') :
-                            code === 'KCC_AVAILABLE' ? t('kccAvailable') :
-                            code === 'INCOME_ELIGIBLE' ? t('incomeEligible') :
-                            code === 'GOOD_APPROVAL_RATE' ? t('goodApprovalRate') :
-                            code === 'MODERATE_PROCESSING' ? t('moderateProcessing') :
-                            code === 'HIGHLY_POPULAR' ? t('highlyPopular') :
-                            code === 'LARGE_BENEFICIARY_BASE' ? t('largebeneficiaryBase') :
-                            code === 'PROVEN_TRACK_RECORD' ? t('provenTrackRecord') :
-                            code}
+                              code === 'CROP_MATCH' ? t('cropMatch') :
+                                code === 'HIGH_APPROVAL_RATE' ? t('highSuccessRate') :
+                                  code === 'QUICK_PROCESSING' ? t('quickProcessing') :
+                                    code === 'POPULAR_SCHEME' ? t('popularScheme') :
+                                      code === 'KCC_AVAILABLE' ? t('kccAvailable') :
+                                        code === 'INCOME_ELIGIBLE' ? t('incomeEligible') :
+                                          code === 'GOOD_APPROVAL_RATE' ? t('goodApprovalRate') :
+                                            code === 'MODERATE_PROCESSING' ? t('moderateProcessing') :
+                                              code === 'HIGHLY_POPULAR' ? t('highlyPopular') :
+                                                code === 'LARGE_BENEFICIARY_BASE' ? t('largebeneficiaryBase') :
+                                                  code === 'PROVEN_TRACK_RECORD' ? t('provenTrackRecord') :
+                                                    code}
                           </span>
                         ))}
                       </div>
@@ -834,7 +805,7 @@ export function SchemeRecommendations() {
                   <h4 className="text-sm font-medium text-gray-800 mb-2">
                     {t('additionalInformation')}
                   </h4>
-                  
+
                   {/* Features */}
                   {scheme.features && scheme.features.length > 0 && (
                     <div className="mb-2">
@@ -847,7 +818,7 @@ export function SchemeRecommendations() {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Success Rate & Beneficiaries */}
                   <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                     {scheme.successRate && (
@@ -858,7 +829,7 @@ export function SchemeRecommendations() {
                         </span>
                       </div>
                     )}
-                    
+
                     {scheme.beneficiariesCount && (
                       <div className="flex items-center space-x-1">
                         <Users className="w-3 h-3 text-blue-500" />
@@ -868,11 +839,11 @@ export function SchemeRecommendations() {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Website Links */}
                   {scheme.websiteUrl && (
                     <div className="mt-2 space-y-1">
-                      <a 
+                      <a
                         href={scheme.websiteUrl}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -881,12 +852,12 @@ export function SchemeRecommendations() {
                         <ExternalLink className="w-3 h-3" />
                         <span>{t('officialWebsite')}</span>
                       </a>
-                      
+
                       {/* Additional helpful links based on scheme type */}
                       <div className="flex flex-wrap gap-2 mt-1">
                         {scheme.id === '1' && ( // PM-KISAN
                           <>
-                            <a 
+                            <a
                               href="https://pmkisan.gov.in/BeneficiaryStatus.aspx"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -894,7 +865,7 @@ export function SchemeRecommendations() {
                             >
                               {language === 'en' ? 'Check Status' : language === 'mr' ? 'स्थिती तपासा' : 'स्थिति देखें'}
                             </a>
-                            <a 
+                            <a
                               href="https://pmkisan.gov.in/RegistrationForm.aspx"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -904,10 +875,10 @@ export function SchemeRecommendations() {
                             </a>
                           </>
                         )}
-                        
+
                         {scheme.id === '2' && ( // PMFBY
                           <>
-                            <a 
+                            <a
                               href="https://crop-insurance.gov.in/"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -915,7 +886,7 @@ export function SchemeRecommendations() {
                             >
                               {language === 'en' ? 'Insurance Portal' : language === 'mr' ? 'विमा पोर्टल' : 'बीमा पोर्टल'}
                             </a>
-                            <a 
+                            <a
                               href="https://pmfby.gov.in/policystatus"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -925,10 +896,10 @@ export function SchemeRecommendations() {
                             </a>
                           </>
                         )}
-                        
+
                         {scheme.id === '3' && ( // KCC
                           <>
-                            <a 
+                            <a
                               href="https://pmkisan.gov.in/KCCLink.aspx"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -936,7 +907,7 @@ export function SchemeRecommendations() {
                             >
                               {language === 'en' ? 'KCC Application' : language === 'mr' ? 'KCC अर्ज' : 'KCC आवेदन'}
                             </a>
-                            <a 
+                            <a
                               href="https://www.rbi.org.in/Scripts/FAQView.aspx?Id=1248"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -946,10 +917,10 @@ export function SchemeRecommendations() {
                             </a>
                           </>
                         )}
-                        
+
                         {scheme.id === '4' && ( // e-NAM
                           <>
-                            <a 
+                            <a
                               href="https://enam.gov.in/web/registration"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -957,7 +928,7 @@ export function SchemeRecommendations() {
                             >
                               {language === 'en' ? 'Register Now' : language === 'mr' ? 'आता नोंदणी करा' : 'अभी पंजीकरण करें'}
                             </a>
-                            <a 
+                            <a
                               href="https://enam.gov.in/web/fporegistration/home"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -967,10 +938,10 @@ export function SchemeRecommendations() {
                             </a>
                           </>
                         )}
-                        
+
                         {scheme.id === '6' && ( // KUSUM
                           <>
-                            <a 
+                            <a
                               href="https://kusumyojana.com/"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -978,7 +949,7 @@ export function SchemeRecommendations() {
                             >
                               {language === 'en' ? 'Apply Portal' : language === 'mr' ? 'अर्ज पोर्टल' : 'आवेदन पोर्टल'}
                             </a>
-                            <a 
+                            <a
                               href="https://mnre.gov.in/solar/schemes/"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -988,10 +959,10 @@ export function SchemeRecommendations() {
                             </a>
                           </>
                         )}
-                        
+
                         {scheme.id === '7' && ( // MUDRA
                           <>
-                            <a 
+                            <a
                               href="https://www.mudra.org.in/Default/Download/2/23"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -999,7 +970,7 @@ export function SchemeRecommendations() {
                             >
                               {language === 'en' ? 'Application Form' : language === 'mr' ? 'अर्ज फॉर्म' : 'आवेदन फॉर्म'}
                             </a>
-                            <a 
+                            <a
                               href="https://www.mudra.org.in/Default/UserControl"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -1009,10 +980,10 @@ export function SchemeRecommendations() {
                             </a>
                           </>
                         )}
-                        
+
                         {scheme.id === '8' && ( // Farm Mechanization
                           <>
-                            <a 
+                            <a
                               href="https://agrimachinery.nic.in/ApplicationForm.aspx"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -1020,7 +991,7 @@ export function SchemeRecommendations() {
                             >
                               {language === 'en' ? 'Apply Online' : language === 'mr' ? 'ऑनलाइन अर्ज' : 'ऑनलाइन आवेदन'}
                             </a>
-                            <a 
+                            <a
                               href="https://agrimachinery.nic.in/ApplicationStatus.aspx"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -1031,7 +1002,7 @@ export function SchemeRecommendations() {
                           </>
                         )}
                       </div>
-                      
+
                       {/* Helpline Information */}
                       <div className="mt-2 pt-2 border-t border-gray-200">
                         <div className="text-xs text-gray-500">
@@ -1104,9 +1075,9 @@ export function SchemeRecommendations() {
                   <span>{language === 'en' ? 'Deadline:' : language === 'mr' ? 'अंतिम तारीख:' : 'अंतिम तिथि:'} </span>
                   <span className="font-medium">{new Date(scheme.deadline).toLocaleDateString(language === 'en' ? 'en-US' : language === 'mr' ? 'mr-IN' : 'hi-IN')}</span>
                 </div>
-                
+
                 {scheme.applicationStatus === 'available' ? (
-                  <button 
+                  <button
                     onClick={() => handleApplyClick(scheme)}
                     className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1"
                   >
@@ -1115,7 +1086,7 @@ export function SchemeRecommendations() {
                   </button>
                 ) : scheme.applicationStatus === 'applied' ? (
                   <>
-                    <button 
+                    <button
                       onClick={() => setShowingProgressId(showingProgressId === scheme.id ? null : scheme.id)}
                       className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1"
                     >
@@ -1137,7 +1108,7 @@ export function SchemeRecommendations() {
                                 },
                                 body: JSON.stringify({ note })
                               });
-                              
+
                               if (res.ok) {
                                 socket.emit('step:note', { stepId, note });
                               }
@@ -1174,7 +1145,7 @@ export function SchemeRecommendations() {
               <p className="text-sm text-gray-600">{language === 'en' ? 'Prepare documents for application' : 'आवेदन के लिए दस्तावेज़ तैयार करें'}</p>
             </div>
           </button>
-          
+
           <button className="flex items-center space-x-3 p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left">
             <Users className="w-6 h-6 text-green-600" />
             <div>
@@ -1182,7 +1153,7 @@ export function SchemeRecommendations() {
               <p className="text-sm text-gray-600">{language === 'en' ? 'Get help regarding schemes' : 'योजना संबंधी सहायता प्राप्त करें'}</p>
             </div>
           </button>
-          
+
           <button className="flex items-center space-x-3 p-4 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors text-left">
             <Award className="w-6 h-6 text-orange-600" />
             <div>
@@ -1224,11 +1195,11 @@ export function SchemeRecommendations() {
                 <h5 className="font-semibold text-blue-900 mb-3">
                   {language === 'en' ? 'Official Government Resources' : language === 'mr' ? 'अधिकृत सरकारी संसाधने' : 'आधिकारिक सरकारी संसाधन'}
                 </h5>
-                
+
                 {(() => {
                   const schemeLink = schemeLinks.find(link => link.id === selectedSchemeForApplication.id);
                   if (!schemeLink) return null;
-                  
+
                   return (
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
@@ -1242,7 +1213,7 @@ export function SchemeRecommendations() {
                           {language === 'en' ? 'Official Website' : language === 'mr' ? 'अधिकृत वेबसाइट' : 'आधिकारिक वेबसाइट'}
                         </a>
                       </div>
-                      
+
                       <div className="flex items-center space-x-2">
                         <ExternalLink className="w-4 h-4 text-green-600" />
                         <a
@@ -1254,7 +1225,7 @@ export function SchemeRecommendations() {
                           {language === 'en' ? 'Application Portal' : language === 'mr' ? 'अर्ज पोर्टल' : 'आवेदन पोर्टल'}
                         </a>
                       </div>
-                      
+
                       <div className="flex items-center space-x-2">
                         <ExternalLink className="w-4 h-4 text-purple-600" />
                         <a
@@ -1266,7 +1237,7 @@ export function SchemeRecommendations() {
                           {language === 'en' ? 'Check Application Status' : language === 'mr' ? 'अर्जाची स्थिती तपासा' : 'आवेदन की स्थिति देखें'}
                         </a>
                       </div>
-                      
+
                       <div className="flex items-center space-x-2">
                         <FileText className="w-4 h-4 text-orange-600" />
                         <a
@@ -1278,7 +1249,7 @@ export function SchemeRecommendations() {
                           {language === 'en' ? 'Required Documents' : language === 'mr' ? 'आवश्यक कागदपत्रे' : 'आवश्यक दस्तावेज'}
                         </a>
                       </div>
-                      
+
                       <div className="mt-3 pt-3 border-t border-blue-200">
                         <div className="text-sm text-blue-800">
                           <div className="flex items-center space-x-2 mb-1">
@@ -1320,7 +1291,7 @@ export function SchemeRecommendations() {
                     {language === 'en' ? 'Apply on Official Portal' : language === 'mr' ? 'अधिकृत पोर्टलवर अर्ज करा' : 'आधिकारिक पोर्टल पर आवेदन करें'}
                   </span>
                 </button>
-                
+
                 <button
                   onClick={() => {
                     setShowApplicationModal(false);
@@ -1341,11 +1312,11 @@ export function SchemeRecommendations() {
                     {language === 'en' ? 'Recommendation:' : language === 'mr' ? 'शिफारस:' : 'सुझाव:'}
                   </strong>
                   {' '}
-                  {language === 'en' 
-                    ? 'We recommend applying through the official government portal for faster processing and direct government support.' 
+                  {language === 'en'
+                    ? 'We recommend applying through the official government portal for faster processing and direct government support.'
                     : language === 'mr'
-                    ? 'जलद प्रक्रिया आणि थेट सरकारी सहाय्यासाठी आम्ही अधिकृत सरकारी पोर्टलद्वारे अर्ज करण्याची शिफारस करतो.'
-                    : 'तेज़ प्रसंस्करण और प्रत्यक्ष सरकारी सहायता के लिए हम आधिकारिक सरकारी पोर्टल के माध्यम से आवेदन करने की सिफारिश करते हैं।'
+                      ? 'जलद प्रक्रिया आणि थेट सरकारी सहाय्यासाठी आम्ही अधिकृत सरकारी पोर्टलद्वारे अर्ज करण्याची शिफारस करतो.'
+                      : 'तेज़ प्रसंस्करण और प्रत्यक्ष सरकारी सहायता के लिए हम आधिकारिक सरकारी पोर्टल के माध्यम से आवेदन करने की सिफारिश करते हैं।'
                   }
                 </p>
               </div>

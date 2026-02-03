@@ -4,7 +4,7 @@ import { GovernmentSchemeModel } from '../models/GovernmentScheme.js';
 // Get all schemes with optional filtering
 export const getSchemes = async (req: Request, res: Response) => {
     try {
-        const { state, category, active } = req.query;
+        const { state, category, active, language } = req.query;
 
         const query: any = {};
         if (state) query.state = new RegExp(String(state), 'i');
@@ -12,6 +12,10 @@ export const getSchemes = async (req: Request, res: Response) => {
         if (active === 'true') query.isActive = true;
 
         const schemes = await GovernmentSchemeModel.find(query).sort({ lastUpdated: -1 });
+
+        // Log for debugging
+        console.log(`📋 Fetched ${schemes.length} schemes${language ? ` for language: ${language}` : ''}`);
+
         res.json(schemes);
     } catch (error) {
         console.error('Error fetching schemes:', error);
