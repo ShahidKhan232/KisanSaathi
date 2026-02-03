@@ -15,6 +15,7 @@ export interface IForecast {
 }
 
 export interface IWeatherData {
+    userId?: mongoose.Types.ObjectId; // Optional user association
     location: string;
     coordinates?: {
         latitude: number;
@@ -24,6 +25,9 @@ export interface IWeatherData {
     humidity: number;
     rainfall: number;
     windSpeed: number;
+    pressure?: number;
+    visibility?: number;
+    description?: string;
     forecast: IForecast[];
     recordDate: Date;
     source: string;
@@ -48,6 +52,7 @@ const ForecastSchema = new Schema<IForecast>({
 }, { _id: false });
 
 const WeatherDataSchema = new Schema<IWeatherDataDoc>({
+    userId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     location: { type: String, required: true, trim: true, index: true },
     coordinates: {
         latitude: { type: Number },
@@ -57,6 +62,9 @@ const WeatherDataSchema = new Schema<IWeatherDataDoc>({
     humidity: { type: Number, required: true, min: 0, max: 100 },
     rainfall: { type: Number, required: true, min: 0 },
     windSpeed: { type: Number, required: true, min: 0 },
+    pressure: { type: Number },
+    visibility: { type: Number },
+    description: { type: String, trim: true },
     forecast: { type: [ForecastSchema], default: [] },
     recordDate: { type: Date, required: true, index: true },
     source: { type: String, required: true, trim: true }
@@ -66,6 +74,7 @@ const WeatherDataSchema = new Schema<IWeatherDataDoc>({
 
 // Compound index for efficient queries
 WeatherDataSchema.index({ location: 1, recordDate: -1 });
+WeatherDataSchema.index({ userId: 1, recordDate: -1 });
 
 // Unique constraint to prevent duplicate weather records
 WeatherDataSchema.index({ location: 1, recordDate: 1, source: 1 }, { unique: true });

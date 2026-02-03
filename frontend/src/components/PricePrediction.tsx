@@ -49,6 +49,12 @@ export function PricePrediction() {
     analysis: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [aiPriceStatus, setAiPriceStatus] = useState<{
+    lastFetchTime: string | null;
+    aiGeneratedPriceCount: number;
+    nextScheduledFetch: string;
+    status: 'stale' | 'fresh';
+  } | null>(null);
 
   const fetchPriceData = useCallback(async () => {
     try {
@@ -63,19 +69,30 @@ export function PricePrediction() {
         language === 'en'
           ? 'Failed to load market prices. Please try again.'
           : language === 'mr'
-          ? 'बाजारभाव लोड करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.'
-          : 'बाज़ार भाव लोड करने में विफल. कृपया पुनः प्रयास करें।'
+            ? 'बाजारभाव लोड करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.'
+            : 'बाज़ार भाव लोड करने में विफल. कृपया पुनः प्रयास करें।'
       );
     } finally {
       setIsLoading(false);
     }
   }, [language]);
 
+  // Fetch AI price status
+  useEffect(() => {
+    const fetchAIStatus = async () => {
+      const status = await pricePredictionService.getAIPriceStatus();
+      if (status) {
+        setAiPriceStatus(status);
+      }
+    };
+    fetchAIStatus();
+  }, []);
+
   // Fetch real-time price data
   useEffect(() => {
     fetchPriceData();
-    // Set up auto-refresh every 5 minutes
-    const interval = setInterval(fetchPriceData, 5 * 60 * 1000);
+    // Reduced auto-refresh since prices only update daily
+    const interval = setInterval(fetchPriceData, 30 * 60 * 1000); // 30 minutes
     return () => clearInterval(interval);
   }, [fetchPriceData]);
 
@@ -100,75 +117,68 @@ export function PricePrediction() {
   const fetchLive = useCallback(async () => {
     setIsLoadingLive(true);
     setLiveDataRaw(null);
-    console.log('Fetching live data with filters:', { stateFilter, districtFilter, commodityFilter });
-    
+    console.log('Fetching AI-generated prices with filters:', { stateFilter, districtFilter, commodityFilter });
+
     try {
       // Clean and prepare filters
       const cleanState = stateFilter?.trim();
       const cleanDistrict = districtFilter?.trim();
       const cleanCommodity = commodityFilter?.trim();
-      
-      const records = await pricePredictionService.getLiveMarketPrices({
-        state: cleanState || undefined,
-        district: cleanDistrict || undefined,
-        commodity: cleanCommodity || undefined,
-        limit: 1000, // Fetch maximum data available
-        offset: 0
-      });
-      
-      console.log('Raw records from API:', records);
+
+      // Fetch from AI-generated market prices endpoint
+      const params = new URLSearchParams();
+      if (cleanState) params.set('state', cleanState);
+      if (cleanDistrict) params.set('district', cleanDistrict);
+      if (cleanCommodity) params.set('commodity', cleanCommodity);
+      params.set('limit', '1000');
+
+      const backendUrl = import.meta.env?.VITE_SERVER_URL
+        ? import.meta.env.VITE_SERVER_URL
+        : (import.meta.env?.DEV ? '' : 'http://localhost:5001');
+
+      const response = await fetch(`${backendUrl}/api/market-prices/current?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch prices: ${response.statusText}`);
+      }
+
+      const records = await response.json();
+
+      console.log('AI-generated records from API:', records);
       console.log('Applied filters:', { cleanState, cleanDistrict, cleanCommodity });
-      
+
       if (!records || !Array.isArray(records)) {
         throw new Error('Invalid response format: expected array of records');
       }
-      
+
       if (records.length === 0) {
         setLiveDataRaw(`No data found for filters: State="${cleanState || 'any'}", District="${cleanDistrict || 'any'}", Commodity="${cleanCommodity || 'any'}". Try different search terms.`);
         setLiveMarketData([]);
         return;
       }
-      
-      // Filter for basic validity and apply additional client-side filtering if needed
-      const processedRecords = records
-        .filter(record => {
-          // Basic validity check
-          const hasValidData = record.Modal_Price && 
-                              record.State && 
-                              record.District && 
-                              record.Market && 
-                              record.Commodity;
-          
-          if (!hasValidData) return false;
-          
-          // Additional client-side filtering for partial matches (case-insensitive)
-          if (cleanState && !record.State.toLowerCase().includes(cleanState.toLowerCase())) {
-            return false;
-          }
-          
-          if (cleanDistrict && !record.District.toLowerCase().includes(cleanDistrict.toLowerCase())) {
-            return false;
-          }
-          
-          if (cleanCommodity && !record.Commodity.toLowerCase().includes(cleanCommodity.toLowerCase())) {
-            return false;
-          }
-          
-          return true;
-        });
-        // Remove .slice() to show ALL records without limit
-      
-      console.log('Processed records after filtering:', processedRecords.length);
-      
+
+      // Transform AI-generated prices to match the expected format
+      const processedRecords = records.map(record => ({
+        State: record.state,
+        District: record.district,
+        Market: record.market,
+        Commodity: record.commodity,
+        Variety: record.variety || 'General',
+        Grade: 'FAQ', // Frequently Asked Quality - standard grade
+        Min_Price: record.minPrice?.toString() || '',
+        Max_Price: record.maxPrice?.toString() || '',
+        Modal_Price: record.modalPrice?.toString() || '',
+        Price_Date: new Date(record.priceDate).toLocaleDateString('en-IN'),
+        Arrival_Date: new Date(record.priceDate).toLocaleDateString('en-IN'),
+        Arrivals: record.arrivals?.toString() || 'N/A'
+      }));
+
+      console.log('Processed AI-generated records:', processedRecords.length);
+
       // Set the formatted data for display
       setLiveMarketData(processedRecords);
-      
-      if (processedRecords.length === 0) {
-        setLiveDataRaw(`Found ${records.length} total records, but none matched your filters. Try: 1) Check spelling, 2) Use partial names (e.g., "Madhya" instead of "Madhya Pradesh"), 3) Clear some filters.`);
-      } else {
-        setLiveDataRaw(null); // Clear any previous messages
-      }
-      
+      setLiveDataRaw(null); // Clear any previous messages
+
     } catch (e) {
       const errorMsg = `Error: ${(e as Error).message}`;
       console.error('fetchLive error:', errorMsg);
@@ -198,22 +208,22 @@ export function PricePrediction() {
   // Process and sort data function
   const sortedLiveData = useMemo(() => {
     if (!liveMarketData.length) return [];
-    
+
     let filteredData = [...liveMarketData];
-    
+
     // Group by commodity and location to get unique combinations
     const uniqueData = filteredData.reduce((acc, record) => {
       const key = `${record.Commodity}-${record.State}-${record.District}-${record.Market}`;
-      
+
       if (!acc[key] || parseDate(record.Arrival_Date) > parseDate(acc[key].Arrival_Date)) {
         acc[key] = record; // Keep the most recent record for each location-commodity combination
       }
-      
+
       return acc;
     }, {} as Record<string, any>);
-    
+
     const finalData = Object.values(uniqueData);
-    
+
     // Sort by modal price descending (highest first)
     return finalData.sort((a: MarketRecord, b: MarketRecord) => {
       const aPrice = parseFloat(a.Modal_Price) || 0;
@@ -248,85 +258,133 @@ export function PricePrediction() {
 
   const filteredData = priceData.filter(item => {
     return (selectedCrop === 'all' || item.crop === selectedCrop) &&
-           (selectedMarket === 'all' || item.market === selectedMarket);
+      (selectedMarket === 'all' || item.market === selectedMarket);
   });
 
   // Trend and confidence helpers are computed inline in JSX
 
   return (
-    <div className="max-w-6xl mx-auto p-4 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            {t('pricePrediction')}
-          </h2>
-          <p className="text-gray-600 flex items-center space-x-2 mt-1">
-            <Calendar className="w-4 h-4" />
-            <span>
-              {language === 'en' 
-                ? `Last updated: ${lastUpdate.toLocaleTimeString()}` 
-                : `${t('lastUpdate')}: ${lastUpdate.toLocaleTimeString()}`
-              }
-            </span>
-          </p>
+    <div className="max-w-7xl mx-auto p-4 space-y-6">
+      {/* Enhanced Header with Gradient */}
+      <div className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-600 rounded-2xl shadow-xl p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h2 className="text-3xl font-bold text-white flex items-center space-x-3">
+              <TrendingUp className="w-8 h-8" />
+              <span>{t('pricePrediction')}</span>
+            </h2>
+            <div className="flex items-center space-x-4 mt-3">
+              <p className="text-green-50 flex items-center space-x-2">
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm">
+                  {language === 'en'
+                    ? `Last updated: ${lastUpdate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+                    : `${t('lastUpdate')}: ${lastUpdate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+                  }
+                </span>
+              </p>
+              {aiPriceStatus && (
+                <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-medium">
+                  {aiPriceStatus.aiGeneratedPriceCount} AI Prices Available
+                </span>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={fetchPriceData}
+            disabled={isLoading}
+            className="flex items-center space-x-2 px-6 py-3 bg-white text-green-600 rounded-xl hover:bg-green-50 disabled:opacity-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold"
+          >
+            <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>{isLoading ? t('updating') : t('refresh')}</span>
+          </button>
         </div>
-        
-        <button
-          onClick={fetchPriceData}
-          disabled={isLoading}
-          className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 transition-colors"
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          <span>{isLoading ? t('updating') : t('refresh')}</span>
-        </button>
       </div>
 
-      {/* AI Insights Banner */}
-      <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
-        <div className="flex items-start space-x-3">
-          <BarChart3 className="w-6 h-6 text-purple-600 mt-1" />
-          <div>
-            <h3 className="font-semibold text-purple-800">🤖 AI Market Analysis</h3>
-            <p className="text-purple-700 text-sm mt-1">
-              {language === 'en' 
-                ? 'Powered by Machine Learning algorithms analyzing 1000+ data points including weather, demand, supply, and seasonal patterns.'
-                : t('mlDescription')
-              }
-            </p>
+      {/* AI Insights Banner with Glassmorphism */}
+      <div className="relative bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-indigo-500/10 backdrop-blur-sm border border-purple-200/50 rounded-2xl p-6 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-400/5 to-blue-400/5"></div>
+        <div className="relative">
+          <div className="flex items-start space-x-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <BarChart3 className="w-7 h-7 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center space-x-2">
+                <span>🤖 AI-Generated Market Prices</span>
+              </h3>
+              <p className="text-gray-700 text-sm mt-2 leading-relaxed">
+                {language === 'en'
+                  ? 'Prices generated daily by Gemini AI based on market trends, seasonal patterns, and demand-supply analysis.'
+                  : language === 'mr'
+                    ? 'जेमिनी AI द्वारे बाजार ट्रेंड, हंगामी पॅटर्न आणि मागणी-पुरवठा विश्लेषणावर आधारित दररोज किंमती तयार केल्या जातात.'
+                    : 'जेमिनी AI द्वारा बाजार ट्रेंड, मौसमी पैटर्न और मांग-आपूर्ति विश्लेषण के आधार पर दैनिक कीमतें उत्पन्न की जाती हैं।'
+                }
+              </p>
+              {aiPriceStatus && (
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <span className={`px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${aiPriceStatus.status === 'fresh'
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                    : 'bg-gradient-to-r from-yellow-400 to-orange-400 text-white'
+                    }`}>
+                    {aiPriceStatus.status === 'fresh' ? '✓ Fresh Data' : '⚠ Updating Soon'}
+                  </span>
+                  {aiPriceStatus.lastFetchTime && (
+                    <span className="px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full text-sm text-purple-700 font-medium shadow-sm">
+                      Last: {new Date(aiPriceStatus.lastFetchTime).toLocaleString('en-IN', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  )}
+                  <span className="px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full text-sm text-blue-700 font-medium shadow-sm">
+                    Next: {aiPriceStatus.nextScheduledFetch}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border p-4">
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex items-center space-x-2">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">{language === 'en' ? 'Filter:' : language === 'mr' ? 'फिल्टर:' : 'फ़िल्टर:'}</span>
+      {/* Enhanced Filters Card */}
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+        <div className="space-y-4">
+          <div className="flex items-center space-x-3 pb-3 border-b border-gray-100">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+              <Filter className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-800">
+              {language === 'en' ? 'Filter Prices' : language === 'mr' ? 'किंमती फिल्टर करा' : 'कीमतें फ़िल्टर करें'}
+            </h3>
           </div>
-          
-          <select
-            value={selectedCrop}
-            onChange={(e) => setSelectedCrop(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            <option value="all">{t('allCrops')}</option>
-            {Array.from(new Set(priceData.map(item => item.crop))).map(crop => (
-              <option key={crop} value={crop}>{crop}</option>
-            ))}
-          </select>
 
-          <select
-            value={selectedMarket}
-            onChange={(e) => setSelectedMarket(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            <option value="all">सभी मंडियां</option>
-            {Array.from(new Set(priceData.map(item => item.market))).map(market => (
-              <option key={market} value={market}>{market}</option>
-            ))}
-          </select>
+          <div className="flex flex-wrap gap-4">
+            <select
+              value={selectedCrop}
+              onChange={(e) => setSelectedCrop(e.target.value)}
+              className="flex-1 min-w-[200px] px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-gray-50 hover:bg-white font-medium"
+            >
+              <option value="all">{t('allCrops')}</option>
+              {Array.from(new Set(priceData.map(item => item.crop))).map(crop => (
+                <option key={crop} value={crop}>{crop}</option>
+              ))}
+            </select>
+
+            <select
+              value={selectedMarket}
+              onChange={(e) => setSelectedMarket(e.target.value)}
+              className="flex-1 min-w-[200px] px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-gray-50 hover:bg-white font-medium"
+            >
+              <option value="all">{language === 'en' ? 'All Markets' : language === 'mr' ? 'सर्व बाजार' : 'सभी बाज़ार'}</option>
+              {Array.from(new Set(priceData.map(item => item.market))).map(market => (
+                <option key={market} value={market}>{market}</option>
+              ))}
+            </select>
+          </div>
 
           {/* Enhanced Live API filters */}
           <div className="w-full border-t pt-4 mt-4">
@@ -338,7 +396,7 @@ export function PricePrediction() {
                 {language === 'en' ? 'Latest 30 Days Only' : language === 'mr' ? 'फक्त गेले ३० दिवस' : 'केवल पिछले 30 दिन'}
               </span>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div className="relative">
                 <input
@@ -353,7 +411,7 @@ export function PricePrediction() {
                   </span>
                 )}
               </div>
-              
+
               <div className="relative">
                 <input
                   placeholder={language === 'en' ? 'District (partial match, e.g., "Rajgarh")' : language === 'mr' ? 'जिल्हा (आंशिक मिलान, उदा., "राजगड")' : 'जिला (आंशिक मैच, जैसे, "राजगढ़")'}
@@ -367,7 +425,7 @@ export function PricePrediction() {
                   </span>
                 )}
               </div>
-              
+
               <div className="relative">
                 <input
                   placeholder={language === 'en' ? 'Commodity (partial match, e.g., "Soya")' : language === 'mr' ? 'कमोडिटी (आंशिक मिलान, उदा., "सोया")' : 'कमोडिटी (आंशिक मैच, जैसे, "सोया")'}
@@ -381,7 +439,7 @@ export function PricePrediction() {
                   </span>
                 )}
               </div>
-              
+
               <div className="flex space-x-2">
                 <button
                   onClick={fetchLive}
@@ -392,13 +450,13 @@ export function PricePrediction() {
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   )}
                   <span>
-                    {isLoadingLive 
+                    {isLoadingLive
                       ? (language === 'en' ? 'Loading...' : language === 'mr' ? 'लोड करत आहे...' : 'लोड हो रहा है...')
                       : (language === 'en' ? 'Search' : language === 'mr' ? 'शोधा' : 'खोजें')
                     }
                   </span>
                 </button>
-                
+
                 <button
                   onClick={() => {
                     setStateFilter('');
@@ -413,7 +471,7 @@ export function PricePrediction() {
                 </button>
               </div>
             </div>
-            
+
             {/* Quick Filter Buttons */}
             <div className="flex flex-wrap gap-2 mt-3">
               <span className="text-sm text-gray-600 mr-2">
@@ -423,11 +481,10 @@ export function PricePrediction() {
                 <button
                   key={commodity}
                   onClick={() => setCommodityFilter(commodity)}
-                  className={`px-3 py-1 text-xs rounded-full border transition-colors ${
-                    commodityFilter.toLowerCase() === commodity.toLowerCase()
-                      ? 'bg-blue-500 text-white border-blue-500'
-                      : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
-                  }`}
+                  className={`px-3 py-1 text-xs rounded-full border transition-colors ${commodityFilter.toLowerCase() === commodity.toLowerCase()
+                    ? 'bg-blue-500 text-white border-blue-500'
+                    : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                    }`}
                 >
                   {commodity}
                 </button>
@@ -450,27 +507,29 @@ export function PricePrediction() {
       {/* Live Market Data Cards */}
       {sortedLiveData.length > 0 && (
         <div className="space-y-6">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl px-6 py-4">
+          {/* Enhanced Header */}
+          <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl shadow-2xl px-6 py-5">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-white flex items-center space-x-2">
-                  <DollarSign className="w-6 h-6" />
+                <h3 className="text-2xl font-bold text-white flex items-center space-x-3">
+                  <DollarSign className="w-7 h-7" />
                   <span>
-                    {language === 'en' ? 'Live Market Prices' : language === 'mr' ? 'जिवंत बाजारभाव' : 'लाइव बाज़ार भाव'}
+                    {language === 'en' ? 'AI-Generated Market Prices' : language === 'mr' ? 'AI-निर्मित बाजारभाव' : 'AI-जनित बाज़ार भाव'}
                   </span>
                 </h3>
-                <p className="text-blue-100 text-sm mt-1">
-                  {language === 'en' ? `${sortedLiveData.length} markets • All available data` : 
-                   language === 'mr' ? `${sortedLiveData.length} बाजार • सर्व उपलब्ध डेटा` : 
-                   `${sortedLiveData.length} बाज़ार • सभी उपलब्ध डेटा`}
+                <p className="text-purple-100 text-sm mt-2">
+                  {language === 'en' ? `${sortedLiveData.length} markets • Powered by Gemini AI` :
+                    language === 'mr' ? `${sortedLiveData.length} बाजार • Gemini AI द्वारे समर्थित` :
+                      `${sortedLiveData.length} बाज़ार • Gemini AI द्वारा संचालित`}
                 </p>
               </div>
               <div className="text-right">
-                <div className="text-white text-sm opacity-90">
-                  {language === 'en' ? 'Government Data Portal' : language === 'mr' ? 'सरकारी डेटा पोर्टल' : 'सरकारी डेटा पोर्टल'}
+                <div className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-xl">
+                  <div className="text-white text-sm font-semibold">
+                    {language === 'en' ? 'AI-Powered' : language === 'mr' ? 'AI-संचालित' : 'AI-संचालित'}
+                  </div>
+                  <div className="text-purple-200 text-xs">Updated Daily</div>
                 </div>
-                <div className="text-blue-200 text-xs">data.gov.in</div>
               </div>
             </div>
           </div>
@@ -482,123 +541,126 @@ export function PricePrediction() {
               const maxPrice = parseFloat(record.Max_Price);
               const modalPrice = parseFloat(record.Modal_Price);
               const priceVariation = ((maxPrice - minPrice) / modalPrice * 100);
-              
+
               // Generate a mock forecast (in real app, this would come from AI)
               const forecastPrice = modalPrice + (modalPrice * (Math.random() * 0.2 - 0.1)); // ±10% variation
               const priceChange = ((forecastPrice - modalPrice) / modalPrice * 100);
               const isPositiveForecast = priceChange > 0;
-              
+
               // Mock confidence based on price stability
               const confidence = Math.max(60, Math.min(95, 100 - Math.abs(priceVariation * 2)));
-              
+
               return (
-                <div key={index} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow">
-                  {/* Card Header */}
-                  <div className="p-4 border-b border-gray-100">
-                    <div className="flex items-start space-x-3">
-                      {/* Commodity Icon */}
-                      <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                        {record.Commodity.charAt(0).toUpperCase()}
-                      </div>
-                      
-                      {/* Commodity Info */}
-                      <div className="flex-1">
-                        <h3 className="font-bold text-gray-900 text-lg">{record.Commodity}</h3>
-                        <div className="flex items-center space-x-1 text-sm text-gray-600">
-                          <MapPin className="w-3 h-3" />
-                          <span>{record.District}, {record.State}</span>
+                <div key={index} className="group relative bg-white rounded-2xl shadow-lg border-2 border-gray-100 overflow-hidden hover:shadow-2xl hover:border-purple-200 transition-all duration-300 transform hover:-translate-y-1">
+                  {/* Gradient Border Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 via-blue-500/0 to-pink-500/0 group-hover:from-purple-500/10 group-hover:via-blue-500/10 group-hover:to-pink-500/10 transition-all duration-300"></div>
+
+                  <div className="relative">
+                    {/* Card Header */}
+                    <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                      <div className="flex items-start space-x-4">
+                        {/* Enhanced Commodity Icon */}
+                        <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 via-green-500 to-teal-600 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg transform group-hover:scale-110 transition-transform">
+                          {record.Commodity.charAt(0).toUpperCase()}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {record.Market} • {record.Variety}
+
+                        {/* Commodity Info */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-gray-900 text-lg truncate">{record.Commodity}</h3>
+                          <div className="flex items-center space-x-1 text-sm text-gray-600 mt-1">
+                            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="truncate">{record.District}, {record.State}</span>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1 truncate">
+                            {record.Market} • {record.Variety}
+                          </div>
+                        </div>
+
+                        {/* Price Change Badge */}
+                        <div className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1 shadow-sm ${isPositiveForecast
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                          : 'bg-gradient-to-r from-red-500 to-pink-500 text-white'
+                          }`}>
+                          {isPositiveForecast ? (
+                            <TrendingUp className="w-3.5 h-3.5" />
+                          ) : (
+                            <TrendingDown className="w-3.5 h-3.5" />
+                          )}
+                          <span>{isPositiveForecast ? '+' : ''}{priceChange.toFixed(1)}%</span>
                         </div>
                       </div>
-                      
-                      {/* Price Change Badge */}
-                      <div className={`px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${
-                        isPositiveForecast 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-red-100 text-red-700'
-                      }`}>
-                        {isPositiveForecast ? (
-                          <TrendingUp className="w-3 h-3" />
-                        ) : (
-                          <TrendingDown className="w-3 h-3" />
-                        )}
-                        <span>{isPositiveForecast ? '+' : ''}{priceChange.toFixed(1)}%</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Price Information */}
-                  <div className="p-4 space-y-4">
-                    {/* Today's Price */}
-                    <div>
-                      <div className="text-sm text-gray-600 mb-1">
-                        {language === 'en' ? "Today's Price" : language === 'mr' ? 'आजचा भाव' : 'आज का भाव'}
-                      </div>
-                      <div className="text-2xl font-bold text-gray-900">
-                        {formatPrice(modalPrice)}
-                      </div>
                     </div>
 
-                    {/* Tomorrow's Forecast */}
-                    <div>
-                      <div className="text-sm text-gray-600 mb-1">
-                        {language === 'en' ? "Tomorrow's Forecast" : language === 'mr' ? 'उद्याचा अंदाज' : 'कल का पूर्वानुमान'}
+                    {/* Price Information */}
+                    <div className="p-5 space-y-4">
+                      {/* Today's Price - Prominent Display */}
+                      <div className="text-center py-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
+                        <div className="text-sm font-medium text-gray-600 mb-2">
+                          {language === 'en' ? "Today's Price" : language === 'mr' ? 'आजचा भाव' : 'आज का भाव'}
+                        </div>
+                        <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                          {formatPrice(modalPrice)}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">per quintal</div>
                       </div>
-                      <div className={`text-xl font-bold ${
-                        isPositiveForecast ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {formatPrice(forecastPrice)}
-                      </div>
-                    </div>
 
-                    {/* Price Range */}
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="text-xs text-gray-600 mb-2">
-                        {language === 'en' ? 'Price Range' : language === 'mr' ? 'भाव श्रेणी' : 'भाव सीमा'}
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-green-600 font-medium">
-                          Min: {formatPrice(minPrice)}
-                        </span>
-                        <span className="text-red-600 font-medium">
-                          Max: {formatPrice(maxPrice)}
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-gradient-to-r from-green-400 to-red-400 rounded-full mt-2"></div>
-                    </div>
-
-                    {/* Confidence & AI Model */}
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                      {/* Tomorrow's Forecast */}
                       <div>
-                        <div className="text-sm text-gray-600">
-                          {language === 'en' ? 'Reliability' : language === 'mr' ? 'विश्वसनीयता' : 'विश्वसनीयता'}
+                        <div className="text-sm text-gray-600 mb-1">
+                          {language === 'en' ? "Tomorrow's Forecast" : language === 'mr' ? 'उद्याचा अंदाज' : 'कल का पूर्वानुमान'}
                         </div>
-                        <div className={`text-lg font-bold ${
-                          confidence >= 80 ? 'text-green-600' : 
-                          confidence >= 60 ? 'text-yellow-600' : 'text-red-600'
-                        }`}>
-                          {confidence.toFixed(0)}%
+                        <div className={`text-xl font-bold ${isPositiveForecast ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                          {formatPrice(forecastPrice)}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-xs text-purple-600 flex items-center space-x-1">
-                          <BarChart3 className="w-3 h-3" />
-                          <span>ML Model</span>
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {language === 'en' ? 'AI Prediction' : language === 'mr' ? 'AI पूर्वानुमान' : 'AI पूर्वानुमान'}
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* Date */}
-                    <div className="text-xs text-gray-500 flex items-center space-x-1">
-                      <Calendar className="w-3 h-3" />
-                      <span>
-                        {language === 'en' ? 'Updated' : language === 'mr' ? 'अपडेट' : 'अपडेट'}: {formatDate(record.Arrival_Date)}
-                      </span>
+                      {/* Price Range */}
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="text-xs text-gray-600 mb-2">
+                          {language === 'en' ? 'Price Range' : language === 'mr' ? 'भाव श्रेणी' : 'भाव सीमा'}
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-green-600 font-medium">
+                            Min: {formatPrice(minPrice)}
+                          </span>
+                          <span className="text-red-600 font-medium">
+                            Max: {formatPrice(maxPrice)}
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-gradient-to-r from-green-400 to-red-400 rounded-full mt-2"></div>
+                      </div>
+
+                      {/* Confidence & AI Model */}
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                        <div>
+                          <div className="text-sm text-gray-600">
+                            {language === 'en' ? 'Reliability' : language === 'mr' ? 'विश्वसनीयता' : 'विश्वसनीयता'}
+                          </div>
+                          <div className={`text-lg font-bold ${confidence >= 80 ? 'text-green-600' :
+                            confidence >= 60 ? 'text-yellow-600' : 'text-red-600'
+                            }`}>
+                            {confidence.toFixed(0)}%
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-purple-600 flex items-center space-x-1">
+                            <BarChart3 className="w-3 h-3" />
+                            <span>ML Model</span>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {language === 'en' ? 'AI Prediction' : language === 'mr' ? 'AI पूर्वानुमान' : 'AI पूर्वानुमान'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Date */}
+                      <div className="text-xs text-gray-500 flex items-center space-x-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>
+                          {language === 'en' ? 'Updated' : language === 'mr' ? 'अपडेट' : 'अपडेट'}: {formatDate(record.Arrival_Date)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -674,7 +736,7 @@ export function PricePrediction() {
         </div>
       )}
 
-      
+
 
       {/* Price Alert Banner */}
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -689,22 +751,22 @@ export function PricePrediction() {
                 {language === 'en'
                   ? '• Tomato and chili prices may rise — good time to sell'
                   : language === 'mr'
-                  ? '• टोमॅटो आणि मिरचीच्या किमती वाढू शकतात — विक्रीसाठी चांगला वेळ'
-                  : '• टमाटर और मिर्च के भाव बढ़ने की संभावना — बेचने का अच्छा समय'}
+                    ? '• टोमॅटो आणि मिरचीच्या किमती वाढू शकतात — विक्रीसाठी चांगला वेळ'
+                    : '• टमाटर और मिर्च के भाव बढ़ने की संभावना — बेचने का अच्छा समय'}
               </li>
               <li>
                 {language === 'en'
                   ? '• Store onions — prices may increase till Diwali'
                   : language === 'mr'
-                  ? '• कांदे साठवा — दिवाळीपर्यंत किमती वाढू शकतात'
-                  : '• प्याज का भंडारण करें — दिवाली तक भाव बढ़ सकता है'}
+                    ? '• कांदे साठवा — दिवाळीपर्यंत किमती वाढू शकतात'
+                    : '• प्याज का भंडारण करें — दिवाली तक भाव बढ़ सकता है'}
               </li>
               <li>
                 {language === 'en'
                   ? '• Sell potatoes early — new harvest may reduce prices'
                   : language === 'mr'
-                  ? '• बटाटे लवकर विक्री करा — नव्या हंगामामुळे किमती कमी होऊ शकतात'
-                  : '• आलू जल्दी बेच दें — नई फसल से भाव गिर सकता है'}
+                    ? '• बटाटे लवकर विक्री करा — नव्या हंगामामुळे किमती कमी होऊ शकतात'
+                    : '• आलू जल्दी बेच दें — नई फसल से भाव गिर सकता है'}
               </li>
             </ul>
           </div>
@@ -727,7 +789,7 @@ export function PricePrediction() {
                   ✕
                 </button>
               </div>
-              
+
               <div className="space-y-4">
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h4 className="font-semibold mb-2">📊 {t('aiAnalysis')}</h4>
@@ -748,7 +810,7 @@ export function PricePrediction() {
                       ))}
                     </div>
                   </div>
-                  
+
                   <div>
                     <h4 className="font-semibold mb-2">🔮 आगामी पूर्वानुमान</h4>
                     <div className="space-y-1 text-sm">

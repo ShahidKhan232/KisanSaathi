@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { WeatherDataModel } from '../models/WeatherData.js';
+import { AuthRequest } from '../middleware/auth.js';
+import mongoose from 'mongoose';
 
 // Get current weather for a location
 export const getCurrentWeather = async (req: Request, res: Response) => {
@@ -98,6 +100,97 @@ export const getWeatherHistory = async (req: Request, res: Response) => {
         res.json(history);
     } catch (error) {
         console.error('Error fetching weather history:', error);
+        res.status(500).json({ error: 'Failed to fetch weather history' });
+    }
+};
+
+// Get user's weather preferences and saved locations
+export const getUserWeatherPreferences = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        // Get user profile to find their default location
+        const { UserModel } = await import('../models/User.js');
+        const user = await UserModel.findById(userId).select('location farmLocation');
+        
+        // Get recent weather data for user's location
+        let recentWeather = null;
+        if (user?.location || user?.farmLocation?.address) {
+            const location = user.farmLocation?.address || user.location;
+            recentWeather = await WeatherDataModel
+                .findOne({ location: new RegExp(location as string, 'i') })
+                .sort({ recordDate: -1 })
+                .limit(5);
+        }
+
+        res.json({
+            defaultLocation: user?.location || user?.farmLocation?.address || null,
+            recentWeather,
+            preferences: {
+                temperatureUnit: 'celsius', // Can be extended
+                autoRefresh: true
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching user weather preferences:', error);
+        res.status(500).json({ error: 'Failed to fetch weather preferences' });
+    }
+};
+
+// Save weather data with user association
+export const saveUserWeatherData = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const weatherData = {
+            ...req.body,
+            userId: new mongoose.Types.ObjectId(userId)
+        };
+
+        if (!weatherData.location || !weatherData.temperature) {
+            return res.status(400).json({ error: 'Location and temperature are required' });
+        }
+
+        const weather = await WeatherDataModel.create(weatherData);
+
+        console.log(`💾 Saved weather data for ${weather.location} (User: ${userId})`);
+        res.status(201).json(weather);
+    } catch (error) {
+        console.error('Error saving weather data:', error);
+        res.status(500).json({ error: 'Failed to save weather data' });
+    }
+};
+
+// Get weather history for a user
+export const getUserWeatherHistory = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { days = 7 } = req.query;
+
+        const daysAgo = new Date();
+        daysAgo.setDate(daysAgo.getDate() - Number(days));
+
+        const history = await WeatherDataModel
+            .find({
+                userId: new mongoose.Types.ObjectId(userId),
+                recordDate: { $gte: daysAgo }
+            })
+            .sort({ recordDate: -1 });
+
+        console.log(`📊 Fetched ${history.length} weather records for user ${userId}`);
+        res.json(history);
+    } catch (error) {
+        console.error('Error fetching user weather history:', error);
         res.status(500).json({ error: 'Failed to fetch weather history' });
     }
 };

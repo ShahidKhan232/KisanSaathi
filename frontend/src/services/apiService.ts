@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5001';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -111,7 +111,7 @@ export interface DiseaseDetection {
     symptoms: string[];
     treatment: string;
     preventionTips: string[];
-    detectionTimestamp: Date;
+    detectedAt: Date;
     location?: {
         latitude: number;
         longitude: number;
@@ -206,6 +206,7 @@ export const cropInfoAPI = {
 // ============= Weather Data API =============
 export interface WeatherData {
     _id: string;
+    userId?: string;
     location: string;
     coordinates?: {
         latitude: number;
@@ -219,6 +220,9 @@ export interface WeatherData {
     humidity: number;
     rainfall: number;
     windSpeed: number;
+    pressure?: number;
+    visibility?: number;
+    description?: string;
     forecast?: Array<{
         date: Date;
         temperature: {
@@ -255,6 +259,154 @@ export const weatherDataAPI = {
     getWeatherHistory: async (location: string, days?: number): Promise<WeatherData[]> => {
         const response = await api.get('/api/weather/history', { params: { location, days } });
         return response.data;
+    },
+
+    // Get user weather preferences
+    getUserWeatherPreferences: async (): Promise<{
+        defaultLocation: string | null;
+        recentWeather: WeatherData[];
+        preferences: {
+            temperatureUnit: string;
+            autoRefresh: boolean;
+        };
+    }> => {
+        const response = await api.get('/api/weather/user/preferences');
+        return response.data;
+    },
+
+    // Get user weather history
+    getUserWeatherHistory: async (days?: number): Promise<WeatherData[]> => {
+        const response = await api.get('/api/weather/user/history', { params: { days } });
+        return response.data;
+    },
+
+    // Save user weather data
+    saveUserWeatherData: async (data: Partial<WeatherData>): Promise<WeatherData> => {
+        const response = await api.post('/api/weather/user', data);
+        return response.data;
+    },
+};
+
+// ============= Market Price Data API =============
+export interface MarketPrice {
+    _id: string;
+    commodity: string;
+    variety?: string;
+    market: string;
+    state: string;
+    district: string;
+    minPrice: number;
+    maxPrice: number;
+    modalPrice: number;
+    priceDate: Date;
+    arrivals?: number;
+    source?: string;
+    fetchedAt?: Date;
+}
+
+export const marketPriceAPI = {
+    // Get current market prices with filters
+    getCurrentMarketPrices: async (params?: {
+        commodity?: string;
+        state?: string;
+        district?: string;
+        market?: string;
+        limit?: number;
+        skip?: number;
+    }): Promise<MarketPrice[]> => {
+        const response = await api.get('/api/market-prices/current', { params });
+        return response.data;
+    },
+
+    // Get price history for a commodity
+    getPriceHistory: async (params: {
+        commodity: string;
+        market?: string;
+        state?: string;
+        days?: number;
+    }): Promise<MarketPrice[]> => {
+        const response = await api.get('/api/market-prices/history', { params });
+        return response.data;
+    },
+
+    // Get user's preferred market prices
+    getUserPreferredPrices: async (): Promise<{
+        userCrops: string[];
+        userLocation: string | null;
+        prices: MarketPrice[];
+    }> => {
+        const response = await api.get('/api/market-prices/user/preferred');
+        return response.data;
+    },
+
+    // Get price statistics
+    getPriceStatistics: async (params: {
+        commodity: string;
+        state?: string;
+        period?: number;
+    }): Promise<{
+        commodity: string;
+        period: string;
+        statistics: Array<{
+            commodity: string;
+            market: string;
+            state: string;
+            avgModalPrice: number;
+            minModalPrice: number;
+            maxModalPrice: number;
+            latestPrice: number;
+            priceChange: number;
+            dataPoints: number;
+        }>;
+    }> => {
+        const response = await api.get('/api/market-prices/statistics', { params });
+        return response.data;
+    },
+};
+
+// ============= Price Alert API =============
+export interface PriceAlert {
+    _id: string;
+    userId: string;
+    crop: string;
+    targetPrice: number;
+    market?: string;
+    alertType: 'above' | 'below';
+    isActive: boolean;
+    createdAt: Date;
+    lastTriggered?: Date;
+    notificationSent?: boolean;
+    expiresAt?: Date;
+}
+
+export const priceAlertAPI = {
+    // Get user's price alerts
+    getMyAlerts: async (): Promise<PriceAlert[]> => {
+        const response = await api.get('/api/alerts');
+        return response.data;
+    },
+
+    // Get user's alert preferences
+    getAlertPreferences: async (): Promise<Pick<PriceAlert, 'crop' | 'targetPrice' | 'alertType' | 'market'>[]> => {
+        const response = await api.get('/api/alerts/preferences');
+        return response.data;
+    },
+
+    // Create new alert
+    createAlert: async (data: Omit<PriceAlert, '_id' | 'userId' | 'createdAt' | 'isActive'>): Promise<PriceAlert> => {
+        const response = await api.post('/api/alerts', data);
+        return response.data;
+    },
+
+    // Update alert
+    updateAlert: async (id: string, data: Partial<PriceAlert>): Promise<PriceAlert> => {
+        const response = await api.put(`/api/alerts/${id}`, data);
+        return response.data;
+    },
+
+    // Delete alert
+    deleteAlert: async (id: string): Promise<void> => {
+        await api.delete(`/api/alerts/${id}`);
     },
 };
 

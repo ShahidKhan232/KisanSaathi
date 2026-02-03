@@ -21,13 +21,16 @@ import profileRoutes from './routes/profileRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import cropRoutes from './routes/cropRecommendation.routes.js';
-import marketPriceRoutes from './routes/marketPrice.routes.js';
 import governmentSchemeRoutes from './routes/governmentScheme.routes.js';
 import priceAlertRoutes from './routes/priceAlert.routes.js';
 import chatHistoryRoutes from './routes/chatHistory.routes.js';
 import cropDiseaseRoutes from './routes/cropDisease.routes.js';
 import cropInfoRoutes from './routes/cropInfo.routes.js';
 import weatherDataRoutes from './routes/weatherData.routes.js';
+import marketPriceDataRoutes from './routes/marketPriceData.routes.js';
+import databaseTestRoutes from './routes/databaseTest.routes.js';
+import testCropDiseaseRoutes from './routes/testCropDisease.routes.js';
+import testAPIRoutes from './routes/testAPI.routes.js';
 
 // Services
 import { WebSocketManager } from './services/WebSocketManager.js';
@@ -96,7 +99,7 @@ app.use('/api/crop', cropRoutes);
 app.api_routes_registered = true; // Flag for debug
 
 app.use('/api/alerts', priceAlertRoutes);
-app.use('/api/prices', marketPriceRoutes);
+app.use('/api/market-prices', marketPriceDataRoutes); // AI-powered market prices
 app.use('/api/schemes', governmentSchemeRoutes);
 
 // New routes for database collections
@@ -104,6 +107,9 @@ app.use('/api/chat', chatHistoryRoutes);
 app.use('/api/diseases', cropDiseaseRoutes);
 app.use('/api/crops', cropInfoRoutes);
 app.use('/api/weather', weatherDataRoutes);
+app.use('/api/database', databaseTestRoutes);
+app.use('/api/test-crop-disease', testCropDiseaseRoutes);
+app.use('/api/test', testAPIRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
@@ -136,6 +142,10 @@ const httpServer = createServer(app);
 const wsManager = new WebSocketManager(httpServer);
 app.set('wsManager', wsManager);
 console.log('✅ WebSocket manager initialized');
+
+// Initialize market price cron job
+import { initializePriceFetchCron } from './utils/priceFetchCron.js';
+initializePriceFetchCron();
 
 // Start server
 const PORT = Number(process.env.PORT) || 5001;
