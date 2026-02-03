@@ -132,49 +132,12 @@ const seedData = async () => {
 
         // Create sample market prices
         console.log('💰 Creating market price data...');
-        const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-
-        const prices = await MarketPriceModel.create([
-            {
-                commodity: 'Wheat',
-                market: 'Pune APMC',
-                state: 'Maharashtra',
-                district: 'Pune',
-                minPrice: 2000,
-                maxPrice: 2200,
-                modalPrice: 2100,
-                priceDate: today,
-                arrivals: 500,
-                source: 'agmarknet'
-            },
-            {
-                commodity: 'Rice',
-                market: 'Nashik APMC',
-                state: 'Maharashtra',
-                district: 'Nashik',
-                minPrice: 2500,
-                maxPrice: 2800,
-                modalPrice: 2650,
-                priceDate: today,
-                arrivals: 300,
-                source: 'agmarknet'
-            },
-            {
-                commodity: 'Tomato',
-                market: 'Pune APMC',
-                state: 'Maharashtra',
-                district: 'Pune',
-                minPrice: 15,
-                maxPrice: 25,
-                modalPrice: 20,
-                priceDate: today,
-                arrivals: 1000,
-                source: 'agmarknet'
-            }
-        ]);
-        console.log(`✅ Created ${prices.length} market price entries\n`);
+        const today = new Date(); // Still needed for other seed data
+        console.log('ℹ️  Note: Market prices are now AI-generated. Run the AI price generation to populate prices.');
+        console.log('   Use: POST /api/market-prices/fetch-ai-prices (requires authentication)');
+        console.log('   Or wait for the daily cron job at midnight IST');
+        const prices: any[] = []; // Empty - prices will be AI-generated
+        console.log(`✅ Market prices will be AI-generated (${prices.length} seed prices created)\n`);
 
         // Create sample government schemes
         console.log('🏛️  Creating government schemes...');

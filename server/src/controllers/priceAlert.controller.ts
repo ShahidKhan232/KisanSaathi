@@ -34,6 +34,47 @@ export const createAlert = async (req: Request, res: Response) => {
     }
 };
 
+// Get user's price alert preferences
+export const getAlertPreferences = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).user?.id;
+
+        const preferences = await PriceAlertModel.find({ 
+            userId, 
+            isActive: true 
+        }).select('crop targetPrice alertType market -_id');
+        
+        res.json(preferences);
+    } catch (error) {
+        console.error('Error fetching alert preferences:', error);
+        res.status(500).json({ error: 'Failed to fetch alert preferences' });
+    }
+};
+
+// Update alert preference
+export const updateAlert = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userId = (req as AuthRequest).user?.id;
+        const updateData = req.body;
+
+        const alert = await PriceAlertModel.findOneAndUpdate(
+            { _id: id, userId },
+            { ...updateData },
+            { new: true }
+        );
+
+        if (!alert) {
+            return res.status(404).json({ error: 'Alert not found or unauthorized' });
+        }
+
+        res.json(alert);
+    } catch (error) {
+        console.error('Error updating alert:', error);
+        res.status(500).json({ error: 'Failed to update alert' });
+    }
+};
+
 // Delete an alert
 export const deleteAlert = async (req: Request, res: Response) => {
     try {

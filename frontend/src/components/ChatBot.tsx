@@ -3,6 +3,7 @@ import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, RotateCcw, Copy,
 import { useVoice } from '../hooks/useVoice';
 import { useLanguage } from '../hooks/useLanguage';
 import { aiService } from '../services/aiService';
+import { chatHistoryAPI, type ChatMessage as APIChatMessage } from '../services/apiService';
 
 interface Message {
   id: string;
@@ -66,10 +67,11 @@ export function ChatBot() {
   const [fullResponses, setFullResponses] = useState<Record<string, string>>({}); // store original untrimmed AI text
   const [currentCrop, setCurrentCrop] = useState<string | null>(null);
   const [currentDisease, setCurrentDisease] = useState<string | null>(null);
+  const [sessionId] = useState<string>(() => `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  
+
   const { isListening, startListening, stopListening, speak, isSpeaking } = useVoice();
   const { language, t } = useLanguage();
 
@@ -144,8 +146,8 @@ export function ChatBot() {
   };
 
   const reactToMessage = (messageId: string, reaction: 'like' | 'dislike') => {
-    setMessages(prev => prev.map(msg => 
-      msg.id === messageId 
+    setMessages(prev => prev.map(msg =>
+      msg.id === messageId
         ? { ...msg, reactions: msg.reactions === reaction ? null : reaction }
         : msg
     ));
@@ -184,17 +186,17 @@ export function ChatBot() {
     const lower = text.toLowerCase();
     const agKeywords = [
       // General
-      'crop','farm','farming','soil','seed','plant','sow','nursery','irrigation','harvest','yield','agriculture','agri',
+      'crop', 'farm', 'farming', 'soil', 'seed', 'plant', 'sow', 'nursery', 'irrigation', 'harvest', 'yield', 'agriculture', 'agri',
       // Inputs / management
-      'fertilizer','pesticide','manure','compost','organic','mulch','drip','spray','weed','disease','pest',
+      'fertilizer', 'pesticide', 'manure', 'compost', 'organic', 'mulch', 'drip', 'spray', 'weed', 'disease', 'pest',
       // Prices / schemes
-      'price','market','mandi','scheme','subsidy','loan','pm-kisan','kcc',
+      'price', 'market', 'mandi', 'scheme', 'subsidy', 'loan', 'pm-kisan', 'kcc',
       // Machinery
-      'tractor','implement','sprayer',
+      'tractor', 'implement', 'sprayer',
       // Crops (staples / cash / horticulture)
-      'rice','paddy','wheat','maize','corn','millet','bajra','jowar','ragi','soybean','cotton','sugarcane','pulse','lentil','gram','tur','arhar','urad','moong','groundnut','peanut','mustard','rapeseed','sunflower','potato','onion','tomato','chilli','brinjal','okra','cabbage','cauliflower','mango','banana','coconut','papaya','guava','grape','pomegranate'
+      'rice', 'paddy', 'wheat', 'maize', 'corn', 'millet', 'bajra', 'jowar', 'ragi', 'soybean', 'cotton', 'sugarcane', 'pulse', 'lentil', 'gram', 'tur', 'arhar', 'urad', 'moong', 'groundnut', 'peanut', 'mustard', 'rapeseed', 'sunflower', 'potato', 'onion', 'tomato', 'chilli', 'brinjal', 'okra', 'cabbage', 'cauliflower', 'mango', 'banana', 'coconut', 'papaya', 'guava', 'grape', 'pomegranate'
     ];
-    const locationTokens = [ 'location','land','acre','hectare','area','mumbai','maharashtra','pune','nashik','nagpur','delhi','punjab','haryana','uttar','karnataka','gujarat','bihar','kolkata','west bengal','rajasthan' ];
+    const locationTokens = ['location', 'land', 'acre', 'hectare', 'area', 'mumbai', 'maharashtra', 'pune', 'nashik', 'nagpur', 'delhi', 'punjab', 'haryana', 'uttar', 'karnataka', 'gujarat', 'bihar', 'kolkata', 'west bengal', 'rajasthan'];
     const agMatch = [...agKeywords, ...locationTokens].some(k => lower.includes(k));
     const plantingPattern = /(how to|best way to)?\s*(plant|grow|sow)\s+[a-z]{2,}/i.test(text);
     const unrelated = /(movie|football|game console|celebrity|bitcoin|programming|software|social media)/i.test(lower);
@@ -206,8 +208,8 @@ export function ChatBot() {
   // Extract crop and disease mentions (simple heuristic)
   const updateContextFromUser = (text: string) => {
     const lower = text.toLowerCase();
-    const cropList = ['tomato','potato','chilli','rice','paddy','wheat','maize','corn','soybean','cotton','sugarcane','onion','garlic','banana','mango','grape','pomegranate','groundnut','peanut'];
-    const diseaseList = ['late blight','early blight','powdery mildew','downy mildew','bacterial wilt','leaf curl','blast','stem borer','fruit borer'];
+    const cropList = ['tomato', 'potato', 'chilli', 'rice', 'paddy', 'wheat', 'maize', 'corn', 'soybean', 'cotton', 'sugarcane', 'onion', 'garlic', 'banana', 'mango', 'grape', 'pomegranate', 'groundnut', 'peanut'];
+    const diseaseList = ['late blight', 'early blight', 'powdery mildew', 'downy mildew', 'bacterial wilt', 'leaf curl', 'blast', 'stem borer', 'fruit borer'];
     const foundCrop = cropList.find(c => lower.includes(c));
     const foundDisease = diseaseList.find(d => lower.includes(d));
     if (foundCrop && foundCrop !== currentCrop) setCurrentCrop(foundCrop);
@@ -216,7 +218,7 @@ export function ChatBot() {
 
   const sendMessage = async (messageText?: string, addUserMessage = true) => {
     const raw = messageText || inputMessage.trim();
-  let text = raw;
+    let text = raw;
     if (!text || isLoading) return;
 
     setIsLoading(true);
@@ -247,17 +249,17 @@ export function ChatBot() {
       setMessages([...updatedMessages, typingMessage]);
 
       // If previous AI asked for location and user now supplied it, merge with pending question
-  if (awaitingLocation) {
+      if (awaitingLocation) {
         setFarmerLocation(text);
         if (pendingQuestion) {
           // Combine original intent with location for richer answer
-            text = `${pendingQuestion}\nUser location: ${text}`;
+          text = `${pendingQuestion}\nUser location: ${text}`;
         }
         setAwaitingLocation(false);
         setPendingQuestion(null);
       }
-  // Update context
-  updateContextFromUser(text);
+      // Update context
+      updateContextFromUser(text);
 
       const responseLang = '- Respond in ' + (language === 'hi' ? 'Hindi' : language === 'mr' ? 'Marathi' : 'English');
       const locationLine = farmerLocation ? `Farmer location: ${farmerLocation}. Adapt crops, seasons (Kharif/Rabi/Zaid), pests & management to this region.` : 'If location not provided and it is essential for accuracy, politely ask once for state/district.';
@@ -307,15 +309,15 @@ export function ChatBot() {
           text: language === 'hi'
             ? 'कृपया खेती, फसल, मौसम, बाजार भाव या सरकारी योजनाओं से संबंधित प्रश्न पूछें।'
             : language === 'mr'
-            ? 'कृपया शेती, पिके, हवामान, बाजारभाव किंवा सरकारी योजनांशी संबंधित प्रश्न विचारा.'
-            : 'Please ask about farming, crops, weather, market prices or government schemes.',
+              ? 'कृपया शेती, पिके, हवामान, बाजारभाव किंवा सरकारी योजनांशी संबंधित प्रश्न विचारा.'
+              : 'Please ask about farming, crops, weather, market prices or government schemes.',
           sender: 'ai',
           timestamp: new Date()
         };
         setMessages(prev => prev.filter(msg => !msg.isTyping).concat(warn));
         return;
       }
-  const response = await aiService.getChatResponse(enrichedText, language, systemPrompt);
+      const response = await aiService.getChatResponse(enrichedText, language, systemPrompt);
       const { formatted: formattedResponse, truncated, topicHint } = formatResponse(response, raw);
 
       const aiMessage: Message = {
@@ -330,6 +332,44 @@ export function ChatBot() {
       setMessages(prev => prev.filter(msg => !msg.isTyping).concat(aiMessage));
       if (truncated) setFullResponses(prev => ({ ...prev, [aiMessage.id]: response }));
 
+      // Save chat messages to database (async, don't block UI)
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          // Save both user and AI messages
+          const userMsg: APIChatMessage = {
+            role: 'user',
+            content: raw,
+            timestamp: new Date()
+          };
+          const aiMsg: APIChatMessage = {
+            role: 'assistant',
+            content: formattedResponse,
+            timestamp: new Date()
+          };
+
+          // Determine topic from first user message or current context
+          const topic = currentCrop || currentDisease || raw.split(/[.?!]/)[0].slice(0, 50);
+
+          // Save user message
+          await chatHistoryAPI.saveChatMessage({
+            sessionId,
+            message: userMsg,
+            topic
+          });
+
+          // Save AI response
+          await chatHistoryAPI.saveChatMessage({
+            sessionId,
+            message: aiMsg,
+            topic
+          });
+        }
+      } catch (error) {
+        console.error('Failed to save chat history:', error);
+        // Continue without blocking - chat still works even if save fails
+      }
+
       // Detect if AI is requesting location so we can merge later
       if (!farmerLocation && /\byour (state|district|location|region)\b|tell me your location/i.test(formattedResponse)) {
         setAwaitingLocation(true);
@@ -340,11 +380,11 @@ export function ChatBot() {
       console.error('Chat error:', error);
       const errorMessage: Message = {
         id: Date.now().toString(),
-        text: language === 'hi' 
+        text: language === 'hi'
           ? 'क्षमा करें, कुछ समस्या हुई। दोबारा कोशिश करें।'
           : language === 'mr'
-          ? 'माफ करा, काही अडचण आली. पुन्हा प्रयत्न करा.'
-          : 'Sorry, something went wrong. Please try again.',
+            ? 'माफ करा, काही अडचण आली. पुन्हा प्रयत्न करा.'
+            : 'Sorry, something went wrong. Please try again.',
         sender: 'ai',
         timestamp: new Date()
       };
@@ -433,7 +473,7 @@ export function ChatBot() {
       </div>
 
       {/* Messages */}
-      <div 
+      <div
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50"
         style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}
@@ -521,7 +561,7 @@ export function ChatBot() {
             </div>
           );
         })}
-        
+
         {/* Quick Suggestions */}
         {showSuggestions && messages.length <= 1 && (
           <div className="space-y-2">
@@ -539,7 +579,7 @@ export function ChatBot() {
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 

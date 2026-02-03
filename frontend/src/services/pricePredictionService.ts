@@ -24,70 +24,73 @@ class PricePredictionService {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private readonly apiBaseUrl = (import.meta as ImportMeta).env?.VITE_AGMARKNET_API_URL ?? 'https://api.agmarknet.gov.in';
   private readonly useRealApi = ((import.meta as ImportMeta).env?.VITE_USE_REAL_PRICE_API ?? 'false') === 'true';
-  private readonly backendUrl = import.meta.env?.VITE_SERVER_URL 
-    ? import.meta.env.VITE_SERVER_URL 
+  private readonly backendUrl = import.meta.env?.VITE_SERVER_URL
+    ? import.meta.env.VITE_SERVER_URL
     : (import.meta.env?.DEV ? '' : 'http://localhost:5001'); // Use proxy in dev mode
-  
+
   /**
-   * Get current prices, using real API if enabled via env, else mock data
+   * Get current prices from database with user preferences
    */
   async getCurrentPrices(): Promise<PriceData[]> {
     try {
-      if (this.useRealApi) {
-        // If real API is enabled but no mapping provided, fall back to backend mock
-        console.debug('Real market API enabled; using backend mock for cards');
-      }
+      const token = localStorage.getItem('token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
 
-      // Try backend proxy first (if server running), fallback to mock
-      try {
-        const res = await fetch(`${this.backendUrl}/api/prices`, { method: 'GET' });
-        if (res.ok) {
-          const data = await res.json();
-          return data as PriceData[];
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        // Try user-specific prices first
+        try {
+          const res = await fetch(`${this.backendUrl}/api/market-prices/user/preferred`, {
+            method: 'GET',
+            headers
+          });
+          if (res.ok) {
+            const data = await res.json();
+            return this.transformMarketPricesToPriceData(data.prices);
+          }
+        } catch {
+          // Fall back to general prices
         }
-      } catch {
-        // ignore and fallback to mock
       }
 
-      // Fallback: simulated data with realistic variations
-      const mockData = await this.generateRealtimePrices();
-      return mockData;
+      // Get general AI-generated market prices
+      const res = await fetch(`${this.backendUrl}/api/market-prices/current`, {
+        method: 'GET',
+        headers
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        return this.transformMarketPricesToPriceData(data);
+      }
+
+      throw new Error('Failed to fetch prices');
     } catch (error) {
-      console.error('Price fetch error:', error);
-      return this.getFallbackPrices();
+      console.error('Error fetching current prices:', error);
+      return this.getMockPrices();
     }
   }
 
   /**
-   * Fetch live market prices via backend proxy with optional filters
+   * Transform database market prices to frontend PriceData format
    */
-  async getLiveMarketPrices(params: {
-    state?: string;
-    district?: string;
-    commodity?: string;
-    format?: 'json' | 'xml' | 'csv';
-    offset?: number;
-    limit?: number;
-  } = {}): Promise<any[]> {
-    const search = new URLSearchParams();
-    if (params.state) search.set('filters[State]', params.state);
-    if (params.district) search.set('filters[District]', params.district);
-    if (params.commodity) search.set('filters[Commodity]', params.commodity);
-    if (params.offset !== undefined) search.set('offset', String(params.offset));
-    if (params.limit !== undefined) search.set('limit', String(params.limit));
-    search.set('format', (params.format || 'json'));
-
-    const url = `${this.backendUrl}/api/market/prices?${search.toString()}`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`Live market API error ${res.status}: ${text.slice(0,200)}`);
-    }
-    
-    const data = await res.json();
-    // Return only the records array from the API response
-    return data.records || [];
+  private transformMarketPricesToPriceData(marketPrices: any[]): PriceData[] {
+    return marketPrices.map(price => ({
+      crop: price.commodity,
+      market: `${price.market}, ${price.district}`,
+      currentPrice: price.modalPrice,
+      predictedPrice: price.modalPrice * (1 + (Math.random() - 0.5) * 0.1), // Simple prediction
+      change: Math.random() > 0.5 ? Math.random() * 10 : -Math.random() * 10,
+      trend: (Math.random() > 0.5 ? 'up' : 'down') as 'up' | 'down' | 'stable',
+      date: new Date(price.priceDate).toLocaleDateString(),
+      confidence: 75 + Math.random() * 20,
+      image: `https://images.pexels.com/photos/${Math.floor(Math.random() * 1000)}/pexels-photo-${Math.floor(Math.random() * 1000)}.jpeg?auto=compress&cs=tinysrgb&w=100`
+    }));
   }
+
+
 
   /**
    * Get historical, forecast and analysis for a crop/market
@@ -126,21 +129,21 @@ class PricePredictionService {
 
     const prices = historical.map(h => h.price);
     const forecast: HistoricalPrice[] = [];
-    
+
     // Calculate moving average and trend
     const windowSize = Math.min(7, prices.length);
     const recentPrices = prices.slice(-windowSize);
     const movingAvg = recentPrices.reduce((sum, p) => sum + p, 0) / windowSize;
-    
+
     // Calculate trend (simple linear regression-like)
     let trend = 0;
     if (prices.length >= 14) {
       const lastWeek = prices.slice(-7);
       const firstWeek = prices.slice(-14, -7);
-      
+
       const lastAvg = lastWeek.reduce((sum, p) => sum + p, 0) / lastWeek.length;
       const firstAvg = firstWeek.reduce((sum, p) => sum + p, 0) / firstWeek.length;
-      
+
       trend = (lastAvg - firstAvg) / 7; // Daily trend
     }
 
@@ -152,12 +155,12 @@ class PricePredictionService {
     for (let i = 1; i <= 3; i++) {
       const forecastDate = new Date(today);
       forecastDate.setDate(today.getDate() + i);
-      
+
       // Add noise and seasonal factors
       const basePrice = movingAvg + (trend * i);
       const seasonalPrice = basePrice * seasonalMultiplier;
       const noise = (Math.random() - 0.5) * basePrice * 0.05; // ±5% random variation
-      
+
       const predictedPrice = Math.max(0, seasonalPrice + noise);
 
       forecast.push({
@@ -207,11 +210,11 @@ class PricePredictionService {
       // Add realistic price variations (±15%)
       const variation = (Math.random() - 0.5) * 0.3; // -15% to +15%
       const currentPrice = Math.round(item.basePrice * (1 + variation));
-      
+
       // Predict tomorrow's price with some logic
       const trendFactor = (Math.random() - 0.4) * 0.2; // Slightly upward bias
       const predictedPrice = Math.round(currentPrice * (1 + trendFactor));
-      
+
       const change = ((predictedPrice - currentPrice) / currentPrice) * 100;
       const trend = change > 2 ? 'up' : change < -2 ? 'down' : 'stable';
       const confidence = Math.round(75 + Math.random() * 20); // 75-95% confidence
@@ -248,15 +251,15 @@ class PricePredictionService {
     for (let i = 30; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
-      
+
       // Generate realistic price variations
       const dayOfWeek = date.getDay();
       const weekendFactor = (dayOfWeek === 0 || dayOfWeek === 6) ? 1.05 : 1.0;
       const trend = Math.sin(i / 10) * 0.1; // Cyclical trend
       const noise = (Math.random() - 0.5) * 0.1;
-      
+
       const price = Math.round(basePrice * marketFactor * (1 + trend + noise) * weekendFactor);
-      
+
       historical.push({
         date: date.toISOString().split('T')[0],
         price
@@ -276,7 +279,7 @@ class PricePredictionService {
     const changePercent = ((forecastPrice - currentPrice) / currentPrice) * 100;
 
     let analysis = `${crop} analysis:\n\n`;
-    
+
     if (changePercent > 5) {
       analysis += `📈 Price likely to increase (${changePercent.toFixed(1)}%)\n`;
       analysis += `• Demand is rising\n`;
@@ -328,6 +331,58 @@ class PricePredictionService {
       console.error('Price alert setup error:', error);
       return false;
     }
+  }
+
+  /**
+   * Get AI price generation status
+   */
+  async getAIPriceStatus(): Promise<{
+    lastFetchTime: string | null;
+    needsRefresh: boolean;
+    aiGeneratedPriceCount: number;
+    nextScheduledFetch: string;
+    status: 'stale' | 'fresh';
+  } | null> {
+    try {
+      const res = await fetch(`${this.backendUrl}/api/market-prices/ai-status`);
+      if (res.ok) {
+        return await res.json();
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching AI price status:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Manually trigger AI price generation (admin/testing)
+   */
+  async triggerAIPriceGeneration(): Promise<{ success: boolean; count?: number; error?: string }> {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${this.backendUrl}/api/market-prices/fetch-ai-prices`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
+
+      if (res.ok) {
+        return await res.json();
+      }
+
+      const error = await res.json().catch(() => ({ error: 'Failed to generate prices' }));
+      return { success: false, error: error.error || 'Unknown error' };
+    } catch (error) {
+      console.error('Error triggering AI price generation:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  private getMockPrices(): PriceData[] {
+    return this.getFallbackPrices();
   }
 }
 

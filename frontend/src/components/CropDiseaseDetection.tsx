@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, Zap, CheckCircle, X } from 'lucide-react';
+import { Camera, Upload, Zap, CheckCircle, X, History } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { aiService } from '../services/aiService';
+import { cropDiseaseAPI } from '../services/apiService';
+import { DiseaseHistory } from './DiseaseHistory';
 
 interface DetectionResult {
   disease: string;
@@ -9,6 +11,10 @@ interface DetectionResult {
   treatment: string;
   prevention: string[];
   severity: 'low' | 'medium' | 'high';
+}
+
+interface CropDiseaseDetectionProps {
+  // No props needed anymore
 }
 
 // Function to format AI response into structured sections
@@ -373,7 +379,7 @@ const formatAIResponse = (response: string): JSX.Element => {
   );
 };
 
-export function CropDiseaseDetection() {
+export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
   const { t, language } = useLanguage();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -383,6 +389,7 @@ export function CropDiseaseDetection() {
   const [showCamera, setShowCamera] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -402,14 +409,18 @@ export function CropDiseaseDetection() {
   };
 
   const startCamera = async () => {
+    console.log('🎬 Camera start button clicked');
     setCameraError(null);
 
     try {
       // Check if getUserMedia is supported
+      console.log('🔍 Checking camera support...');
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Camera not supported on this device');
       }
+      console.log('✅ Camera support detected');
 
+      console.log('📥 Requesting camera access...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment', // Use back camera on mobile
@@ -417,16 +428,22 @@ export function CropDiseaseDetection() {
           height: { ideal: 720 }
         }
       });
+      console.log('✅ Camera stream obtained:', stream);
       setCameraStream(stream);
       setShowCamera(true);
+      console.log('🎬 showCamera set to true, modal should appear');
 
       // Start video stream
       if (videoRef.current) {
+        console.log('📹 Setting video stream...');
         videoRef.current.srcObject = stream;
         videoRef.current.play();
+        console.log('✅ Video stream started');
+      } else {
+        console.error('❌ videoRef.current is null');
       }
     } catch (error) {
-      console.error('Error accessing camera:', error);
+      console.error('❌ Error accessing camera:', error);
 
       const errorMessage = language === 'en'
         ? 'Unable to access camera. Please check permissions or use gallery option.'
@@ -518,12 +535,64 @@ export function CropDiseaseDetection() {
         }
 
         setAiTextResult(text);
-        setResult(null);
+        
+        // Save disease detection to database
+        try {
+          const token = localStorage.getItem('token');
+          if (token) {
+            // Extract disease information from AI response
+            const diseaseMatch = text.match(/(?:disease|problem|issue)[:\s]+([^\n.]+)/i);
+            const cropMatch = text.match(/(?:crop|plant)[:\s]+([^\n.]+)/i);
+            const treatmentMatch = text.match(/(?:treatment|cure|medicine)[:\s]+([^\n.]+)/i);
 
-        // Auto-scroll to results after a short delay
-        setTimeout(() => {
-          resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 300);
+            // Extract symptoms (look for bullet points or numbered lists)
+            const symptomsMatches = text.match(/(?:symptom|sign)[s]?[:\s]+([^\n]+(?:\n[-•*]\s*[^\n]+)*)/i);
+            const symptoms: string[] = [];
+            if (symptomsMatches && symptomsMatches[1]) {
+              const symptomText = symptomsMatches[1];
+              const bulletPoints = symptomText.match(/[-•*]\s*([^\n]+)/g);
+              if (bulletPoints) {
+                symptoms.push(...bulletPoints.map(s => s.replace(/^[-•*]\s*/, '').trim()));
+              } else {
+                symptoms.push(symptomText.trim());
+              }
+            }
+
+            // Extract prevention tips
+            const preventionMatches = text.match(/(?:prevention|prevent|avoid)[:\s]+([^\n]+(?:\n[-•*]\s*[^\n]+)*)/i);
+            const preventionTips: string[] = [];
+            if (preventionMatches && preventionMatches[1]) {
+              const preventionText = preventionMatches[1];
+              const bulletPoints = preventionText.match(/[-•*]\s*([^\n]+)/g);
+              if (bulletPoints) {
+                preventionTips.push(...bulletPoints.map(s => s.replace(/^[-•*]\s*/, '').trim()));
+              } else {
+                preventionTips.push(preventionText.trim());
+              }
+            }
+
+            const dataToSave = {
+              cropName: cropMatch ? cropMatch[1].trim() : 'Unknown',
+              imageUrl: selectedImage,
+              detectedDisease: diseaseMatch ? diseaseMatch[1].trim() : 'Disease detected',
+              confidence: 85, // Default confidence since AI doesn't provide exact percentage
+              symptoms: symptoms.length > 0 ? symptoms : ['Symptoms detected in image'],
+              treatment: treatmentMatch ? treatmentMatch[1].trim() : text.substring(0, 200),
+              preventionTips: preventionTips.length > 0 ? preventionTips : ['Follow recommended practices']
+            };
+
+            const savedDetection = await cropDiseaseAPI.saveDiseaseDetection(dataToSave);
+            console.log('✅ Disease detection saved to database successfully!', savedDetection);
+            
+            // Trigger refresh of disease history
+            setTimeout(() => {
+              const event = new CustomEvent('detectionSaved', { detail: savedDetection });
+              window.dispatchEvent(event);
+            }, 500);
+          }
+        } catch (error) {
+          console.error('❌ Failed to save disease detection to database:', error);
+        }
       } catch (error) {
         console.error('Crop analysis error:', error);
 
@@ -547,6 +616,33 @@ export function CropDiseaseDetection() {
         const randomResult = mockResults[Math.floor(Math.random() * mockResults.length)];
         setResult(randomResult);
         setAiTextResult(`**Error**: ${error instanceof Error ? error.message : 'Unknown error'}\n\n**Fallback Diagnosis**:\n${randomResult.disease}`);
+        
+        // Save fallback detection to database
+        try {
+          const token = localStorage.getItem('token');
+          if (token) {
+            const dataToSave = {
+              cropName: 'Unknown',
+              imageUrl: selectedImage,
+              detectedDisease: randomResult.disease,
+              confidence: randomResult.confidence,
+              symptoms: ['Detected through fallback analysis'],
+              treatment: randomResult.treatment,
+              preventionTips: randomResult.prevention
+            };
+
+            const savedDetection = await cropDiseaseAPI.saveDiseaseDetection(dataToSave);
+            console.log('✅ Fallback detection saved to database successfully!', savedDetection);
+            
+            // Trigger refresh of disease history
+            setTimeout(() => {
+              const event = new CustomEvent('detectionSaved', { detail: savedDetection });
+              window.dispatchEvent(event);
+            }, 500);
+          }
+        } catch (saveError) {
+          console.error('❌ Failed to save fallback detection to database:', saveError);
+        }
       } finally {
         setIsAnalyzing(false);
       }
@@ -575,7 +671,20 @@ export function CropDiseaseDetection() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('cropDiagnosis')}</h2>
+        <div className="relative mb-2">
+          <h2 className="text-2xl font-bold text-gray-800">{t('cropDiagnosis')}</h2>
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className={`absolute top-0 right-0 flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium shadow-sm ${showHistory
+              ? 'bg-gray-600 hover:bg-gray-700 text-white'
+              : 'bg-green-600 hover:bg-green-700 text-white'
+              }`}
+            title={showHistory ? 'Hide history' : 'View disease detection history'}
+          >
+            <History className="w-4 h-4" />
+            <span>{showHistory ? 'Hide History' : 'View History'}</span>
+          </button>
+        </div>
         <p className="text-gray-600">{t('cropCheckDescription')}</p>
       </div>
 
@@ -639,15 +748,17 @@ export function CropDiseaseDetection() {
       ) : (
         <div className="space-y-6 animate-slideUp">
           {/* Image Preview */}
-          <div className="glass rounded-2xl shadow-premium border border-white/50 p-6">
-            <div className="flex items-center justify-between mb-6">
+          <div className="glass rounded-2xl shadow-premium border border-white/50 p-6 relative">
+            {/* Close button in corner */}
+            <button
+              onClick={resetDetection}
+              className="absolute top-4 right-4 text-gray-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-all duration-200 shadow-md hover:shadow-lg z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="mb-6">
               <h3 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">{t('uploadedImage')}</h3>
-              <button
-                onClick={resetDetection}
-                className="text-gray-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-all duration-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
 
             <div className="flex flex-col lg:flex-row gap-6">
@@ -852,87 +963,92 @@ export function CropDiseaseDetection() {
             </div>
           </div>
 
-          {/* Camera Modal */}
-          {showCamera && (
-            <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center animate-fadeIn">
-              <div className="w-full h-full max-w-4xl max-h-screen flex flex-col">
-                {/* Camera Header */}
-                <div className="flex items-center justify-between p-4 glass-dark">
-                  <h3 className="text-white text-lg font-semibold flex items-center space-x-2">
-                    <Camera className="w-5 h-5" />
-                    <span>{language === 'en' ? 'Take Photo' : language === 'mr' ? 'फोटो काढा' : 'फोटो लें'}</span>
-                  </h3>
-                  <button
-                    onClick={stopCamera}
-                    className="text-white hover:text-red-400 p-2 rounded-lg hover:bg-white/10 transition-all duration-200"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
+          {/* Disease History Section */}
+          <div className="mt-8">
+            <DiseaseHistory />
+          </div>
+        </div>
+      )}
 
-                {/* Camera View */}
-                <div className="flex-1 flex items-center justify-center p-4">
-                  <div className="relative w-full max-w-2xl aspect-video bg-black rounded-lg overflow-hidden">
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="w-full h-full object-cover"
-                    />
+      {/* Camera Modal - Outside conditional blocks so it can show anytime */}
+      {showCamera && (
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center animate-fadeIn">
+          <div className="w-full h-full max-w-4xl max-h-screen flex flex-col">
+            {/* Camera Header */}
+            <div className="flex items-center justify-between p-4 glass-dark">
+              <h3 className="text-white text-lg font-semibold flex items-center space-x-2">
+                <Camera className="w-5 h-5" />
+                <span>{language === 'en' ? 'Take Photo' : language === 'mr' ? 'फोटो काढा' : 'फोटो लें'}</span>
+              </h3>
+              <button
+                onClick={stopCamera}
+                className="text-white hover:text-red-400 p-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
 
-                    {/* Camera Guidelines */}
-                    <div className="absolute inset-0 pointer-events-none">
-                      <div className="w-full h-full border-2 border-white/20 rounded-lg">
-                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-white/50 rounded-lg">
-                          <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-white text-sm">
-                            {language === 'en' ? 'Focus the crop here' : language === 'mr' ? 'पीक येथे फोकस करा' : 'फसल को यहाँ फोकस करें'}
-                          </div>
-                        </div>
+            {/* Camera View */}
+            <div className="flex-1 flex items-center justify-center p-4">
+              <div className="relative w-full max-w-2xl aspect-video bg-black rounded-lg overflow-hidden">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+
+                {/* Camera Guidelines */}
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="w-full h-full border-2 border-white/20 rounded-lg">
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-white/50 rounded-lg">
+                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-white text-sm">
+                        {language === 'en' ? 'Focus the crop here' : language === 'mr' ? 'पीक येथे फोकस करा' : 'फसल को यहाँ फोकस करें'}
                       </div>
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                {/* Camera Controls */}
-                <div className="p-6 bg-black/50">
-                  <div className="flex items-center justify-center space-x-6">
-                    <button
-                      onClick={stopCamera}
-                      className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
-                    >
-                      {language === 'en' ? 'Cancel' : language === 'mr' ? 'रद्द करा' : 'रद्द करें'}
-                    </button>
+            {/* Camera Controls */}
+            <div className="p-6 bg-black/50">
+              <div className="flex items-center justify-center space-x-6">
+                <button
+                  onClick={stopCamera}
+                  className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                >
+                  {language === 'en' ? 'Cancel' : language === 'mr' ? 'रद्द करा' : 'रद्द करें'}
+                </button>
 
-                    <button
-                      onClick={capturePhoto}
-                      className="px-8 py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors flex items-center space-x-2"
-                    >
-                      <Camera className="w-6 h-6" />
-                      <span className="font-semibold">
-                        {language === 'en' ? 'Capture' : language === 'mr' ? 'कॅप्चर' : 'कैप्चर'}
-                      </span>
-                    </button>
+                <button
+                  onClick={capturePhoto}
+                  className="px-8 py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors flex items-center space-x-2"
+                >
+                  <Camera className="w-6 h-6" />
+                  <span className="font-semibold">
+                    {language === 'en' ? 'Capture' : language === 'mr' ? 'कॅप्चर' : 'कैप्चर'}
+                  </span>
+                </button>
 
-                    <div className="w-16"></div> {/* Spacer for balance */}
-                  </div>
-
-                  <div className="mt-4 text-center">
-                    <p className="text-white/70 text-sm">
-                      {language === 'en'
-                        ? 'Position the diseased part of the crop within the frame and tap capture'
-                        : language === 'mr'
-                          ? 'फसलाचा रोगग्रस्त भाग फ्रेममध्ये ठेवा आणि कॅप्चर दाबा'
-                          : 'फसल के रोगग्रस्त हिस्से को फ्रेम में रखें और कैप्चर दबाएं'}
-                    </p>
-                  </div>
-                </div>
+                <div className="w-16"></div> {/* Spacer for balance */}
               </div>
 
-              {/* Hidden canvas for photo capture */}
-              <canvas ref={canvasRef} className="hidden" />
+              <div className="mt-4 text-center">
+                <p className="text-white/70 text-sm">
+                  {language === 'en'
+                    ? 'Position the diseased part of the crop within the frame and tap capture'
+                    : language === 'mr'
+                      ? 'फसलाचा रोगग्रस्त भाग फ्रेममध्ये ठेवा आणि कॅप्चर दाबा'
+                      : 'फसल के रोगग्रस्त हिस्से को फ्रेम में रखें और कैप्चर दबाएं'}
+                </p>
+              </div>
             </div>
-          )}
+          </div>
+
+          {/* Hidden canvas for photo capture */}
+          <canvas ref={canvasRef} className="hidden" />
         </div>
       )}
     </div>

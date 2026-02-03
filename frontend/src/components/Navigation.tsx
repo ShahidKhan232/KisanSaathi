@@ -1,4 +1,4 @@
-import { Home, Camera, TrendingUp, Award, User, Sprout } from 'lucide-react';
+import { Home, Camera, TrendingUp, Award, User, Sprout, History } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 
 type ActiveTab = 'dashboard' | 'disease' | 'prices' | 'schemes' | 'profile' | 'recommendation';
