@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { User, Edit, MapPin, Phone, Mail, CreditCard, Settings, LogOut, Volume, VolumeX } from 'lucide-react';
 import { Modal } from './Modal';
-import { useLanguage } from '../hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import { socketService } from '../services/socketService';
 
@@ -9,7 +9,7 @@ import { useVoice } from '../hooks/useVoice';
 
 export function Profile() {
   const { isVoiceEnabled, toggleVoice } = useVoice();
-  const { t, language, setLanguage } = useLanguage();
+  const { t, i18n } = useTranslation();
   const { token, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -183,20 +183,20 @@ export function Profile() {
       formatter: (v: string) => v
     },
     {
-      label: language === 'en' ? 'This Month Earnings' : language === 'mr' ? 'या महिन्याची कमाई' : 'इस महीने कमाई',
+      label: i18n.language === 'en' ? 'This Month Earnings' : i18n.language === 'mr' ? 'या महिन्याची कमाई' : 'इस महीने कमाई',
       value: stats.monthlyEarnings.toString(),
       color: 'text-purple-600',
       loading: loading,
       formatter: (v: string) => `₹${parseInt(v).toLocaleString('en-IN')}`
     },
     {
-      label: language === 'en' ? 'Membership' : language === 'mr' ? 'सदस्यत्व' : 'सदस्यता',
+      label: i18n.language === 'en' ? 'Membership' : i18n.language === 'mr' ? 'सदस्यत्व' : 'सदस्यता',
       value: stats.membershipYears.toString(),
       color: 'text-orange-600',
       loading: loading,
-      formatter: (v: string) => language === 'en'
+      formatter: (v: string) => i18n.language === 'en'
         ? `${v} Years`
-        : language === 'mr'
+        : i18n.language === 'mr'
           ? `${v} वर्षे`
           : `${v} साल`
     }
@@ -265,7 +265,7 @@ export function Profile() {
       content: (
         <div className="space-y-6">
           <h3 className="text-xl font-semibold mb-4">
-            {language === 'en' ? 'Settings' : language === 'mr' ? 'सेटिंग्ज' : 'सेटिंग्स'}
+            {i18n.language === 'en' ? 'Settings' : i18n.language === 'mr' ? 'सेटिंग्ज' : 'सेटिंग्स'}
           </h3>
           <div className="space-y-4">
             {/* Notification Settings */}
@@ -300,14 +300,14 @@ export function Profile() {
       content: (
         <div className="space-y-6">
           <h3 className="text-xl font-semibold mb-4">
-            {language === 'en' ? 'Payment History' : language === 'mr' ? 'पेमेंट हिस्टरी' : 'भुगतान इतिहास'}
+            {i18n.language === 'en' ? 'Payment History' : i18n.language === 'mr' ? 'पेमेंट हिस्टरी' : 'भुगतान इतिहास'}
           </h3>
           <div className="space-y-4">
             {payments.length === 0 ? (
               <p className="text-gray-500 text-center py-4">
-                {language === 'en'
+                {i18n.language === 'en'
                   ? 'No payment history found'
-                  : language === 'mr'
+                  : i18n.language === 'mr'
                     ? 'कोणताही पेमेंट हिस्टरी सापडला नाही'
                     : 'कोई भुगतान इतिहास नहीं मिला'}
               </p>
@@ -345,26 +345,26 @@ export function Profile() {
       content: (
         <div className="space-y-6">
           <h3 className="text-xl font-semibold mb-4">
-            {language === 'en' ? 'Help & Support' : language === 'mr' ? 'मदत आणि सपोर्ट' : 'सहायता और समर्थन'}
+            {i18n.language === 'en' ? 'Help & Support' : i18n.language === 'mr' ? 'मदत आणि सपोर्ट' : 'सहायता और समर्थन'}
           </h3>
           <div className="space-y-4">
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-800">
               <p className="font-medium mb-1">
-                {language === 'en'
+                {i18n.language === 'en'
                   ? 'Customer Support'
-                  : language === 'mr'
+                  : i18n.language === 'mr'
                     ? 'ग्राहक सहाय्य'
                     : 'ग्राहक सहायता'}
               </p>
               <p className="text-sm">
-                {language === 'en'
+                {i18n.language === 'en'
                   ? 'Call us: 1800-123-4567 (Toll Free)'
-                  : language === 'mr'
+                  : i18n.language === 'mr'
                     ? 'आम्हाला कॉल करा: 1800-123-4567 (टोल फ्री)'
                     : 'हमें कॉल करें: 1800-123-4567 (टोल फ्री)'}
               </p>
               <p className="text-sm">
-                {language === 'en'
+                {i18n.language === 'en'
                   ? 'Email: support@kisansathi.com'
                   : 'ईमेल: support@kisansathi.com'}
               </p>
@@ -374,9 +374,9 @@ export function Profile() {
               <textarea
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 rows={4}
-                placeholder={language === 'en'
+                placeholder={i18n.language === 'en'
                   ? 'Type your message here...'
-                  : language === 'mr'
+                  : i18n.language === 'mr'
                     ? 'येथे आपला संदेश टाइप करा...'
                     : 'यहां अपना संदेश टाइप करें...'}
               ></textarea>
@@ -384,9 +384,9 @@ export function Profile() {
                 className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                 onClick={() => submitSupportMessage("User's message")}
               >
-                {language === 'en'
+                {i18n.language === 'en'
                   ? 'Send Message'
-                  : language === 'mr'
+                  : i18n.language === 'mr'
                     ? 'संदेश पाठवा'
                     : 'संदेश भेजें'}
               </button>
@@ -394,17 +394,17 @@ export function Profile() {
 
             <div className="space-y-4 mt-6">
               <h4 className="font-medium">
-                {language === 'en'
+                {i18n.language === 'en'
                   ? 'Previous Messages'
-                  : language === 'mr'
+                  : i18n.language === 'mr'
                     ? 'मागील संदेश'
                     : 'पिछले संदेश'}
               </h4>
               {supportMessages.length === 0 ? (
                 <p className="text-gray-500 text-center py-4">
-                  {language === 'en'
+                  {i18n.language === 'en'
                     ? 'No messages yet'
-                    : language === 'mr'
+                    : i18n.language === 'mr'
                       ? 'अजून कोणतेही संदेश नाहीत'
                       : 'अभी तक कोई संदेश नहीं'}
                 </p>
@@ -426,8 +426,8 @@ export function Profile() {
                       <span className={`text-xs ${msg.status === 'answered' ? 'text-green-500' : 'text-yellow-500'
                         }`}>
                         {msg.status === 'answered'
-                          ? (language === 'en' ? 'Answered' : language === 'mr' ? 'उत्तर दिले' : 'उत्तर दिया गया')
-                          : (language === 'en' ? 'Pending' : language === 'mr' ? 'प्रलंबित' : 'लंबित')
+                          ? (i18n.language === 'en' ? 'Answered' : i18n.language === 'mr' ? 'उत्तर दिले' : 'उत्तर दिया गया')
+                          : (i18n.language === 'en' ? 'Pending' : i18n.language === 'mr' ? 'प्रलंबित' : 'लंबित')
                         }
                       </span>
                     </div>
@@ -475,9 +475,9 @@ export function Profile() {
         // Immediately refresh from server to reflect any server-side changes
         await fetchProfile();
         // Show success message
-        const successMsg = language === 'en'
+        const successMsg = i18n.language === 'en'
           ? 'Profile updated successfully'
-          : language === 'mr'
+          : i18n.language === 'mr'
             ? 'प्रोफाइल यशस्वीरित्या अपडेट केले'
             : 'प्रोफ़ाइल सफलतापूर्वक अपडेट किया गया';
         // You might want to add a toast/notification system here
@@ -549,7 +549,7 @@ export function Profile() {
                   <div className="mt-1 text-xs">
                     <span className="text-green-500">↑ 12%</span>
                     <span className="text-gray-400 ml-1">
-                      {language === 'en' ? 'vs last month' : language === 'mr' ? 'मागील महिन्यापेक्षा' : 'पिछले महीने से'}
+                      {i18n.language === 'en' ? 'vs last month' : i18n.language === 'mr' ? 'मागील महिन्यापेक्षा' : 'पिछले महीने से'}
                     </span>
                   </div>
                 )}
@@ -577,13 +577,13 @@ export function Profile() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  {language === 'en' ? 'Updating...' : language === 'mr' ? 'अपडेट करत आहे...' : 'अपडेट हो रहा है...'}
+                  {i18n.language === 'en' ? 'Updating...' : i18n.language === 'mr' ? 'अपडेट करत आहे...' : 'अपडेट हो रहा है...'}
                 </span>
               ) : (
                 <span>
-                  {language === 'en'
+                  {i18n.language === 'en'
                     ? `Last updated: ${lastUpdated.toLocaleTimeString()}`
-                    : language === 'mr'
+                    : i18n.language === 'mr'
                       ? `शेवटचे अपडेट: ${lastUpdated.toLocaleTimeString()}`
                       : `आखरी अपडेट: ${lastUpdated.toLocaleTimeString()}`
                   }
@@ -798,41 +798,41 @@ export function Profile() {
         </div>
       </div>
 
-      {/* Language Preferences */}
+      {/* i18n.language Preferences */}
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('languageSettings')}</h3>
         <div className="grid grid-cols-3 gap-2">
-          <label className={`flex items-center justify-center space-x-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${language === 'hi' ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-700'}`}>
+          <label className={`flex items-center justify-center space-x-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${i18n.language === 'hi' ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-700'}`}>
             <input
               type="radio"
-              name="language"
+              name="i18n.language"
               value="hi"
-              checked={language === 'hi'}
-              onChange={(e) => setLanguage(e.target.value as 'en' | 'hi' | 'mr')}
+              checked={i18n.language === 'hi'}
+              onChange={(e) => i18n.changeLanguage(e.target.value as 'en' | 'hi' | 'mr')}
               className="sr-only"
             />
             <span>🇮🇳</span>
             <span>{t('hindi')}</span>
           </label>
-          <label className={`flex items-center justify-center space-x-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${language === 'mr' ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-700'}`}>
+          <label className={`flex items-center justify-center space-x-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${i18n.language === 'mr' ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-700'}`}>
             <input
               type="radio"
-              name="language"
+              name="i18n.language"
               value="mr"
-              checked={language === 'mr'}
-              onChange={(e) => setLanguage(e.target.value as 'en' | 'hi' | 'mr')}
+              checked={i18n.language === 'mr'}
+              onChange={(e) => i18n.changeLanguage(e.target.value as 'en' | 'hi' | 'mr')}
               className="sr-only"
             />
             <span>🇮🇳</span>
             <span>{t('marathi')}</span>
           </label>
-          <label className={`flex items-center justify-center space-x-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${language === 'en' ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-700'}`}>
+          <label className={`flex items-center justify-center space-x-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${i18n.language === 'en' ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-700'}`}>
             <input
               type="radio"
-              name="language"
+              name="i18n.language"
               value="en"
-              checked={language === 'en'}
-              onChange={(e) => setLanguage(e.target.value as 'en' | 'hi' | 'mr')}
+              checked={i18n.language === 'en'}
+              onChange={(e) => i18n.changeLanguage(e.target.value as 'en' | 'hi' | 'mr')}
               className="sr-only"
             />
             <span>🇺🇸</span>

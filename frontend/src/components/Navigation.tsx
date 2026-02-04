@@ -1,5 +1,5 @@
-import { Home, Camera, TrendingUp, Award, User, Sprout, History } from 'lucide-react';
-import { useLanguage } from '../hooks/useLanguage';
+import { Home, Camera, TrendingUp, Award, User, Sprout } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type ActiveTab = 'dashboard' | 'disease' | 'prices' | 'schemes' | 'profile' | 'recommendation';
 
@@ -9,7 +9,7 @@ interface NavigationProps {
 }
 
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
 
   const tabs = [
     { id: 'dashboard' as const, icon: Home, label: t('dashboard') },

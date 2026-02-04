@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLanguage } from '../hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { 
   CheckCircle, 
   Clock, 
@@ -24,7 +24,7 @@ export function ApplicationProgressTracker({
   onUploadDocument,
   onUpdateNotes
 }: ApplicationProgressProps) {
-  const { language } = useLanguage();
+  const { i18n } = useTranslation();
   // no selectedDocumentId state needed
   const [newNote, setNewNote] = useState('');
 
@@ -58,13 +58,13 @@ export function ApplicationProgressTracker({
   const getDocumentStatusText = (status: DocumentStatus) => {
     switch (status) {
       case 'verified':
-        return language === 'en' ? 'Verified' : language === 'mr' ? 'सत्यापित' : 'सत्यापित';
+        return i18n.language === 'en' ? 'Verified' : i18n.language === 'mr' ? 'सत्यापित' : 'सत्यापित';
       case 'rejected':
-        return language === 'en' ? 'Rejected' : language === 'mr' ? 'नाकारले' : 'अस्वीकृत';
+        return i18n.language === 'en' ? 'Rejected' : i18n.language === 'mr' ? 'नाकारले' : 'अस्वीकृत';
       case 'uploaded':
-        return language === 'en' ? 'Uploaded' : language === 'mr' ? 'अपलोड केले' : 'अपलोड किया';
+        return i18n.language === 'en' ? 'Uploaded' : i18n.language === 'mr' ? 'अपलोड केले' : 'अपलोड किया';
       default:
-        return language === 'en' ? 'Pending' : language === 'mr' ? 'प्रलंबित' : 'लंबित';
+        return i18n.language === 'en' ? 'Pending' : i18n.language === 'mr' ? 'प्रलंबित' : 'लंबित';
     }
   };
 
@@ -98,10 +98,10 @@ export function ApplicationProgressTracker({
       <div className="bg-white rounded-lg shadow-sm border p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-800">
-            {language === 'en' ? 'Application Progress' : language === 'mr' ? 'अर्ज प्रगती' : 'आवेदन प्रगति'}
+            {i18n.language === 'en' ? 'Application Progress' : i18n.language === 'mr' ? 'अर्ज प्रगती' : 'आवेदन प्रगति'}
           </h3>
           <span className="text-sm text-gray-500">
-            {language === 'en' ? 'Started on' : language === 'mr' ? 'सुरू केले' : 'शुरू किया'}: {new Date(progress.startedAt).toLocaleDateString()}
+            {i18n.language === 'en' ? 'Started on' : i18n.language === 'mr' ? 'सुरू केले' : 'शुरू किया'}: {new Date(progress.startedAt).toLocaleDateString()}
           </span>
         </div>
 
@@ -143,7 +143,7 @@ export function ApplicationProgressTracker({
             {step.requiredDocuments.length > 0 && (
               <div className="mt-4 space-y-2">
                 <h5 className="text-sm font-medium text-gray-700 mb-2">
-                  {language === 'en' ? 'Required Documents' : language === 'mr' ? 'आवश्यक कागदपत्रे' : 'आवश्यक दस्तावेज'}
+                  {i18n.language === 'en' ? 'Required Documents' : i18n.language === 'mr' ? 'आवश्यक कागदपत्रे' : 'आवश्यक दस्तावेज'}
                 </h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {step.requiredDocuments.map(docId => {
@@ -187,7 +187,7 @@ export function ApplicationProgressTracker({
             {step.nextSteps && step.nextSteps.length > 0 && (
               <div className="mt-4">
                 <h5 className="text-sm font-medium text-gray-700 mb-2">
-                  {language === 'en' ? 'Next Steps' : language === 'mr' ? 'पुढील पावले' : 'अगले कदम'}
+                  {i18n.language === 'en' ? 'Next Steps' : i18n.language === 'mr' ? 'पुढील पावले' : 'अगले कदम'}
                 </h5>
                 <ul className="space-y-1">
                   {step.nextSteps.map((nextStep, i) => (
@@ -203,7 +203,7 @@ export function ApplicationProgressTracker({
             {/* Notes */}
             <div className="mt-4">
               <h5 className="text-sm font-medium text-gray-700 mb-2">
-                {language === 'en' ? 'Notes' : language === 'mr' ? 'टिप्पण्या' : 'नोट्स'}
+                {i18n.language === 'en' ? 'Notes' : i18n.language === 'mr' ? 'टिप्पण्या' : 'नोट्स'}
               </h5>
               <div className="space-y-2">
                 {step.notes && step.notes.map((note, i) => (
@@ -216,14 +216,14 @@ export function ApplicationProgressTracker({
                     type="text"
                     value={newNote}
                     onChange={(e) => setNewNote(e.target.value)}
-                    placeholder={language === 'en' ? 'Add a note...' : language === 'mr' ? 'टीप जोडा...' : 'नोट जोड़ें...'}
+                    placeholder={i18n.language === 'en' ? 'Add a note...' : i18n.language === 'mr' ? 'टीप जोडा...' : 'नोट जोड़ें...'}
                     className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500"
                   />
                   <button
                     onClick={() => handleAddNote(step.id)}
                     className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
                   >
-                    {language === 'en' ? 'Add' : language === 'mr' ? 'जोडा' : 'जोड़ें'}
+                    {i18n.language === 'en' ? 'Add' : i18n.language === 'mr' ? 'जोडा' : 'जोड़ें'}
                   </button>
                 </div>
               </div>
@@ -235,7 +235,7 @@ export function ApplicationProgressTracker({
       {/* Timeline */}
       <div className="bg-white rounded-lg shadow-sm border p-4">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          {language === 'en' ? 'Application Timeline' : language === 'mr' ? 'अर्ज टाइमलाइन' : 'आवेदन टाइमलाइन'}
+          {i18n.language === 'en' ? 'Application Timeline' : i18n.language === 'mr' ? 'अर्ज टाइमलाइन' : 'आवेदन टाइमलाइन'}
         </h3>
         <div className="space-y-4">
           {progress.timeline.map((event, index) => (

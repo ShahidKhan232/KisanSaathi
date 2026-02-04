@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, MapPin, Calendar, Filter, RefreshCw, AlertTriangle, BarChart3 } from 'lucide-react';
-import { useLanguage } from '../hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { pricePredictionService, HistoricalPrice as ServiceHistoricalPrice } from '../services/pricePredictionService';
 
 interface MarketRecord {
@@ -29,7 +29,7 @@ interface PriceData {
 }
 
 export function PricePrediction() {
-  const { language, t } = useLanguage();
+  const { i18n, t } = useTranslation();
   const [selectedCrop, setSelectedCrop] = useState('all');
   const [selectedMarket, setSelectedMarket] = useState('all');
   const [stateFilter, setStateFilter] = useState('');
@@ -66,16 +66,16 @@ export function PricePrediction() {
     } catch (error) {
       console.error('Failed to fetch price data:', error);
       setError(
-        language === 'en'
+        i18n.language === 'en'
           ? 'Failed to load market prices. Please try again.'
-          : language === 'mr'
+          : i18n.language === 'mr'
             ? 'बाजारभाव लोड करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.'
             : 'बाज़ार भाव लोड करने में विफल. कृपया पुनः प्रयास करें।'
       );
     } finally {
       setIsLoading(false);
     }
-  }, [language]);
+  }, [i18n.language]);
 
   // Fetch AI price status
   useEffect(() => {
@@ -277,7 +277,7 @@ export function PricePrediction() {
               <p className="text-green-50 flex items-center space-x-2">
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm">
-                  {language === 'en'
+                  {i18n.language === 'en'
                     ? `Last updated: ${lastUpdate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
                     : `${t('lastUpdate')}: ${lastUpdate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
                   }
@@ -315,9 +315,9 @@ export function PricePrediction() {
                 <span>🤖 AI-Generated Market Prices</span>
               </h3>
               <p className="text-gray-700 text-sm mt-2 leading-relaxed">
-                {language === 'en'
+                {i18n.language === 'en'
                   ? 'Prices generated daily by Gemini AI based on market trends, seasonal patterns, and demand-supply analysis.'
-                  : language === 'mr'
+                  : i18n.language === 'mr'
                     ? 'जेमिनी AI द्वारे बाजार ट्रेंड, हंगामी पॅटर्न आणि मागणी-पुरवठा विश्लेषणावर आधारित दररोज किंमती तयार केल्या जातात.'
                     : 'जेमिनी AI द्वारा बाजार ट्रेंड, मौसमी पैटर्न और मांग-आपूर्ति विश्लेषण के आधार पर दैनिक कीमतें उत्पन्न की जाती हैं।'
                 }
@@ -358,7 +358,7 @@ export function PricePrediction() {
               <Filter className="w-5 h-5 text-white" />
             </div>
             <h3 className="text-lg font-bold text-gray-800">
-              {language === 'en' ? 'Filter Prices' : language === 'mr' ? 'किंमती फिल्टर करा' : 'कीमतें फ़िल्टर करें'}
+              {i18n.language === 'en' ? 'Filter Prices' : i18n.language === 'mr' ? 'किंमती फिल्टर करा' : 'कीमतें फ़िल्टर करें'}
             </h3>
           </div>
 
@@ -379,7 +379,7 @@ export function PricePrediction() {
               onChange={(e) => setSelectedMarket(e.target.value)}
               className="flex-1 min-w-[200px] px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-gray-50 hover:bg-white font-medium"
             >
-              <option value="all">{language === 'en' ? 'All Markets' : language === 'mr' ? 'सर्व बाजार' : 'सभी बाज़ार'}</option>
+              <option value="all">{i18n.language === 'en' ? 'All Markets' : i18n.language === 'mr' ? 'सर्व बाजार' : 'सभी बाज़ार'}</option>
               {Array.from(new Set(priceData.map(item => item.market))).map(market => (
                 <option key={market} value={market}>{market}</option>
               ))}
@@ -390,17 +390,17 @@ export function PricePrediction() {
           <div className="w-full border-t pt-4 mt-4">
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-sm font-medium text-blue-700">
-                {language === 'en' ? 'Live Market Data Filters:' : language === 'mr' ? 'जिवंत बाजार डेटा फिल्टर:' : 'लाइव बाज़ार डेटा फिल्टर:'}
+                {i18n.language === 'en' ? 'Live Market Data Filters:' : i18n.language === 'mr' ? 'जिवंत बाजार डेटा फिल्टर:' : 'लाइव बाज़ार डेटा फिल्टर:'}
               </span>
               <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                {language === 'en' ? 'Latest 30 Days Only' : language === 'mr' ? 'फक्त गेले ३० दिवस' : 'केवल पिछले 30 दिन'}
+                {i18n.language === 'en' ? 'Latest 30 Days Only' : i18n.language === 'mr' ? 'फक्त गेले ३० दिवस' : 'केवल पिछले 30 दिन'}
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div className="relative">
                 <input
-                  placeholder={language === 'en' ? 'State (partial match, e.g., "Madhya")' : language === 'mr' ? 'राज्य (आंशिक मिलान, उदा., "मध्य")' : 'राज्य (आंशिक मैच, जैसे, "मध्य")'}
+                  placeholder={i18n.language === 'en' ? 'State (partial match, e.g., "Madhya")' : i18n.language === 'mr' ? 'राज्य (आंशिक मिलान, उदा., "मध्य")' : 'राज्य (आंशिक मैच, जैसे, "मध्य")'}
                   value={stateFilter}
                   onChange={(e) => setStateFilter(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -414,7 +414,7 @@ export function PricePrediction() {
 
               <div className="relative">
                 <input
-                  placeholder={language === 'en' ? 'District (partial match, e.g., "Rajgarh")' : language === 'mr' ? 'जिल्हा (आंशिक मिलान, उदा., "राजगड")' : 'जिला (आंशिक मैच, जैसे, "राजगढ़")'}
+                  placeholder={i18n.language === 'en' ? 'District (partial match, e.g., "Rajgarh")' : i18n.language === 'mr' ? 'जिल्हा (आंशिक मिलान, उदा., "राजगड")' : 'जिला (आंशिक मैच, जैसे, "राजगढ़")'}
                   value={districtFilter}
                   onChange={(e) => setDistrictFilter(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -428,7 +428,7 @@ export function PricePrediction() {
 
               <div className="relative">
                 <input
-                  placeholder={language === 'en' ? 'Commodity (partial match, e.g., "Soya")' : language === 'mr' ? 'कमोडिटी (आंशिक मिलान, उदा., "सोया")' : 'कमोडिटी (आंशिक मैच, जैसे, "सोया")'}
+                  placeholder={i18n.language === 'en' ? 'Commodity (partial match, e.g., "Soya")' : i18n.language === 'mr' ? 'कमोडिटी (आंशिक मिलान, उदा., "सोया")' : 'कमोडिटी (आंशिक मैच, जैसे, "सोया")'}
                   value={commodityFilter}
                   onChange={(e) => setCommodityFilter(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -451,8 +451,8 @@ export function PricePrediction() {
                   )}
                   <span>
                     {isLoadingLive
-                      ? (language === 'en' ? 'Loading...' : language === 'mr' ? 'लोड करत आहे...' : 'लोड हो रहा है...')
-                      : (language === 'en' ? 'Search' : language === 'mr' ? 'शोधा' : 'खोजें')
+                      ? (i18n.language === 'en' ? 'Loading...' : i18n.language === 'mr' ? 'लोड करत आहे...' : 'लोड हो रहा है...')
+                      : (i18n.language === 'en' ? 'Search' : i18n.language === 'mr' ? 'शोधा' : 'खोजें')
                     }
                   </span>
                 </button>
@@ -467,7 +467,7 @@ export function PricePrediction() {
                   }}
                   className="px-3 py-2 bg-gray-500 text-white rounded-md text-sm hover:bg-gray-600 transition-colors"
                 >
-                  {language === 'en' ? 'Clear' : language === 'mr' ? 'साफ' : 'साफ़'}
+                  {i18n.language === 'en' ? 'Clear' : i18n.language === 'mr' ? 'साफ' : 'साफ़'}
                 </button>
               </div>
             </div>
@@ -475,7 +475,7 @@ export function PricePrediction() {
             {/* Quick Filter Buttons */}
             <div className="flex flex-wrap gap-2 mt-3">
               <span className="text-sm text-gray-600 mr-2">
-                {language === 'en' ? 'Quick filters:' : language === 'mr' ? 'द्रुत फिल्टर:' : 'त्वरित फिल्टर:'}
+                {i18n.language === 'en' ? 'Quick filters:' : i18n.language === 'mr' ? 'द्रुत फिल्टर:' : 'त्वरित फिल्टर:'}
               </span>
               {['Wheat', 'Rice', 'Onion', 'Potato', 'Tomato', 'Cotton', 'Soybean', 'Gram'].map(commodity => (
                 <button
@@ -497,7 +497,7 @@ export function PricePrediction() {
                 }}
                 className="px-3 py-1 text-xs rounded-full bg-red-100 text-red-700 border border-red-300 hover:bg-red-200 transition-colors"
               >
-                {language === 'en' ? 'Clear All' : language === 'mr' ? 'सर्व साफ करा' : 'सभी साफ़ करें'}
+                {i18n.language === 'en' ? 'Clear All' : i18n.language === 'mr' ? 'सर्व साफ करा' : 'सभी साफ़ करें'}
               </button>
             </div>
           </div>
@@ -514,19 +514,19 @@ export function PricePrediction() {
                 <h3 className="text-2xl font-bold text-white flex items-center space-x-3">
                   <DollarSign className="w-7 h-7" />
                   <span>
-                    {language === 'en' ? 'AI-Generated Market Prices' : language === 'mr' ? 'AI-निर्मित बाजारभाव' : 'AI-जनित बाज़ार भाव'}
+                    {i18n.language === 'en' ? 'AI-Generated Market Prices' : i18n.language === 'mr' ? 'AI-निर्मित बाजारभाव' : 'AI-जनित बाज़ार भाव'}
                   </span>
                 </h3>
                 <p className="text-purple-100 text-sm mt-2">
-                  {language === 'en' ? `${sortedLiveData.length} markets • Powered by Gemini AI` :
-                    language === 'mr' ? `${sortedLiveData.length} बाजार • Gemini AI द्वारे समर्थित` :
+                  {i18n.language === 'en' ? `${sortedLiveData.length} markets • Powered by Gemini AI` :
+                    i18n.language === 'mr' ? `${sortedLiveData.length} बाजार • Gemini AI द्वारे समर्थित` :
                       `${sortedLiveData.length} बाज़ार • Gemini AI द्वारा संचालित`}
                 </p>
               </div>
               <div className="text-right">
                 <div className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-xl">
                   <div className="text-white text-sm font-semibold">
-                    {language === 'en' ? 'AI-Powered' : language === 'mr' ? 'AI-संचालित' : 'AI-संचालित'}
+                    {i18n.language === 'en' ? 'AI-Powered' : i18n.language === 'mr' ? 'AI-संचालित' : 'AI-संचालित'}
                   </div>
                   <div className="text-purple-200 text-xs">Updated Daily</div>
                 </div>
@@ -596,7 +596,7 @@ export function PricePrediction() {
                       {/* Today's Price - Prominent Display */}
                       <div className="text-center py-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
                         <div className="text-sm font-medium text-gray-600 mb-2">
-                          {language === 'en' ? "Today's Price" : language === 'mr' ? 'आजचा भाव' : 'आज का भाव'}
+                          {i18n.language === 'en' ? "Today's Price" : i18n.language === 'mr' ? 'आजचा भाव' : 'आज का भाव'}
                         </div>
                         <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                           {formatPrice(modalPrice)}
@@ -607,7 +607,7 @@ export function PricePrediction() {
                       {/* Tomorrow's Forecast */}
                       <div>
                         <div className="text-sm text-gray-600 mb-1">
-                          {language === 'en' ? "Tomorrow's Forecast" : language === 'mr' ? 'उद्याचा अंदाज' : 'कल का पूर्वानुमान'}
+                          {i18n.language === 'en' ? "Tomorrow's Forecast" : i18n.language === 'mr' ? 'उद्याचा अंदाज' : 'कल का पूर्वानुमान'}
                         </div>
                         <div className={`text-xl font-bold ${isPositiveForecast ? 'text-green-600' : 'text-red-600'
                           }`}>
@@ -618,7 +618,7 @@ export function PricePrediction() {
                       {/* Price Range */}
                       <div className="bg-gray-50 rounded-lg p-3">
                         <div className="text-xs text-gray-600 mb-2">
-                          {language === 'en' ? 'Price Range' : language === 'mr' ? 'भाव श्रेणी' : 'भाव सीमा'}
+                          {i18n.language === 'en' ? 'Price Range' : i18n.language === 'mr' ? 'भाव श्रेणी' : 'भाव सीमा'}
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-green-600 font-medium">
@@ -635,7 +635,7 @@ export function PricePrediction() {
                       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                         <div>
                           <div className="text-sm text-gray-600">
-                            {language === 'en' ? 'Reliability' : language === 'mr' ? 'विश्वसनीयता' : 'विश्वसनीयता'}
+                            {i18n.language === 'en' ? 'Reliability' : i18n.language === 'mr' ? 'विश्वसनीयता' : 'विश्वसनीयता'}
                           </div>
                           <div className={`text-lg font-bold ${confidence >= 80 ? 'text-green-600' :
                             confidence >= 60 ? 'text-yellow-600' : 'text-red-600'
@@ -649,7 +649,7 @@ export function PricePrediction() {
                             <span>ML Model</span>
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
-                            {language === 'en' ? 'AI Prediction' : language === 'mr' ? 'AI पूर्वानुमान' : 'AI पूर्वानुमान'}
+                            {i18n.language === 'en' ? 'AI Prediction' : i18n.language === 'mr' ? 'AI पूर्वानुमान' : 'AI पूर्वानुमान'}
                           </div>
                         </div>
                       </div>
@@ -658,7 +658,7 @@ export function PricePrediction() {
                       <div className="text-xs text-gray-500 flex items-center space-x-1">
                         <Calendar className="w-3 h-3" />
                         <span>
-                          {language === 'en' ? 'Updated' : language === 'mr' ? 'अपडेट' : 'अपडेट'}: {formatDate(record.Arrival_Date)}
+                          {i18n.language === 'en' ? 'Updated' : i18n.language === 'mr' ? 'अपडेट' : 'अपडेट'}: {formatDate(record.Arrival_Date)}
                         </span>
                       </div>
                     </div>
@@ -674,12 +674,12 @@ export function PricePrediction() {
               <div className="flex items-center space-x-4">
                 <span className="flex items-center space-x-1">
                   <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                  <span>{language === 'en' ? 'Live Data' : language === 'mr' ? 'जिवंत डेटा' : 'लाइव डेटा'}</span>
+                  <span>{i18n.language === 'en' ? 'Live Data' : i18n.language === 'mr' ? 'जिवंत डेटा' : 'लाइव डेटा'}</span>
                 </span>
-                <span>{language === 'en' ? `All ${sortedLiveData.length} available markets` : language === 'mr' ? `सर्व ${sortedLiveData.length} उपलब्ध बाजार` : `सभी ${sortedLiveData.length} उपलब्ध बाज़ार`}</span>
+                <span>{i18n.language === 'en' ? `All ${sortedLiveData.length} available markets` : i18n.language === 'mr' ? `सर्व ${sortedLiveData.length} उपलब्ध बाजार` : `सभी ${sortedLiveData.length} उपलब्ध बाज़ार`}</span>
               </div>
               <div className="text-xs">
-                {language === 'en' ? 'Powered by Government Open Data' : language === 'mr' ? 'सरकारी ओपन डेटाने चालविले' : 'सरकारी ओपन डेटा द्वारा संचालित'}
+                {i18n.language === 'en' ? 'Powered by Government Open Data' : i18n.language === 'mr' ? 'सरकारी ओपन डेटाने चालविले' : 'सरकारी ओपन डेटा द्वारा संचालित'}
               </div>
             </div>
           </div>
@@ -721,7 +721,7 @@ export function PricePrediction() {
                 onClick={fetchPriceData}
                 className="text-sm font-medium text-red-700 hover:underline"
               >
-                {language === 'en' ? 'Retry' : language === 'mr' ? 'पुन्हा प्रयत्न' : 'पुनः प्रयास'}
+                {i18n.language === 'en' ? 'Retry' : i18n.language === 'mr' ? 'पुन्हा प्रयत्न' : 'पुनः प्रयास'}
               </button>
             </div>
           </div>
@@ -731,8 +731,8 @@ export function PricePrediction() {
       {/* Empty State */}
       {!isLoading && !error && filteredData.length === 0 && (
         <div className="bg-white border rounded-lg p-8 text-center text-gray-600">
-          <p className="font-medium mb-1">{language === 'en' ? 'No results found' : language === 'mr' ? 'निकाल सापडले नाहीत' : 'कोई परिणाम नहीं मिला'}</p>
-          <p className="text-sm">{language === 'en' ? 'Try adjusting filters or refresh.' : language === 'mr' ? 'फिल्टर बदला किंवा रिफ्रेश करा.' : 'फिल्टर बदलें या रिफ्रेश करें।'}</p>
+          <p className="font-medium mb-1">{i18n.language === 'en' ? 'No results found' : i18n.language === 'mr' ? 'निकाल सापडले नाहीत' : 'कोई परिणाम नहीं मिला'}</p>
+          <p className="text-sm">{i18n.language === 'en' ? 'Try adjusting filters or refresh.' : i18n.language === 'mr' ? 'फिल्टर बदला किंवा रिफ्रेश करा.' : 'फिल्टर बदलें या रिफ्रेश करें।'}</p>
         </div>
       )}
 
@@ -744,27 +744,27 @@ export function PricePrediction() {
           <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
           <div>
             <h3 className="font-semibold text-yellow-800">
-              {language === 'en' ? '💡 Farmer Tips' : language === 'mr' ? '💡 शेतकरी सल्ला' : '💡 किसान सलाह'}
+              {i18n.language === 'en' ? '💡 Farmer Tips' : i18n.language === 'mr' ? '💡 शेतकरी सल्ला' : '💡 किसान सलाह'}
             </h3>
             <ul className="text-yellow-700 text-sm mt-1 space-y-1">
               <li>
-                {language === 'en'
+                {i18n.language === 'en'
                   ? '• Tomato and chili prices may rise — good time to sell'
-                  : language === 'mr'
+                  : i18n.language === 'mr'
                     ? '• टोमॅटो आणि मिरचीच्या किमती वाढू शकतात — विक्रीसाठी चांगला वेळ'
                     : '• टमाटर और मिर्च के भाव बढ़ने की संभावना — बेचने का अच्छा समय'}
               </li>
               <li>
-                {language === 'en'
+                {i18n.language === 'en'
                   ? '• Store onions — prices may increase till Diwali'
-                  : language === 'mr'
+                  : i18n.language === 'mr'
                     ? '• कांदे साठवा — दिवाळीपर्यंत किमती वाढू शकतात'
                     : '• प्याज का भंडारण करें — दिवाली तक भाव बढ़ सकता है'}
               </li>
               <li>
-                {language === 'en'
+                {i18n.language === 'en'
                   ? '• Sell potatoes early — new harvest may reduce prices'
-                  : language === 'mr'
+                  : i18n.language === 'mr'
                     ? '• बटाटे लवकर विक्री करा — नव्या हंगामामुळे किमती कमी होऊ शकतात'
                     : '• आलू जल्दी बेच दें — नई फसल से भाव गिर सकता है'}
               </li>

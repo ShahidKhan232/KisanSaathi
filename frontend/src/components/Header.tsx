@@ -1,10 +1,10 @@
-import { Sprout, Globe, Volume2, LogIn, UserPlus, LogOut } from 'lucide-react';
-import { useLanguage } from '../hooks/useLanguage';
+import { Sprout, Globe, Volume2, LogIn, LogOut } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useVoice } from '../hooks/useVoice';
 import { useAuth } from '../hooks/useAuth';
 
 export function Header() {
-  const { language, setLanguage, t } = useLanguage();
+  const { i18n, t } = useTranslation();
   const { isVoiceEnabled, toggleVoice } = useVoice();
   const { user, logout } = useAuth();
 
@@ -27,23 +27,22 @@ export function Header() {
               <p className="text-xs text-green-600">{t('tagline')}</p>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <button
               onClick={toggleVoice}
-              className={`p-2 rounded-full transition-colors ${
-                isVoiceEnabled 
-                  ? 'bg-green-100 text-green-600' 
-                  : 'bg-gray-100 text-gray-600'
-              }`}
+              className={`p-2 rounded-full transition-colors ${isVoiceEnabled
+                ? 'bg-green-100 text-green-600'
+                : 'bg-gray-100 text-gray-600'
+                }`}
             >
               <Volume2 className="w-5 h-5" />
             </button>
-            
+
             <div className="relative">
               <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as 'en' | 'hi' | 'mr')}
+                value={i18n.language}
+                onChange={(e) => i18n.changeLanguage(e.target.value as 'en' | 'hi' | 'mr')}
                 className="appearance-none bg-green-50 text-green-700 px-3 py-2 pr-8 rounded-lg text-sm font-medium border border-green-200 focus:outline-none focus:ring-2 focus:ring-green-500"
               >
                 {languages.map((lang) => (

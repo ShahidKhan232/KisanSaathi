@@ -1,12 +1,12 @@
 import { Cloud, Droplets, Thermometer, Wind, TrendingUp, AlertTriangle, RefreshCw, MapPin, Eye, Gauge, Clock, Activity, Users, Sprout } from 'lucide-react';
-import { useLanguage } from '../hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import { useWeather } from '../hooks/useWeather';
 import { useAlerts } from '../hooks/useAlerts';
 import { useApiProfile } from '../hooks/useApiProfile';
 
 export function Dashboard() {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { profile, loading: profileLoading } = useApiProfile();
   const { weather, forecast, loading, error, lastUpdated, refreshWeather } = useWeather(10); // Auto-refresh every 10 minutes

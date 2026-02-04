@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, RotateCcw, Copy, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
 import { useVoice } from '../hooks/useVoice';
-import { useLanguage } from '../hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { aiService } from '../services/aiService';
 import { chatHistoryAPI, type ChatMessage as APIChatMessage } from '../services/apiService';
 
@@ -73,7 +73,15 @@ export function ChatBot() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const { isListening, startListening, stopListening, speak, isSpeaking } = useVoice();
-  const { language, t } = useLanguage();
+  const { i18n, t } = useTranslation();
+
+  // Helper function to ensure valid language type for AI service
+  const getValidLanguage = (lang: string): 'en' | 'hi' | 'mr' => {
+    if (lang === 'hi' || lang === 'mr' || lang === 'en') {
+      return lang;
+    }
+    return 'en'; // Default to English for unsupported languages
+  };
 
   // Welcome message when opening
   // Load persisted chat state
@@ -118,13 +126,13 @@ export function ChatBot() {
     if (isOpen && messages.length === 0) {
       const welcomeMessage: Message = {
         id: Date.now().toString(),
-        text: welcomeMessages[language as keyof typeof welcomeMessages] || welcomeMessages.en,
+        text: welcomeMessages[i18n.language as keyof typeof welcomeMessages] || welcomeMessages.en,
         sender: 'ai',
         timestamp: new Date()
       };
       setMessages([welcomeMessage]);
     }
-  }, [isOpen, language, messages.length]);
+  }, [isOpen, i18n.language, messages.length]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -261,7 +269,7 @@ export function ChatBot() {
       // Update context
       updateContextFromUser(text);
 
-      const responseLang = '- Respond in ' + (language === 'hi' ? 'Hindi' : language === 'mr' ? 'Marathi' : 'English');
+      const responseLang = '- Respond in ' + (i18n.language === 'hi' ? 'Hindi' : i18n.language === 'mr' ? 'Marathi' : 'English');
       const locationLine = farmerLocation ? `Farmer location: ${farmerLocation}. Adapt crops, seasons (Kharif/Rabi/Zaid), pests & management to this region.` : 'If location not provided and it is essential for accuracy, politely ask once for state/district.';
       const followUpNeeds = pendingQuestion ? 'The user has now provided missing info (likely location). Provide the complete answer, do NOT ask again.' : '';
       const systemPrompt = [
@@ -278,7 +286,7 @@ export function ChatBot() {
         '- Highlight critical tips with a leading *Important:*',
         '- Ask at most ONE clarifying question only if absolutely required.',
         '- Prefer specific numbers (e.g., spacing 20-25 cm, N:P:K ratios) where typical.',
-        '- Keep language simple and farmer-friendly.',
+        '- Keep i18n.language simple and farmer-friendly.',
         responseLang,
         followUpNeeds,
         "Do NOT repeat generic disclaimers like 'it depends' without also giving best concrete recommendations.",
@@ -306,9 +314,9 @@ export function ChatBot() {
       if (isOffTopic(enrichedText, aiAskedLocation)) {
         const warn: Message = {
           id: Date.now().toString(),
-          text: language === 'hi'
+          text: i18n.language === 'hi'
             ? 'कृपया खेती, फसल, मौसम, बाजार भाव या सरकारी योजनाओं से संबंधित प्रश्न पूछें।'
-            : language === 'mr'
+            : i18n.language === 'mr'
               ? 'कृपया शेती, पिके, हवामान, बाजारभाव किंवा सरकारी योजनांशी संबंधित प्रश्न विचारा.'
               : 'Please ask about farming, crops, weather, market prices or government schemes.',
           sender: 'ai',
@@ -317,7 +325,7 @@ export function ChatBot() {
         setMessages(prev => prev.filter(msg => !msg.isTyping).concat(warn));
         return;
       }
-      const response = await aiService.getChatResponse(enrichedText, language, systemPrompt);
+      const response = await aiService.getChatResponse(enrichedText, getValidLanguage(i18n.language), systemPrompt);
       const { formatted: formattedResponse, truncated, topicHint } = formatResponse(response, raw);
 
       const aiMessage: Message = {
@@ -380,9 +388,9 @@ export function ChatBot() {
       console.error('Chat error:', error);
       const errorMessage: Message = {
         id: Date.now().toString(),
-        text: language === 'hi'
+        text: i18n.language === 'hi'
           ? 'क्षमा करें, कुछ समस्या हुई। दोबारा कोशिश करें।'
-          : language === 'mr'
+          : i18n.language === 'mr'
             ? 'माफ करा, काही अडचण आली. पुन्हा प्रयत्न करा.'
             : 'Sorry, something went wrong. Please try again.',
         sender: 'ai',
@@ -405,7 +413,7 @@ export function ChatBot() {
     setTimeout(() => {
       const welcomeMessage: Message = {
         id: Date.now().toString(),
-        text: welcomeMessages[language as keyof typeof welcomeMessages] || welcomeMessages.en,
+        text: welcomeMessages[i18n.language as keyof typeof welcomeMessages] || welcomeMessages.en,
         sender: 'ai',
         timestamp: new Date()
       };
@@ -567,7 +575,7 @@ export function ChatBot() {
           <div className="space-y-2">
             <p className="text-sm text-gray-500 font-medium">Quick suggestions:</p>
             <div className="grid grid-cols-1 gap-2">
-              {quickSuggestions[language as keyof typeof quickSuggestions]?.slice(0, 3).map((suggestion, index) => (
+              {quickSuggestions[i18n.language as keyof typeof quickSuggestions]?.slice(0, 3).map((suggestion, index) => (
                 <button
                   key={index}
                   onClick={() => handleSuggestionClick(suggestion)}
@@ -619,3 +627,4 @@ export function ChatBot() {
     </div>
   );
 }
+
