@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { History, Trash2, Leaf, AlertCircle, ChevronDown, Image as ImageIcon, Microscope, Shield, Activity, Clock, Download, Share2, Eye } from 'lucide-react';
 import { cropDiseaseAPI, type DiseaseDetection } from '../services/apiService';
-import { useLanguage } from '../hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 
 export function DiseaseHistory() {
@@ -9,7 +9,7 @@ export function DiseaseHistory() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
-    const { language } = useLanguage();
+    const { i18n } = useTranslation();
     const { token, user } = useAuth();
 
     useEffect(() => {
@@ -196,12 +196,12 @@ ${detection.location ? `📍 Location: ${detection.location.address || `${detect
                     </div>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-3">
-                    {language === 'en' ? 'No Disease Detections Yet' : language === 'mr' ? 'अजूनही कोणतेही रोग शोध नाहीत' : 'अभी तक कोई रोग पहचान नहीं हुई'}
+                    {i18n.language === 'en' ? 'No Disease Detections Yet' : i18n.language === 'mr' ? 'अजूनही कोणतेही रोग शोध नाहीत' : 'अभी तक कोई रोग पहचान नहीं हुई'}
                 </h3>
                 <p className="text-gray-600 text-sm max-w-md mx-auto mb-6">
-                    {language === 'en' 
+                    {i18n.language === 'en' 
                         ? 'Upload crop images to detect diseases and get AI-powered recommendations for treatment and prevention.'
-                        : language === 'mr'
+                        : i18n.language === 'mr'
                             ? 'रोग शोधण्यासाठी पीक प्रतिमा अपलोड करा आणि उपचार आणि प्रतिबंधांसाठी AI-आधारित शिफारसी मिळवा.'
                             : 'रोग का पता लगाने के लिए फसल की छवियां अपलोड करें और उपचार और रोकथाम के लिए AI-संचालित सिफारिशें प्राप्त करें।'
                     }
@@ -209,11 +209,11 @@ ${detection.location ? `📍 Location: ${detection.location.address || `${detect
                 <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                         <Shield className="w-4 h-4" />
-                        <span>{language === 'en' ? 'AI-Powered Detection' : language === 'mr' ? 'AI-आधारित शोध' : 'AI-संचालित पहचान'}</span>
+                        <span>{i18n.language === 'en' ? 'AI-Powered Detection' : i18n.language === 'mr' ? 'AI-आधारित शोध' : 'AI-संचालित पहचान'}</span>
                     </div>
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                         <Activity className="w-4 h-4" />
-                        <span>{language === 'en' ? 'Real-time Analysis' : language === 'mr' ? 'रिअल-टाइम विश्लेषण' : 'रियल-टाइम विश्लेषण'}</span>
+                        <span>{i18n.language === 'en' ? 'Real-time Analysis' : i18n.language === 'mr' ? 'रिअल-टाइम विश्लेषण' : 'रियल-टाइम विश्लेषण'}</span>
                     </div>
                 </div>
             </div>
@@ -231,11 +231,11 @@ ${detection.location ? `📍 Location: ${detection.location.address || `${detect
                         </div>
                         <div>
                             <h3 className="text-xl font-bold text-gray-800">
-                                {language === 'en' ? 'Disease Detection History' : language === 'mr' ? 'रोग शोध इतिहास' : 'रोग पहचान इतिहास'}
+                                {i18n.language === 'en' ? 'Disease Detection History' : i18n.language === 'mr' ? 'रोग शोध इतिहास' : 'रोग पहचान इतिहास'}
                             </h3>
                             <p className="text-sm text-gray-600">
-                                {language === 'en' ? `${history.length} detection${history.length !== 1 ? 's' : ''} recorded` 
-                                    : language === 'mr' ? `${history.length} शोध नोंदवले` 
+                                {i18n.language === 'en' ? `${history.length} detection${history.length !== 1 ? 's' : ''} recorded` 
+                                    : i18n.language === 'mr' ? `${history.length} शोध नोंदवले` 
                                     : `${history.length} पहचान दर्ज की गई`}
                             </p>
                         </div>
@@ -243,7 +243,7 @@ ${detection.location ? `📍 Location: ${detection.location.address || `${detect
                     <div className="flex items-center space-x-2">
                         <div className="flex items-center space-x-1 text-sm text-green-600 bg-green-100 px-3 py-1 rounded-full">
                             <Shield className="w-4 h-4" />
-                            <span>{language === 'en' ? 'Protected' : language === 'mr' ? 'सुरक्षित' : 'सुरक्षित'}</span>
+                            <span>{i18n.language === 'en' ? 'Protected' : i18n.language === 'mr' ? 'सुरक्षित' : 'सुरक्षित'}</span>
                         </div>
                     </div>
                 </div>
@@ -299,7 +299,7 @@ ${detection.location ? `📍 Location: ${detection.location.address || `${detect
                                     <button
                                         onClick={() => deleteDetection(detection._id)}
                                         className="absolute top-4 right-4 w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-110 transform"
-                                        title={language === 'en' ? 'Delete detection' : language === 'mr' ? 'शोध हटवा' : 'पहचान हटाएं'}
+                                        title={i18n.language === 'en' ? 'Delete detection' : i18n.language === 'mr' ? 'शोध हटवा' : 'पहचान हटाएं'}
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </button>
@@ -312,7 +312,7 @@ ${detection.location ? `📍 Location: ${detection.location.address || `${detect
                                         <div className="flex items-center space-x-2">
                                             <div className={`w-2 h-2 bg-${confidenceColor}-500 rounded-full animate-pulse`}></div>
                                             <span className="text-sm font-medium text-gray-700">
-                                                {language === 'en' ? 'Confidence' : language === 'mr' ? 'आत्मविश्वास' : 'विश्वास'}
+                                                {i18n.language === 'en' ? 'Confidence' : i18n.language === 'mr' ? 'आत्मविश्वास' : 'विश्वास'}
                                             </span>
                                         </div>
                                         <div className={`px-3 py-1 rounded-full text-xs font-semibold bg-${confidenceColor}-100 text-${confidenceColor}-700`}>
@@ -335,15 +335,15 @@ ${detection.location ? `📍 Location: ${detection.location.address || `${detect
                                     >
                                         <span className="text-sm font-semibold text-gray-700 group-hover:text-green-700 transition-colors duration-200">
                                             {isExpanded 
-                                                ? (language === 'en' ? 'Hide Details' : language === 'mr' ? 'तपशील लपवा' : 'विवरण छिपाएं')
-                                                : (language === 'en' ? 'View Details' : language === 'mr' ? 'तपशील पहा' : 'विवरण देखें')
+                                                ? (i18n.language === 'en' ? 'Hide Details' : i18n.language === 'mr' ? 'तपशील लपवा' : 'विवरण छिपाएं')
+                                                : (i18n.language === 'en' ? 'View Details' : i18n.language === 'mr' ? 'तपशील पहा' : 'विवरण देखें')
                                             }
                                         </span>
                                         <div className="flex items-center space-x-2">
                                             <span className="text-xs text-gray-500 group-hover:text-green-600 transition-colors duration-200">
                                                 {isExpanded 
-                                                    ? (language === 'en' ? 'Collapse' : language === 'mr' ? 'संक्षिप्त' : 'संक्षिप्त करें')
-                                                    : (language === 'en' ? 'Expand' : language === 'mr' ? 'विस्तार' : 'विस्तार करें')
+                                                    ? (i18n.language === 'en' ? 'Collapse' : i18n.language === 'mr' ? 'संक्षिप्त' : 'संक्षिप्त करें')
+                                                    : (i18n.language === 'en' ? 'Expand' : i18n.language === 'mr' ? 'विस्तार' : 'विस्तार करें')
                                                 }
                                             </span>
                                             <div className={`transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
@@ -363,21 +363,21 @@ ${detection.location ? `📍 Location: ${detection.location.address || `${detect
                                                 className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:shadow-md hover:scale-105"
                                             >
                                                 <Download className="w-4 h-4" />
-                                                <span>{language === 'en' ? 'Download Report' : language === 'mr' ? 'अहवाल डाउनलोड करा' : 'रिपोर्ट डाउनलोड करें'}</span>
+                                                <span>{i18n.language === 'en' ? 'Download Report' : i18n.language === 'mr' ? 'अहवाल डाउनलोड करा' : 'रिपोर्ट डाउनलोड करें'}</span>
                                             </button>
                                             <button
                                                 onClick={() => shareDetection(detection)}
                                                 className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:shadow-md hover:scale-105"
                                             >
                                                 <Share2 className="w-4 h-4" />
-                                                <span>{language === 'en' ? 'Share' : language === 'mr' ? 'शेअर करा' : 'शेयर करें'}</span>
+                                                <span>{i18n.language === 'en' ? 'Share' : i18n.language === 'mr' ? 'शेअर करा' : 'शेयर करें'}</span>
                                             </button>
                                             <button
                                                 onClick={() => viewFullDetails(detection)}
                                                 className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:shadow-md hover:scale-105"
                                             >
                                                 <Eye className="w-4 h-4" />
-                                                <span>{language === 'en' ? 'Full View' : language === 'mr' ? 'पूर्ण दृश्य' : 'पूर्ण दृश्य'}</span>
+                                                <span>{i18n.language === 'en' ? 'Full View' : i18n.language === 'mr' ? 'पूर्ण दृश्य' : 'पूर्ण दृश्य'}</span>
                                             </button>
                                         </div>
                                         {/* Full-size image */}
@@ -396,7 +396,7 @@ ${detection.location ? `📍 Location: ${detection.location.address || `${detect
                                             <div>
                                                 <h5 className="font-semibold text-gray-800 mb-2 flex items-center space-x-2">
                                                     <AlertCircle className="w-4 h-4 text-orange-500" />
-                                                    <span>{language === 'en' ? 'Symptoms' : language === 'mr' ? 'लक्षणे' : 'लक्षण'}</span>
+                                                    <span>{i18n.language === 'en' ? 'Symptoms' : i18n.language === 'mr' ? 'लक्षणे' : 'लक्षण'}</span>
                                                 </h5>
                                                 <ul className="space-y-1">
                                                     {detection.symptoms.map((symptom, idx) => (
@@ -414,7 +414,7 @@ ${detection.location ? `📍 Location: ${detection.location.address || `${detect
                                             <div>
                                                 <h5 className="font-semibold text-gray-800 mb-2 flex items-center space-x-2">
                                                     <Shield className="w-4 h-4 text-green-500" />
-                                                    <span>{language === 'en' ? 'Treatment' : language === 'mr' ? 'उपचार' : 'उपचार'}</span>
+                                                    <span>{i18n.language === 'en' ? 'Treatment' : i18n.language === 'mr' ? 'उपचार' : 'उपचार'}</span>
                                                 </h5>
                                                 <p className="text-sm text-gray-600 bg-white p-3 rounded-lg border border-gray-200">
                                                     {detection.treatment}
@@ -427,7 +427,7 @@ ${detection.location ? `📍 Location: ${detection.location.address || `${detect
                                             <div>
                                                 <h5 className="font-semibold text-gray-800 mb-2 flex items-center space-x-2">
                                                     <Activity className="w-4 h-4 text-blue-500" />
-                                                    <span>{language === 'en' ? 'Prevention Tips' : language === 'mr' ? 'प्रतिबंध टिप्स' : 'रोकथाम टिप्स'}</span>
+                                                    <span>{i18n.language === 'en' ? 'Prevention Tips' : i18n.language === 'mr' ? 'प्रतिबंध टिप्स' : 'रोकथाम टिप्स'}</span>
                                                 </h5>
                                                 <ul className="space-y-1">
                                                     {detection.preventionTips.map((tip, idx) => (
@@ -443,7 +443,7 @@ ${detection.location ? `📍 Location: ${detection.location.address || `${detect
                                         {/* Location if available */}
                                         {detection.location && (
                                             <div className="text-xs text-gray-500 pt-2 border-t border-gray-200">
-                                                <span className="font-medium">{language === 'en' ? 'Location' : language === 'mr' ? 'स्थान' : 'स्थान'}:</span> {detection.location.address || `${detection.location.latitude}, ${detection.location.longitude}`}
+                                                <span className="font-medium">{i18n.language === 'en' ? 'Location' : i18n.language === 'mr' ? 'स्थान' : 'स्थान'}:</span> {detection.location.address || `${detection.location.latitude}, ${detection.location.longitude}`}
                                             </div>
                                         )}
                                     </div>
@@ -456,3 +456,4 @@ ${detection.location ? `📍 Location: ${detection.location.address || `${detect
         </div>
     );
 }
+

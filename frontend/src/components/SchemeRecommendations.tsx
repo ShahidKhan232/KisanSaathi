@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Award, ExternalLink, CheckCircle, Clock, FileText, Users, TrendingUp, Zap, Edit2 } from 'lucide-react';
-import { useLanguage } from '../hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { useSocket } from '../hooks/useSocket';
 import { useAuth } from '../hooks/useAuth';
 import { useUserProfile } from '../hooks/useUserProfile';
@@ -114,7 +114,7 @@ const getFallbackSchemes = (): Scheme[] => {
 };
 
 export function SchemeRecommendations() {
-  const { t, language } = useLanguage();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { profile: userProfile, updateLandSize, addCrop, updateKCCStatus } = useUserProfile();
   const socket = useSocket();
@@ -325,12 +325,20 @@ export function SchemeRecommendations() {
 
 
 
+    // Helper function to ensure language is one of the supported types
+    const getValidLanguage = (lang: string): 'en' | 'hi' | 'mr' => {
+      if (lang === 'en' || lang === 'hi' || lang === 'mr') {
+        return lang;
+      }
+      return 'en'; // Default to English if language is not supported
+    };
+
     const loadSchemes = async () => {
       try {
         setLoading(true);
 
         // Fetch schemes from backend API
-        const schemes = await fetchSchemes(language);
+        const schemes = await fetchSchemes(getValidLanguage(i18n.language));
 
         if (!isActive) return;
 
@@ -339,7 +347,7 @@ export function SchemeRecommendations() {
           id: scheme.id,
           eligibility: {
             landSizeRange: { min: 0, max: 5 },
-            crops: language === 'en' ? ['Rice', 'Wheat'] : ['धान', 'गेहूं'],
+            crops: i18n.language === 'en' ? ['Rice', 'Wheat'] : ['धान', 'गेहूं'],
             kccRequired: scheme.documents.some((d: string) => d.toLowerCase().includes('kcc')),
             incomeRange: { min: 0, max: 250000 },
             locations: []
@@ -386,16 +394,16 @@ export function SchemeRecommendations() {
     return () => {
       isActive = false;
     };
-  }, [userProfile, user, language]);
+  }, [userProfile, user, i18n.language]);
 
   const categories = [
     { value: 'all', label: t('allSchemes') },
-    { value: 'direct-benefit', label: language === 'en' ? 'Direct Benefit' : language === 'mr' ? 'प्रत्यक्ष लाभ' : 'प्रत्यक्ष लाभ' },
-    { value: 'subsidy', label: language === 'en' ? 'Subsidy' : language === 'mr' ? 'अनुदान' : 'सब्सिडी' },
-    { value: 'loan', label: language === 'en' ? 'Loan' : language === 'mr' ? 'कर्ज' : 'लोन' },
-    { value: 'insurance', label: language === 'en' ? 'Insurance' : language === 'mr' ? 'विमा' : 'बीमा' },
-    { value: 'digital', label: language === 'en' ? 'Digital Services' : language === 'mr' ? 'डिजिटल सेवा' : 'डिजिटल सेवाएं' },
-    { value: 'infrastructure', label: language === 'en' ? 'Infrastructure' : language === 'mr' ? 'पायाभूत सुविधा' : 'अवसंरचना' }
+    { value: 'direct-benefit', label: i18n.language === 'en' ? 'Direct Benefit' : i18n.language === 'mr' ? 'प्रत्यक्ष लाभ' : 'प्रत्यक्ष लाभ' },
+    { value: 'subsidy', label: i18n.language === 'en' ? 'Subsidy' : i18n.language === 'mr' ? 'अनुदान' : 'सब्सिडी' },
+    { value: 'loan', label: i18n.language === 'en' ? 'Loan' : i18n.language === 'mr' ? 'कर्ज' : 'लोन' },
+    { value: 'insurance', label: i18n.language === 'en' ? 'Insurance' : i18n.language === 'mr' ? 'विमा' : 'बीमा' },
+    { value: 'digital', label: i18n.language === 'en' ? 'Digital Services' : i18n.language === 'mr' ? 'डिजिटल सेवा' : 'डिजिटल सेवाएं' },
+    { value: 'infrastructure', label: i18n.language === 'en' ? 'Infrastructure' : i18n.language === 'mr' ? 'पायाभूत सुविधा' : 'अवसंरचना' }
   ];
 
   const filteredSchemes = schemes.filter(scheme => {
@@ -451,9 +459,9 @@ export function SchemeRecommendations() {
   };
 
   const getStatusLabel = (status: string) => {
-    if (status === 'approved') return language === 'en' ? 'Approved' : language === 'mr' ? 'मंजूर' : 'स्वीकृत';
-    if (status === 'applied') return language === 'en' ? 'Applied' : language === 'mr' ? 'अर्ज केले' : 'आवेदित';
-    return language === 'en' ? 'Available' : language === 'mr' ? 'उपलब्ध' : 'उपलब्ध';
+    if (status === 'approved') return i18n.language === 'en' ? 'Approved' : i18n.language === 'mr' ? 'मंजूर' : 'स्वीकृत';
+    if (status === 'applied') return i18n.language === 'en' ? 'Applied' : i18n.language === 'mr' ? 'अर्ज केले' : 'आवेदित';
+    return i18n.language === 'en' ? 'Available' : i18n.language === 'mr' ? 'उपलब्ध' : 'उपलब्ध';
   };
 
   const getCategoryColor = (category: string) => {
@@ -476,102 +484,13 @@ export function SchemeRecommendations() {
         <p className="text-gray-600">{t('recommendedSchemes')}</p>
       </div>
 
-      {/* User Profile Summary */}
-      <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <Users className="w-6 h-6" />
-            <h3 className="text-lg font-semibold">{t('personalInfo')}</h3>
-          </div>
-          <button
-            className="text-white/80 hover:text-white"
-            onClick={() => {
-              // Open edit dialog or modal
-              console.log('Open edit profile');
-            }}
-          >
-            <Edit2 className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="group relative">
-            <p className="text-green-100 text-sm">{language === 'en' ? 'Land' : language === 'mr' ? 'जमीन' : 'भूमि'}</p>
-            <div className="flex items-center space-x-2">
-              <p className="font-semibold">
-                {userProfile?.landSize || '--'} {language === 'en' ? 'Acres' : language === 'mr' ? 'एकर' : 'एकड़'}
-              </p>
-              <button
-                onClick={() => {
-                  const newSize = prompt(language === 'en' ? 'Enter land size in acres' : language === 'mr' ? 'एकर मध्ये जमीन आकार प्रविष्ट करा' : 'एकड़ में भूमि का आकार दर्ज करें');
-                  if (newSize && !isNaN(parseFloat(newSize))) {
-                    updateLandSize(newSize);
-                  }
-                }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          <div className="group relative">
-            <p className="text-green-100 text-sm">{t('myCrops')}</p>
-            <div className="flex items-center space-x-2">
-              <p className="font-semibold">{userProfile?.crops?.join(', ') || '--'}</p>
-              <button
-                onClick={() => {
-                  const newCrop = prompt(language === 'en' ? 'Enter crop name' : language === 'mr' ? 'पीक नाव प्रविष्ट करा' : 'फसल का नाम दर्ज करें');
-                  if (newCrop) {
-                    addCrop(newCrop);
-                  }
-                }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          <div className="group relative">
-            <p className="text-green-100 text-sm">KCC</p>
-            <div className="flex items-center space-x-2">
-              <p className="font-semibold">{
-                userProfile?.hasKCC !== undefined
-                  ? userProfile.hasKCC
-                    ? (language === 'en' ? 'Available' : language === 'mr' ? 'उपलब्ध' : 'उपलब्ध')
-                    : (language === 'en' ? 'Not Available' : language === 'mr' ? 'उपलब्ध नाही' : 'उपलब्ध नहीं')
-                  : '--'
-              }</p>
-              <button
-                onClick={() => {
-                  if (confirm(
-                    language === 'en'
-                      ? 'Toggle KCC status?'
-                      : language === 'mr'
-                        ? 'KCC स्थिती बदलायची?'
-                        : 'KCC स्थिति बदलें?'
-                  )) {
-                    updateKCCStatus(!userProfile?.hasKCC);
-                  }
-                }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          <div>
-            <p className="text-green-100 text-sm">{t('suitableSchemes')}</p>
-            <p className="font-semibold">{filteredSchemes.length}</p>
-          </div>
-        </div>
-      </div>
-
       {/* Search and Filters */}
       <div className="bg-white rounded-xl shadow-sm border p-4 space-y-4">
         {/* Search Bar */}
         <div className="relative">
           <input
             type="text"
-            placeholder={language === 'en' ? 'Search schemes...' : language === 'mr' ? 'योजना शोधा...' : 'योजनाएं खोजें...'}
+            placeholder={i18n.language === 'en' ? 'Search schemes...' : i18n.language === 'mr' ? 'योजना शोधा...' : 'योजनाएं खोजें...'}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
@@ -613,7 +532,7 @@ export function SchemeRecommendations() {
             {/* Benefit Range */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {language === 'en' ? 'Benefit Range' : language === 'mr' ? 'लाभ श्रेणी' : 'लाभ सीमा'}
+                {i18n.language === 'en' ? 'Benefit Range' : i18n.language === 'mr' ? 'लाभ श्रेणी' : 'लाभ सीमा'}
               </label>
               <div className="flex items-center space-x-2">
                 <input
@@ -637,50 +556,50 @@ export function SchemeRecommendations() {
             {/* Deadline */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {language === 'en' ? 'Deadline' : language === 'mr' ? 'अंतिम मुदत' : 'समय सीमा'}
+                {i18n.language === 'en' ? 'Deadline' : i18n.language === 'mr' ? 'अंतिम मुदत' : 'समय सीमा'}
               </label>
               <select
                 value={filters.deadline}
                 onChange={(e) => setFilters({ ...filters, deadline: e.target.value })}
                 className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
               >
-                <option value="all">{language === 'en' ? 'All' : language === 'mr' ? 'सर्व' : 'सभी'}</option>
-                <option value="week">{language === 'en' ? 'This Week' : language === 'mr' ? 'या आठवड्यात' : 'इस सप्ताह'}</option>
-                <option value="month">{language === 'en' ? 'This Month' : language === 'mr' ? 'या महिन्यात' : 'इस महीने'}</option>
+                <option value="all">{i18n.language === 'en' ? 'All' : i18n.language === 'mr' ? 'सर्व' : 'सभी'}</option>
+                <option value="week">{i18n.language === 'en' ? 'This Week' : i18n.language === 'mr' ? 'या आठवड्यात' : 'इस सप्ताह'}</option>
+                <option value="month">{i18n.language === 'en' ? 'This Month' : i18n.language === 'mr' ? 'या महिन्यात' : 'इस महीने'}</option>
               </select>
             </div>
 
             {/* Application Complexity */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {language === 'en' ? 'Complexity' : language === 'mr' ? 'जटिलता' : 'जटिलता'}
+                {i18n.language === 'en' ? 'Complexity' : i18n.language === 'mr' ? 'जटिलता' : 'जटिलता'}
               </label>
               <select
                 value={filters.complexity}
                 onChange={(e) => setFilters({ ...filters, complexity: e.target.value })}
                 className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
               >
-                <option value="all">{language === 'en' ? 'All' : language === 'mr' ? 'सर्व' : 'सभी'}</option>
-                <option value="easy">{language === 'en' ? 'Easy' : language === 'mr' ? 'सोपी' : 'आसान'}</option>
-                <option value="medium">{language === 'en' ? 'Medium' : language === 'mr' ? 'मध्यम' : 'मध्यम'}</option>
-                <option value="hard">{language === 'en' ? 'Complex' : language === 'mr' ? 'जटिल' : 'जटिल'}</option>
+                <option value="all">{i18n.language === 'en' ? 'All' : i18n.language === 'mr' ? 'सर्व' : 'सभी'}</option>
+                <option value="easy">{i18n.language === 'en' ? 'Easy' : i18n.language === 'mr' ? 'सोपी' : 'आसान'}</option>
+                <option value="medium">{i18n.language === 'en' ? 'Medium' : i18n.language === 'mr' ? 'मध्यम' : 'मध्यम'}</option>
+                <option value="hard">{i18n.language === 'en' ? 'Complex' : i18n.language === 'mr' ? 'जटिल' : 'जटिल'}</option>
               </select>
             </div>
 
             {/* Status */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {language === 'en' ? 'Status' : language === 'mr' ? 'स्थिती' : 'स्थिति'}
+                {i18n.language === 'en' ? 'Status' : i18n.language === 'mr' ? 'स्थिती' : 'स्थिति'}
               </label>
               <select
                 value={filters.status}
                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
                 className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
               >
-                <option value="all">{language === 'en' ? 'All' : language === 'mr' ? 'सर्व' : 'सभी'}</option>
-                <option value="available">{language === 'en' ? 'Available' : language === 'mr' ? 'उपलब्ध' : 'उपलब्ध'}</option>
-                <option value="applied">{language === 'en' ? 'Applied' : language === 'mr' ? 'अर्ज केलेले' : 'आवेदित'}</option>
-                <option value="approved">{language === 'en' ? 'Approved' : language === 'mr' ? 'मंजूर' : 'स्वीकृत'}</option>
+                <option value="all">{i18n.language === 'en' ? 'All' : i18n.language === 'mr' ? 'सर्व' : 'सभी'}</option>
+                <option value="available">{i18n.language === 'en' ? 'Available' : i18n.language === 'mr' ? 'उपलब्ध' : 'उपलब्ध'}</option>
+                <option value="applied">{i18n.language === 'en' ? 'Applied' : i18n.language === 'mr' ? 'अर्ज केलेले' : 'आवेदित'}</option>
+                <option value="approved">{i18n.language === 'en' ? 'Approved' : i18n.language === 'mr' ? 'मंजूर' : 'स्वीकृत'}</option>
               </select>
             </div>
           </div>
@@ -690,8 +609,8 @@ export function SchemeRecommendations() {
       {/* Empty State */}
       {filteredSchemes.length === 0 && (
         <div className="bg-white rounded-xl border p-8 text-center text-gray-600">
-          <p className="font-medium mb-1">{language === 'en' ? 'No matching schemes found' : language === 'mr' ? 'योग्य योजना आढळल्या नाहीत' : 'कोई मिलती-जुलती योजना नहीं मिली'}</p>
-          <p className="text-sm">{language === 'en' ? 'Try changing category filters.' : language === 'mr' ? 'श्रेणी फिल्टर्स बदला.' : 'श्रेणी फिल्टर बदलें।'}</p>
+          <p className="font-medium mb-1">{i18n.language === 'en' ? 'No matching schemes found' : i18n.language === 'mr' ? 'योग्य योजना आढळल्या नाहीत' : 'कोई मिलती-जुलती योजना नहीं मिली'}</p>
+          <p className="text-sm">{i18n.language === 'en' ? 'Try changing category filters.' : i18n.language === 'mr' ? 'श्रेणी फिल्टर्स बदला.' : 'श्रेणी फिल्टर बदलें।'}</p>
         </div>
       )}
 
@@ -714,7 +633,7 @@ export function SchemeRecommendations() {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-green-600 font-medium">{scheme.benefit}</span>
                       <span className="text-blue-600 font-medium">
-                        {language === 'en' ? `${scheme.matchScore}% match` : language === 'mr' ? `${scheme.matchScore}% जुळणी` : `${scheme.matchScore}% मेल`}
+                        {i18n.language === 'en' ? `${scheme.matchScore}% match` : i18n.language === 'mr' ? `${scheme.matchScore}% जुळणी` : `${scheme.matchScore}% मेल`}
                       </span>
                     </div>
                     <div className="w-full bg-gray-100 rounded-full h-1.5">
@@ -729,14 +648,14 @@ export function SchemeRecommendations() {
                             <TrendingUp className="w-4 h-4" />
                             <span>
                               {Math.round(scheme.metrics.approvalRate * 100)}%
-                              {language === 'en' ? ' approval rate' : language === 'mr' ? '% मंजुरी दर' : '% स्वीकृति दर'}
+                              {i18n.language === 'en' ? ' approval rate' : i18n.language === 'mr' ? '% मंजुरी दर' : '% स्वीकृति दर'}
                             </span>
                           </div>
                           <div className="flex items-center space-x-1 text-gray-600">
                             <Clock className="w-4 h-4" />
                             <span>
                               {scheme.metrics.avgProcessingDays}
-                              {language === 'en' ? ' days avg.' : language === 'mr' ? ' दिवस सरासरी' : ' दिन औसत'}
+                              {i18n.language === 'en' ? ' days avg.' : i18n.language === 'mr' ? ' दिवस सरासरी' : ' दिन औसत'}
                             </span>
                           </div>
                         </div>
@@ -776,7 +695,7 @@ export function SchemeRecommendations() {
 
               {/* Eligibility */}
               <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-800 mb-2">{language === 'en' ? 'Eligibility' : language === 'mr' ? 'पात्रता' : 'योग्यता'}</h4>
+                <h4 className="text-sm font-medium text-gray-800 mb-2">{i18n.language === 'en' ? 'Eligibility' : i18n.language === 'mr' ? 'पात्रता' : 'योग्यता'}</h4>
                 <ul className="space-y-1">
                   {scheme.eligibility.map((item, index) => (
                     <li key={index} className="flex items-start space-x-2 text-sm text-gray-600">
@@ -789,7 +708,7 @@ export function SchemeRecommendations() {
 
               {/* Documents */}
               <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-800 mb-2">{language === 'en' ? 'Required Documents' : language === 'mr' ? 'आवश्यक कागदपत्रे' : 'आवश्यक दस्तावेज'}</h4>
+                <h4 className="text-sm font-medium text-gray-800 mb-2">{i18n.language === 'en' ? 'Required Documents' : i18n.language === 'mr' ? 'आवश्यक कागदपत्रे' : 'आवश्यक दस्तावेज'}</h4>
                 <div className="flex flex-wrap gap-2">
                   {scheme.documents.map((doc, index) => (
                     <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
@@ -863,7 +782,7 @@ export function SchemeRecommendations() {
                               rel="noopener noreferrer"
                               className="text-xs text-green-600 hover:text-green-800 underline"
                             >
-                              {language === 'en' ? 'Check Status' : language === 'mr' ? 'स्थिती तपासा' : 'स्थिति देखें'}
+                              {i18n.language === 'en' ? 'Check Status' : i18n.language === 'mr' ? 'स्थिती तपासा' : 'स्थिति देखें'}
                             </a>
                             <a
                               href="https://pmkisan.gov.in/RegistrationForm.aspx"
@@ -871,7 +790,7 @@ export function SchemeRecommendations() {
                               rel="noopener noreferrer"
                               className="text-xs text-purple-600 hover:text-purple-800 underline"
                             >
-                              {language === 'en' ? 'Apply Online' : language === 'mr' ? 'ऑनलाइन अर्ज' : 'ऑनलाइन आवेदन'}
+                              {i18n.language === 'en' ? 'Apply Online' : i18n.language === 'mr' ? 'ऑनलाइन अर्ज' : 'ऑनलाइन आवेदन'}
                             </a>
                           </>
                         )}
@@ -884,7 +803,7 @@ export function SchemeRecommendations() {
                               rel="noopener noreferrer"
                               className="text-xs text-green-600 hover:text-green-800 underline"
                             >
-                              {language === 'en' ? 'Insurance Portal' : language === 'mr' ? 'विमा पोर्टल' : 'बीमा पोर्टल'}
+                              {i18n.language === 'en' ? 'Insurance Portal' : i18n.language === 'mr' ? 'विमा पोर्टल' : 'बीमा पोर्टल'}
                             </a>
                             <a
                               href="https://pmfby.gov.in/policystatus"
@@ -892,7 +811,7 @@ export function SchemeRecommendations() {
                               rel="noopener noreferrer"
                               className="text-xs text-purple-600 hover:text-purple-800 underline"
                             >
-                              {language === 'en' ? 'Policy Status' : language === 'mr' ? 'पॉलिसी स्थिती' : 'पॉलिसी स्थिति'}
+                              {i18n.language === 'en' ? 'Policy Status' : i18n.language === 'mr' ? 'पॉलिसी स्थिती' : 'पॉलिसी स्थिति'}
                             </a>
                           </>
                         )}
@@ -905,7 +824,7 @@ export function SchemeRecommendations() {
                               rel="noopener noreferrer"
                               className="text-xs text-green-600 hover:text-green-800 underline"
                             >
-                              {language === 'en' ? 'KCC Application' : language === 'mr' ? 'KCC अर्ज' : 'KCC आवेदन'}
+                              {i18n.language === 'en' ? 'KCC Application' : i18n.language === 'mr' ? 'KCC अर्ज' : 'KCC आवेदन'}
                             </a>
                             <a
                               href="https://www.rbi.org.in/Scripts/FAQView.aspx?Id=1248"
@@ -913,7 +832,7 @@ export function SchemeRecommendations() {
                               rel="noopener noreferrer"
                               className="text-xs text-purple-600 hover:text-purple-800 underline"
                             >
-                              {language === 'en' ? 'Guidelines' : language === 'mr' ? 'मार्गदर्शन' : 'दिशानिर्देश'}
+                              {i18n.language === 'en' ? 'Guidelines' : i18n.language === 'mr' ? 'मार्गदर्शन' : 'दिशानिर्देश'}
                             </a>
                           </>
                         )}
@@ -926,7 +845,7 @@ export function SchemeRecommendations() {
                               rel="noopener noreferrer"
                               className="text-xs text-green-600 hover:text-green-800 underline"
                             >
-                              {language === 'en' ? 'Register Now' : language === 'mr' ? 'आता नोंदणी करा' : 'अभी पंजीकरण करें'}
+                              {i18n.language === 'en' ? 'Register Now' : i18n.language === 'mr' ? 'आता नोंदणी करा' : 'अभी पंजीकरण करें'}
                             </a>
                             <a
                               href="https://enam.gov.in/web/fporegistration/home"
@@ -934,7 +853,7 @@ export function SchemeRecommendations() {
                               rel="noopener noreferrer"
                               className="text-xs text-purple-600 hover:text-purple-800 underline"
                             >
-                              {language === 'en' ? 'FPO Registration' : language === 'mr' ? 'FPO नोंदणी' : 'FPO पंजीकरण'}
+                              {i18n.language === 'en' ? 'FPO Registration' : i18n.language === 'mr' ? 'FPO नोंदणी' : 'FPO पंजीकरण'}
                             </a>
                           </>
                         )}
@@ -947,7 +866,7 @@ export function SchemeRecommendations() {
                               rel="noopener noreferrer"
                               className="text-xs text-green-600 hover:text-green-800 underline"
                             >
-                              {language === 'en' ? 'Apply Portal' : language === 'mr' ? 'अर्ज पोर्टल' : 'आवेदन पोर्टल'}
+                              {i18n.language === 'en' ? 'Apply Portal' : i18n.language === 'mr' ? 'अर्ज पोर्टल' : 'आवेदन पोर्टल'}
                             </a>
                             <a
                               href="https://mnre.gov.in/solar/schemes/"
@@ -955,7 +874,7 @@ export function SchemeRecommendations() {
                               rel="noopener noreferrer"
                               className="text-xs text-purple-600 hover:text-purple-800 underline"
                             >
-                              {language === 'en' ? 'MNRE Portal' : language === 'mr' ? 'MNRE पोर्टल' : 'MNRE पोर्टल'}
+                              {i18n.language === 'en' ? 'MNRE Portal' : i18n.language === 'mr' ? 'MNRE पोर्टल' : 'MNRE पोर्टल'}
                             </a>
                           </>
                         )}
@@ -968,7 +887,7 @@ export function SchemeRecommendations() {
                               rel="noopener noreferrer"
                               className="text-xs text-green-600 hover:text-green-800 underline"
                             >
-                              {language === 'en' ? 'Application Form' : language === 'mr' ? 'अर्ज फॉर्म' : 'आवेदन फॉर्म'}
+                              {i18n.language === 'en' ? 'Application Form' : i18n.language === 'mr' ? 'अर्ज फॉर्म' : 'आवेदन फॉर्म'}
                             </a>
                             <a
                               href="https://www.mudra.org.in/Default/UserControl"
@@ -976,7 +895,7 @@ export function SchemeRecommendations() {
                               rel="noopener noreferrer"
                               className="text-xs text-purple-600 hover:text-purple-800 underline"
                             >
-                              {language === 'en' ? 'Track Application' : language === 'mr' ? 'अर्ज ट्रॅक करा' : 'आवेदन ट्रैक करें'}
+                              {i18n.language === 'en' ? 'Track Application' : i18n.language === 'mr' ? 'अर्ज ट्रॅक करा' : 'आवेदन ट्रैक करें'}
                             </a>
                           </>
                         )}
@@ -989,7 +908,7 @@ export function SchemeRecommendations() {
                               rel="noopener noreferrer"
                               className="text-xs text-green-600 hover:text-green-800 underline"
                             >
-                              {language === 'en' ? 'Apply Online' : language === 'mr' ? 'ऑनलाइन अर्ज' : 'ऑनलाइन आवेदन'}
+                              {i18n.language === 'en' ? 'Apply Online' : i18n.language === 'mr' ? 'ऑनलाइन अर्ज' : 'ऑनलाइन आवेदन'}
                             </a>
                             <a
                               href="https://agrimachinery.nic.in/ApplicationStatus.aspx"
@@ -997,7 +916,7 @@ export function SchemeRecommendations() {
                               rel="noopener noreferrer"
                               className="text-xs text-purple-600 hover:text-purple-800 underline"
                             >
-                              {language === 'en' ? 'Check Status' : language === 'mr' ? 'स्थिती तपासा' : 'स्थिति देखें'}
+                              {i18n.language === 'en' ? 'Check Status' : i18n.language === 'mr' ? 'स्थिती तपासा' : 'स्थिति देखें'}
                             </a>
                           </>
                         )}
@@ -1008,7 +927,7 @@ export function SchemeRecommendations() {
                         <div className="text-xs text-gray-500">
                           {scheme.id === '1' && ( // PM-KISAN
                             <span>
-                              {language === 'en' ? 'Helpline: ' : language === 'mr' ? 'हेल्पलाइन: ' : 'हेल्पलाइन: '}
+                              {i18n.language === 'en' ? 'Helpline: ' : i18n.language === 'mr' ? 'हेल्पलाइन: ' : 'हेल्पलाइन: '}
                               <a href="tel:155261" className="text-blue-600 hover:text-blue-800">155261</a>
                               {' | '}
                               <a href="mailto:pmkisan-ict@gov.in" className="text-blue-600 hover:text-blue-800">pmkisan-ict@gov.in</a>
@@ -1016,7 +935,7 @@ export function SchemeRecommendations() {
                           )}
                           {scheme.id === '2' && ( // PMFBY
                             <span>
-                              {language === 'en' ? 'Helpline: ' : language === 'mr' ? 'हेल्पलाइन: ' : 'हेल्पलाइन: '}
+                              {i18n.language === 'en' ? 'Helpline: ' : i18n.language === 'mr' ? 'हेल्पलाइन: ' : 'हेल्पलाइन: '}
                               <a href="tel:18002007710" className="text-blue-600 hover:text-blue-800">1800-200-7710</a>
                               {' | '}
                               <a href="mailto:support@pmfby.gov.in" className="text-blue-600 hover:text-blue-800">support@pmfby.gov.in</a>
@@ -1024,7 +943,7 @@ export function SchemeRecommendations() {
                           )}
                           {scheme.id === '3' && ( // KCC
                             <span>
-                              {language === 'en' ? 'Helpline: ' : language === 'mr' ? 'हेल्पलाइन: ' : 'हेल्पलाइन: '}
+                              {i18n.language === 'en' ? 'Helpline: ' : i18n.language === 'mr' ? 'हेल्पलाइन: ' : 'हेल्पलाइन: '}
                               <a href="tel:18001801551" className="text-blue-600 hover:text-blue-800">1800-180-1551</a>
                               {' | '}
                               <a href="mailto:kcc-support@rbi.org.in" className="text-blue-600 hover:text-blue-800">kcc-support@rbi.org.in</a>
@@ -1032,7 +951,7 @@ export function SchemeRecommendations() {
                           )}
                           {scheme.id === '4' && ( // e-NAM
                             <span>
-                              {language === 'en' ? 'Helpline: ' : language === 'mr' ? 'हेल्पलाइन: ' : 'हेल्पलाइन: '}
+                              {i18n.language === 'en' ? 'Helpline: ' : i18n.language === 'mr' ? 'हेल्पलाइन: ' : 'हेल्पलाइन: '}
                               <a href="tel:18002700224" className="text-blue-600 hover:text-blue-800">1800-270-0224</a>
                               {' | '}
                               <a href="mailto:enamhelpdesk@gmail.com" className="text-blue-600 hover:text-blue-800">enamhelpdesk@gmail.com</a>
@@ -1040,7 +959,7 @@ export function SchemeRecommendations() {
                           )}
                           {scheme.id === '6' && ( // KUSUM
                             <span>
-                              {language === 'en' ? 'Helpline: ' : language === 'mr' ? 'हेल्पलाइन: ' : 'हेल्पलाइन: '}
+                              {i18n.language === 'en' ? 'Helpline: ' : i18n.language === 'mr' ? 'हेल्पलाइन: ' : 'हेल्पलाइन: '}
                               <a href="tel:18001803333" className="text-blue-600 hover:text-blue-800">1800-180-3333</a>
                               {' | '}
                               <a href="mailto:kusum-scheme@mnre.gov.in" className="text-blue-600 hover:text-blue-800">kusum-scheme@mnre.gov.in</a>
@@ -1048,7 +967,7 @@ export function SchemeRecommendations() {
                           )}
                           {scheme.id === '7' && ( // MUDRA
                             <span>
-                              {language === 'en' ? 'Helpline: ' : language === 'mr' ? 'हेल्पलाइन: ' : 'हेल्पलाइन: '}
+                              {i18n.language === 'en' ? 'Helpline: ' : i18n.language === 'mr' ? 'हेल्पलाइन: ' : 'हेल्पलाइन: '}
                               <a href="tel:18001807777" className="text-blue-600 hover:text-blue-800">1800-180-7777</a>
                               {' | '}
                               <a href="mailto:mudra@sidbi.in" className="text-blue-600 hover:text-blue-800">mudra@sidbi.in</a>
@@ -1056,7 +975,7 @@ export function SchemeRecommendations() {
                           )}
                           {scheme.id === '8' && ( // Farm Mechanization
                             <span>
-                              {language === 'en' ? 'Helpline: ' : language === 'mr' ? 'हेल्पलाइन: ' : 'हेल्पलाइन: '}
+                              {i18n.language === 'en' ? 'Helpline: ' : i18n.language === 'mr' ? 'हेल्पलाइन: ' : 'हेल्पलाइन: '}
                               <a href="tel:18001801551" className="text-blue-600 hover:text-blue-800">1800-180-1551</a>
                               {' | '}
                               <a href="mailto:mechanization@dacnet.nic.in" className="text-blue-600 hover:text-blue-800">mechanization@dacnet.nic.in</a>
@@ -1072,8 +991,8 @@ export function SchemeRecommendations() {
               {/* Footer */}
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <div className="text-sm text-gray-600">
-                  <span>{language === 'en' ? 'Deadline:' : language === 'mr' ? 'अंतिम तारीख:' : 'अंतिम तिथि:'} </span>
-                  <span className="font-medium">{new Date(scheme.deadline).toLocaleDateString(language === 'en' ? 'en-US' : language === 'mr' ? 'mr-IN' : 'hi-IN')}</span>
+                  <span>{i18n.language === 'en' ? 'Deadline:' : i18n.language === 'mr' ? 'अंतिम तारीख:' : 'अंतिम तिथि:'} </span>
+                  <span className="font-medium">{new Date(scheme.deadline).toLocaleDateString(i18n.language === 'en' ? 'en-US' : i18n.language === 'mr' ? 'mr-IN' : 'hi-IN')}</span>
                 </div>
 
                 {scheme.applicationStatus === 'available' ? (
@@ -1082,7 +1001,7 @@ export function SchemeRecommendations() {
                     className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1"
                   >
                     <FileText className="w-4 h-4" />
-                    <span>{language === 'en' ? 'Apply Now' : language === 'mr' ? 'आता अर्ज करा' : 'आवेदन करें'}</span>
+                    <span>{i18n.language === 'en' ? 'Apply Now' : i18n.language === 'mr' ? 'आता अर्ज करा' : 'आवेदन करें'}</span>
                   </button>
                 ) : scheme.applicationStatus === 'applied' ? (
                   <>
@@ -1091,7 +1010,7 @@ export function SchemeRecommendations() {
                       className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1"
                     >
                       <ExternalLink className="w-4 h-4" />
-                      <span>{language === 'en' ? 'View Status' : language === 'mr' ? 'स्थिती पाहा' : 'स्थिति देखें'}</span>
+                      <span>{i18n.language === 'en' ? 'View Status' : i18n.language === 'mr' ? 'स्थिती पाहा' : 'स्थिति देखें'}</span>
                     </button>
                     {showingProgressId === scheme.id && scheme.progress && (
                       <div className="mt-4 pt-4 border-t border-gray-200">
@@ -1135,30 +1054,30 @@ export function SchemeRecommendations() {
       {/* Quick Actions */}
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          {language === 'en' ? 'Quick Actions' : t('quickActions')}
+          {i18n.language === 'en' ? 'Quick Actions' : t('quickActions')}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button className="flex items-center space-x-3 p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left">
             <FileText className="w-6 h-6 text-blue-600" />
             <div>
-              <p className="font-medium text-gray-800">{language === 'en' ? 'Upload Documents' : 'दस्तावेज़ अपलोड'}</p>
-              <p className="text-sm text-gray-600">{language === 'en' ? 'Prepare documents for application' : 'आवेदन के लिए दस्तावेज़ तैयार करें'}</p>
+              <p className="font-medium text-gray-800">{i18n.language === 'en' ? 'Upload Documents' : 'दस्तावेज़ अपलोड'}</p>
+              <p className="text-sm text-gray-600">{i18n.language === 'en' ? 'Prepare documents for application' : 'आवेदन के लिए दस्तावेज़ तैयार करें'}</p>
             </div>
           </button>
 
           <button className="flex items-center space-x-3 p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left">
             <Users className="w-6 h-6 text-green-600" />
             <div>
-              <p className="font-medium text-gray-800">{language === 'en' ? 'Help Center' : 'सहायता केंद्र'}</p>
-              <p className="text-sm text-gray-600">{language === 'en' ? 'Get help regarding schemes' : 'योजना संबंधी सहायता प्राप्त करें'}</p>
+              <p className="font-medium text-gray-800">{i18n.language === 'en' ? 'Help Center' : 'सहायता केंद्र'}</p>
+              <p className="text-sm text-gray-600">{i18n.language === 'en' ? 'Get help regarding schemes' : 'योजना संबंधी सहायता प्राप्त करें'}</p>
             </div>
           </button>
 
           <button className="flex items-center space-x-3 p-4 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors text-left">
             <Award className="w-6 h-6 text-orange-600" />
             <div>
-              <p className="font-medium text-gray-800">{language === 'en' ? 'Eligibility Check' : 'योग्यता जांच'}</p>
-              <p className="text-sm text-gray-600">{language === 'en' ? 'Check eligibility for new schemes' : 'नई योजनाओं की पात्रता देखें'}</p>
+              <p className="font-medium text-gray-800">{i18n.language === 'en' ? 'Eligibility Check' : 'योग्यता जांच'}</p>
+              <p className="text-sm text-gray-600">{i18n.language === 'en' ? 'Check eligibility for new schemes' : 'नई योजनाओं की पात्रता देखें'}</p>
             </div>
           </button>
         </div>
@@ -1171,7 +1090,7 @@ export function SchemeRecommendations() {
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold text-gray-900">
-                  {language === 'en' ? 'Apply for Scheme' : language === 'mr' ? 'योजनेसाठी अर्ज करा' : 'योजना के लिए आवेदन करें'}
+                  {i18n.language === 'en' ? 'Apply for Scheme' : i18n.language === 'mr' ? 'योजनेसाठी अर्ज करा' : 'योजना के लिए आवेदन करें'}
                 </h3>
                 <button
                   onClick={() => setShowApplicationModal(false)}
@@ -1193,7 +1112,7 @@ export function SchemeRecommendations() {
               {/* Official Government Links */}
               <div className="mb-6 p-4 bg-blue-50 rounded-lg">
                 <h5 className="font-semibold text-blue-900 mb-3">
-                  {language === 'en' ? 'Official Government Resources' : language === 'mr' ? 'अधिकृत सरकारी संसाधने' : 'आधिकारिक सरकारी संसाधन'}
+                  {i18n.language === 'en' ? 'Official Government Resources' : i18n.language === 'mr' ? 'अधिकृत सरकारी संसाधने' : 'आधिकारिक सरकारी संसाधन'}
                 </h5>
 
                 {(() => {
@@ -1210,7 +1129,7 @@ export function SchemeRecommendations() {
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:text-blue-800 underline"
                         >
-                          {language === 'en' ? 'Official Website' : language === 'mr' ? 'अधिकृत वेबसाइट' : 'आधिकारिक वेबसाइट'}
+                          {i18n.language === 'en' ? 'Official Website' : i18n.language === 'mr' ? 'अधिकृत वेबसाइट' : 'आधिकारिक वेबसाइट'}
                         </a>
                       </div>
 
@@ -1222,7 +1141,7 @@ export function SchemeRecommendations() {
                           rel="noopener noreferrer"
                           className="text-green-600 hover:text-green-800 underline"
                         >
-                          {language === 'en' ? 'Application Portal' : language === 'mr' ? 'अर्ज पोर्टल' : 'आवेदन पोर्टल'}
+                          {i18n.language === 'en' ? 'Application Portal' : i18n.language === 'mr' ? 'अर्ज पोर्टल' : 'आवेदन पोर्टल'}
                         </a>
                       </div>
 
@@ -1234,7 +1153,7 @@ export function SchemeRecommendations() {
                           rel="noopener noreferrer"
                           className="text-purple-600 hover:text-purple-800 underline"
                         >
-                          {language === 'en' ? 'Check Application Status' : language === 'mr' ? 'अर्जाची स्थिती तपासा' : 'आवेदन की स्थिति देखें'}
+                          {i18n.language === 'en' ? 'Check Application Status' : i18n.language === 'mr' ? 'अर्जाची स्थिती तपासा' : 'आवेदन की स्थिति देखें'}
                         </a>
                       </div>
 
@@ -1246,7 +1165,7 @@ export function SchemeRecommendations() {
                           rel="noopener noreferrer"
                           className="text-orange-600 hover:text-orange-800 underline"
                         >
-                          {language === 'en' ? 'Required Documents' : language === 'mr' ? 'आवश्यक कागदपत्रे' : 'आवश्यक दस्तावेज'}
+                          {i18n.language === 'en' ? 'Required Documents' : i18n.language === 'mr' ? 'आवश्यक कागदपत्रे' : 'आवश्यक दस्तावेज'}
                         </a>
                       </div>
 
@@ -1254,7 +1173,7 @@ export function SchemeRecommendations() {
                         <div className="text-sm text-blue-800">
                           <div className="flex items-center space-x-2 mb-1">
                             <span className="font-medium">
-                              {language === 'en' ? 'Helpline:' : language === 'mr' ? 'हेल्पलाइन:' : 'हेल्पलाइन:'}
+                              {i18n.language === 'en' ? 'Helpline:' : i18n.language === 'mr' ? 'हेल्पलाइन:' : 'हेल्पलाइन:'}
                             </span>
                             <a href={`tel:${schemeLink.helpline}`} className="text-blue-600 hover:text-blue-800">
                               {schemeLink.helpline}
@@ -1262,7 +1181,7 @@ export function SchemeRecommendations() {
                           </div>
                           <div className="flex items-center space-x-2">
                             <span className="font-medium">
-                              {language === 'en' ? 'Email:' : language === 'mr' ? 'ईमेल:' : 'ईमेल:'}
+                              {i18n.language === 'en' ? 'Email:' : i18n.language === 'mr' ? 'ईमेल:' : 'ईमेल:'}
                             </span>
                             <a href={`mailto:${schemeLink.email}`} className="text-blue-600 hover:text-blue-800">
                               {schemeLink.email}
@@ -1288,7 +1207,7 @@ export function SchemeRecommendations() {
                 >
                   <ExternalLink className="w-5 h-5" />
                   <span>
-                    {language === 'en' ? 'Apply on Official Portal' : language === 'mr' ? 'अधिकृत पोर्टलवर अर्ज करा' : 'आधिकारिक पोर्टल पर आवेदन करें'}
+                    {i18n.language === 'en' ? 'Apply on Official Portal' : i18n.language === 'mr' ? 'अधिकृत पोर्टलवर अर्ज करा' : 'आधिकारिक पोर्टल पर आवेदन करें'}
                   </span>
                 </button>
 
@@ -1301,7 +1220,7 @@ export function SchemeRecommendations() {
                 >
                   <FileText className="w-5 h-5" />
                   <span>
-                    {language === 'en' ? 'Apply Through Platform' : language === 'mr' ? 'प्लॅटफॉर्मद्वारे अर्ज करा' : 'प्लेटफॉर्म के माध्यम से आवेदन करें'}
+                    {i18n.language === 'en' ? 'Apply Through Platform' : i18n.language === 'mr' ? 'प्लॅटफॉर्मद्वारे अर्ज करा' : 'प्लेटफॉर्म के माध्यम से आवेदन करें'}
                   </span>
                 </button>
               </div>
@@ -1309,12 +1228,12 @@ export function SchemeRecommendations() {
               <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
                 <p className="text-sm text-yellow-800">
                   <strong>
-                    {language === 'en' ? 'Recommendation:' : language === 'mr' ? 'शिफारस:' : 'सुझाव:'}
+                    {i18n.language === 'en' ? 'Recommendation:' : i18n.language === 'mr' ? 'शिफारस:' : 'सुझाव:'}
                   </strong>
                   {' '}
-                  {language === 'en'
+                  {i18n.language === 'en'
                     ? 'We recommend applying through the official government portal for faster processing and direct government support.'
-                    : language === 'mr'
+                    : i18n.language === 'mr'
                       ? 'जलद प्रक्रिया आणि थेट सरकारी सहाय्यासाठी आम्ही अधिकृत सरकारी पोर्टलद्वारे अर्ज करण्याची शिफारस करतो.'
                       : 'तेज़ प्रसंस्करण और प्रत्यक्ष सरकारी सहायता के लिए हम आधिकारिक सरकारी पोर्टल के माध्यम से आवेदन करने की सिफारिश करते हैं।'
                   }

@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, Zap, CheckCircle, X, History } from 'lucide-react';
-import { useLanguage } from '../hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { aiService } from '../services/aiService';
 import { cropDiseaseAPI } from '../services/apiService';
 import { DiseaseHistory } from './DiseaseHistory';
+import ReactMarkdown from 'react-markdown';
 
 interface DetectionResult {
   disease: string;
@@ -202,163 +203,149 @@ const formatAIResponse = (response: string): JSX.Element => {
             <span className="text-xl">🤖</span>
             <span>AI Analysis</span>
           </h5>
-          <div className="prose prose-sm max-w-none">
-            {sections['AI Analysis'].map((paragraph, index) => {
-              // Define formatting function for unstructured content
-              const formatTextForUnstructured = (text: string) => {
-                let formatted = text;
-
-                // Highlight scientific names in italics
-                formatted = formatted.replace(/\*([^*]+)\*/g, '<em class="text-blue-600 font-medium">$1</em>');
-
-                // Bold important keywords and phrases (same as structured content)
-                const importantKeywords = [
-                  'Early Blight', 'Late Blight', 'Leaf Spot', 'Powdery Mildew', 'Bacterial Wilt', 'Mosaic Virus',
-                  'Fusarium', 'Alternaria', 'Phytophthora', 'Septoria',
-                  'Always follow label instructions', 'follow label instructions', 'label instructions',
-                  'Never exceed', 'Consult', 'Important Note', 'Important Disclaimer', 'WARNING', 'CAUTION',
-                  'certified', 'extension office', 'crop consultant',
-                  'Fungicide', 'chlorothalonil', 'mancozeb', 'copper-based', 'strobilurin',
-                  'Remove infected', 'destroy infected', 'burn or bury',
-                  'Crop Rotation', 'Disease-resistant', 'resistant varieties', 'Proper spacing',
-                  'air circulation', 'Weed control', 'Sanitation', 'certified seed',
-                  'immediately', 'regularly', 'avoid', 'prevent', 'reduce spread'
-                ];
-
-                importantKeywords.forEach(keyword => {
-                  const regex = new RegExp(`\\b(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi');
-                  formatted = formatted.replace(regex, '<strong class="text-gray-900 font-bold">$1</strong>');
-                });
-
-                // Highlight temperatures and measurements
-                formatted = formatted.replace(/(\d+[-–]\d+°[CF]|\d+°[CF]|\d+%)/g, '<span class="bg-blue-100 text-blue-800 px-1 py-0.5 rounded text-xs font-medium">$1</span>');
-
-                // Make "Important" phrases stand out more
-                formatted = formatted.replace(/(Important[^:]*:)/gi, '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-bold text-sm">⚠️ $1</span>');
-
-                return { __html: formatted };
-              };
-
-              return (
-                <div key={index} className="mb-4">
-                  {paragraph.startsWith('* ') || paragraph.startsWith('- ') ? (
-                    <div className="flex items-start space-x-3 ml-4 p-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
-                      <span className="text-gray-700 text-sm leading-relaxed"
-                        dangerouslySetInnerHTML={formatTextForUnstructured(paragraph.substring(2))}
-                      />
-                    </div>
-                  ) : paragraph.startsWith('**') && paragraph.endsWith('**') ? (
-                    <h6 className="font-semibold text-gray-800 mt-4 mb-2 text-base">
-                      {paragraph.replace(/\*\*/g, '')}
-                    </h6>
-                  ) : (
-                    <p className="text-gray-700 text-sm leading-relaxed mb-2"
-                      dangerouslySetInnerHTML={formatTextForUnstructured(paragraph)}
-                    />
-                  )}
-                </div>
-              );
-            })}
+          <div className="prose prose-sm max-w-none text-gray-700">
+            <ReactMarkdown
+              components={{
+                p: ({ children }: any) => <p className="mb-3 last:mb-0 text-sm leading-relaxed">{children}</p>,
+                strong: ({ children }: any) => <strong className="font-bold text-gray-900">{children}</strong>,
+                em: ({ children }: any) => <em className="text-blue-600 font-medium italic">{children}</em>,
+                ul: ({ children }: any) => <ul className="list-disc list-inside mb-3 space-y-1.5 ml-2">{children}</ul>,
+                ol: ({ children }: any) => <ol className="list-decimal list-inside mb-3 space-y-1.5 ml-2">{children}</ol>,
+                li: ({ children }: any) => <li className="ml-2 text-sm">{children}</li>,
+                h1: ({ children }: any) => <h1 className="text-lg font-bold mb-3 mt-4 first:mt-0">{children}</h1>,
+                h2: ({ children }: any) => <h2 className="text-base font-bold mb-2 mt-3">{children}</h2>,
+                h3: ({ children }: any) => <h3 className="text-sm font-semibold mb-2 mt-2">{children}</h3>,
+                code: ({ children }: any) => <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono text-gray-800">{children}</code>,
+                blockquote: ({ children }: any) => <blockquote className="border-l-4 border-blue-500 pl-3 italic my-3 text-gray-600">{children}</blockquote>,
+              }}
+            >
+              {sections['AI Analysis'].join('\n\n')}
+            </ReactMarkdown>
           </div>
         </div>
       )}
 
       {/* Show structured sections only if not unstructured */}
-      {!isUnstructured && Object.entries(sections).map(([title, content], index) => (
-        <div key={index} className={`border rounded-lg p-4 ${getSectionColor(title)}`}>
-          <h5 className="text-lg font-semibold text-gray-800 mb-3 flex items-center space-x-2">
-            <span className="text-xl">{getSectionIcon(title)}</span>
-            <span>{title}</span>
-          </h5>
-          <div className="space-y-2">
-            {content.map((item, itemIndex) => {
-              // Handle sub-headers
-              if (item.startsWith('SUB_HEADER:')) {
-                const subHeader = item.replace('SUB_HEADER:', '');
-                return (
-                  <h6 key={itemIndex} className="font-semibold text-gray-700 mt-4 mb-2 text-base">
-                    📌 {subHeader}
-                  </h6>
-                );
-              }
+      {!isUnstructured && Object.entries(sections).map(([title, content], index) => {
+        // Process content to handle subsections
+        const processedContent: JSX.Element[] = [];
+        let currentSubsection: string[] = [];
+        let currentSubsectionTitle = '';
 
-              // Handle bullet points
-              if (item.startsWith('* ') || item.startsWith('- ')) {
-                const bulletContent = item.substring(2);
-                const isImportant = bulletContent.toLowerCase().includes('always') ||
-                  bulletContent.toLowerCase().includes('important') ||
-                  bulletContent.toLowerCase().includes('strictly');
-
-                return (
-                  <div key={itemIndex} className={`flex items-start space-x-3 ml-4 p-2 rounded ${isImportant ? 'bg-yellow-50' : ''}`}>
-                    <span className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${isImportant ? 'bg-yellow-500' : 'bg-gray-400'}`}></span>
-                    <span className={`text-sm leading-relaxed ${isImportant ? 'text-yellow-800 font-medium' : 'text-gray-700'}`}>
-                      {bulletContent}
-                    </span>
-                  </div>
-                );
-              }
-
-              // Handle regular content
-              const formatText = (text: string) => {
-                let formatted = text;
-
-                // Highlight scientific names in italics
-                formatted = formatted.replace(/\*([^*]+)\*/g, '<em class="text-blue-600 font-medium">$1</em>');
-
-                // Bold important keywords and phrases
-                const importantKeywords = [
-                  // Disease names
-                  'Early Blight', 'Late Blight', 'Leaf Spot', 'Powdery Mildew', 'Bacterial Wilt', 'Mosaic Virus',
-                  'Fusarium', 'Alternaria', 'Phytophthora', 'Septoria',
-
-                  // Safety and warnings
-                  'Always follow label instructions', 'follow label instructions', 'label instructions',
-                  'Never exceed', 'Consult', 'Important Note', 'Important Disclaimer', 'WARNING', 'CAUTION',
-                  'certified', 'extension office', 'crop consultant',
-
-                  // Treatment methods
-                  'Fungicide', 'chlorothalonil', 'mancozeb', 'copper-based', 'strobilurin',
-                  'Remove infected', 'destroy infected', 'burn or bury',
-
-                  // Prevention measures
-                  'Crop Rotation', 'Disease-resistant', 'resistant varieties', 'Proper spacing',
-                  'air circulation', 'Weed control', 'Sanitation', 'certified seed',
-
-                  // Critical actions
-                  'immediately', 'regularly', 'avoid', 'prevent', 'reduce spread',
-                  'good drainage', 'proper ventilation'
-                ];
-
-                // Apply bold formatting to important keywords
-                importantKeywords.forEach(keyword => {
-                  const regex = new RegExp(`\\b(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi');
-                  formatted = formatted.replace(regex, '<strong class="text-gray-900 font-bold">$1</strong>');
-                });
-
-                // Highlight temperatures and measurements
-                formatted = formatted.replace(/(\d+[-–]\d+°[CF]|\d+°[CF]|\d+%)/g, '<span class="bg-blue-100 text-blue-800 px-1 py-0.5 rounded text-xs font-medium">$1</span>');
-
-                // Highlight dosage and application rates
-                formatted = formatted.replace(/(\d+[\.,]?\d*\s*(ml|g|kg|L|liter|gram|kilogram)\/[^,\s]+)/gi, '<span class="bg-green-100 text-green-800 px-1 py-0.5 rounded text-xs font-medium">$1</span>');
-
-                // Make "Important" phrases stand out more
-                formatted = formatted.replace(/(Important[^:]*:)/gi, '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-bold text-sm">⚠️ $1</span>');
-
-                return { __html: formatted };
-              };
-
-              return (
-                <p key={itemIndex}
-                  className="text-gray-700 text-sm leading-relaxed"
-                  dangerouslySetInnerHTML={formatText(item)}
-                />
+        content.forEach((line, lineIndex) => {
+          // Check if this is a subsection header
+          if (line.startsWith('SUB_HEADER:')) {
+            // Save previous subsection if exists
+            if (currentSubsectionTitle && currentSubsection.length > 0) {
+              processedContent.push(
+                <div key={`subsection-${lineIndex}`} className="mb-4">
+                  <h6 className="text-sm font-bold text-gray-800 mb-2 mt-3">{currentSubsectionTitle}</h6>
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }: any) => <p className="mb-2 last:mb-0 text-sm leading-relaxed text-gray-700">{children}</p>,
+                      strong: ({ children }: any) => <strong className="font-bold text-gray-900">{children}</strong>,
+                      em: ({ children }: any) => <em className="text-blue-600 font-medium italic">{children}</em>,
+                      ul: ({ children }: any) => <ul className="list-none space-y-2 ml-0">{children}</ul>,
+                      ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-2 ml-2">{children}</ol>,
+                      li: ({ children }: any) => (
+                        <li className="text-sm leading-relaxed flex items-start">
+                          <span className="text-green-600 mr-2 mt-0.5">•</span>
+                          <span className="flex-1">{children}</span>
+                        </li>
+                      ),
+                      h1: ({ children }: any) => <h1 className="text-base font-bold mb-2 mt-3 first:mt-0">{children}</h1>,
+                      h2: ({ children }: any) => <h2 className="text-sm font-bold mb-2 mt-2">{children}</h2>,
+                      h3: ({ children }: any) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
+                      code: ({ children }: any) => <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono text-gray-800">{children}</code>,
+                      blockquote: ({ children }: any) => <blockquote className="border-l-4 border-green-500 pl-3 italic my-2">{children}</blockquote>,
+                    }}
+                  >
+                    {currentSubsection.join('\n\n')}
+                  </ReactMarkdown>
+                </div>
               );
-            })}
+            }
+
+            // Start new subsection
+            currentSubsectionTitle = line.replace('SUB_HEADER:', '');
+            currentSubsection = [];
+          } else {
+            currentSubsection.push(line);
+          }
+        });
+
+        // Add the last subsection or all content if no subsections
+        if (currentSubsection.length > 0) {
+          if (currentSubsectionTitle) {
+            processedContent.push(
+              <div key={`subsection-last`} className="mb-2">
+                <h6 className="text-sm font-bold text-gray-800 mb-2 mt-3">{currentSubsectionTitle}</h6>
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }: any) => <p className="mb-2 last:mb-0 text-sm leading-relaxed text-gray-700">{children}</p>,
+                    strong: ({ children }: any) => <strong className="font-bold text-gray-900">{children}</strong>,
+                    em: ({ children }: any) => <em className="text-blue-600 font-medium italic">{children}</em>,
+                    ul: ({ children }: any) => <ul className="list-none space-y-2 ml-0">{children}</ul>,
+                    ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-2 ml-2">{children}</ol>,
+                    li: ({ children }: any) => (
+                      <li className="text-sm leading-relaxed flex items-start">
+                        <span className="text-green-600 mr-2 mt-0.5">•</span>
+                        <span className="flex-1">{children}</span>
+                      </li>
+                    ),
+                    h1: ({ children }: any) => <h1 className="text-base font-bold mb-2 mt-3 first:mt-0">{children}</h1>,
+                    h2: ({ children }: any) => <h2 className="text-sm font-bold mb-2 mt-2">{children}</h2>,
+                    h3: ({ children }: any) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
+                    code: ({ children }: any) => <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono text-gray-800">{children}</code>,
+                    blockquote: ({ children }: any) => <blockquote className="border-l-4 border-green-500 pl-3 italic my-2">{children}</blockquote>,
+                  }}
+                >
+                  {currentSubsection.join('\n\n')}
+                </ReactMarkdown>
+              </div>
+            );
+          } else {
+            // No subsections, render all content with enhanced bullet points
+            processedContent.push(
+              <ReactMarkdown
+                key="main-content"
+                components={{
+                  p: ({ children }: any) => <p className="mb-2 last:mb-0 text-sm leading-relaxed text-gray-700">{children}</p>,
+                  strong: ({ children }: any) => <strong className="font-bold text-gray-900">{children}</strong>,
+                  em: ({ children }: any) => <em className="text-blue-600 font-medium italic">{children}</em>,
+                  ul: ({ children }: any) => <ul className="list-none space-y-2 ml-0">{children}</ul>,
+                  ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-2 ml-2">{children}</ol>,
+                  li: ({ children }: any) => (
+                    <li className="text-sm leading-relaxed flex items-start">
+                      <span className="text-green-600 mr-2 mt-0.5 flex-shrink-0">•</span>
+                      <span className="flex-1">{children}</span>
+                    </li>
+                  ),
+                  h1: ({ children }: any) => <h1 className="text-base font-bold mb-2 mt-3 first:mt-0">{children}</h1>,
+                  h2: ({ children }: any) => <h2 className="text-sm font-bold mb-2 mt-2">{children}</h2>,
+                  h3: ({ children }: any) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
+                  code: ({ children }: any) => <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono text-gray-800">{children}</code>,
+                  blockquote: ({ children }: any) => <blockquote className="border-l-4 border-green-500 pl-3 italic my-2">{children}</blockquote>,
+                }}
+              >
+                {currentSubsection.join('\n\n')}
+              </ReactMarkdown>
+            );
+          }
+        }
+
+        return (
+          <div key={index} className={`border rounded-lg p-5 ${getSectionColor(title)}`}>
+            <h5 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2 border-b pb-2">
+              <span className="text-2xl">{getSectionIcon(title)}</span>
+              <span>{title}</span>
+            </h5>
+            <div className="prose prose-sm max-w-none">
+              {processedContent}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {/* Important Note Section - only show if we have structured content */}
       {!isUnstructured && (
@@ -380,7 +367,7 @@ const formatAIResponse = (response: string): JSX.Element => {
 };
 
 export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
-  const { t, language } = useLanguage();
+  const { t, i18n } = useTranslation();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<DetectionResult | null>(null);
@@ -445,9 +432,9 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
     } catch (error) {
       console.error('❌ Error accessing camera:', error);
 
-      const errorMessage = language === 'en'
+      const errorMessage = i18n.language === 'en'
         ? 'Unable to access camera. Please check permissions or use gallery option.'
-        : language === 'mr'
+        : i18n.language === 'mr'
           ? 'कॅमेरा वापरू शकत नाही. कृपया परवानग्या तपासा किंवा गॅलरी पर्याय वापरा.'
           : 'कैमरा एक्सेस नहीं कर सका। कृपया अनुमतियां जांचें या गैलरी विकल्प का उपयोग करें।';
 
@@ -508,15 +495,20 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
     (async () => {
       try {
         const base64 = selectedImage.includes(',') ? selectedImage.split(',')[1] : selectedImage;
-        const query = language === 'en'
+        const query = i18n.language === 'en'
           ? 'Identify crop and likely disease. Give symptoms, causes, treatments (safe doses), and prevention in simple bullet points.'
-          : language === 'mr'
+          : i18n.language === 'mr'
             ? 'पीक आणि संभाव्य रोग ओळखा. लक्षणे, कारणे, उपचार (सुरक्षित डोस) आणि प्रतिबंध साध्या बिंदूंमध्ये द्या.'
             : 'फसल और संभावित रोग पहचानें। लक्षण, कारण, उपचार (सुरक्षित मात्रा) और बचाव सरल बिंदुओं में दें।';
 
         console.log('Analyzing image with AI service...');
         const cacheStatsBefore = aiService.getCacheStats();
         console.log('Cache stats before analysis:', cacheStatsBefore);
+
+        // Type guard to ensure language is one of the expected values
+        const language: 'en' | 'mr' | 'hi' = ['en', 'mr', 'hi'].includes(i18n.language)
+          ? i18n.language as 'en' | 'mr' | 'hi'
+          : 'en';
 
         const text = await aiService.analyzeCropImage(base64, query, language);
 
@@ -535,7 +527,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
         }
 
         setAiTextResult(text);
-        
+
         // Save disease detection to database
         try {
           const token = localStorage.getItem('token');
@@ -583,7 +575,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
 
             const savedDetection = await cropDiseaseAPI.saveDiseaseDetection(dataToSave);
             console.log('✅ Disease detection saved to database successfully!', savedDetection);
-            
+
             // Trigger refresh of disease history
             setTimeout(() => {
               const event = new CustomEvent('detectionSaved', { detail: savedDetection });
@@ -616,7 +608,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
         const randomResult = mockResults[Math.floor(Math.random() * mockResults.length)];
         setResult(randomResult);
         setAiTextResult(`**Error**: ${error instanceof Error ? error.message : 'Unknown error'}\n\n**Fallback Diagnosis**:\n${randomResult.disease}`);
-        
+
         // Save fallback detection to database
         try {
           const token = localStorage.getItem('token');
@@ -633,7 +625,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
 
             const savedDetection = await cropDiseaseAPI.saveDiseaseDetection(dataToSave);
             console.log('✅ Fallback detection saved to database successfully!', savedDetection);
-            
+
             // Trigger refresh of disease history
             setTimeout(() => {
               const event = new CustomEvent('detectionSaved', { detail: savedDetection });
@@ -709,8 +701,8 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
                   {t('uploadImage')}
                 </h3>
                 <p className="text-gray-700 text-sm mb-4 font-medium">
-                  {language === 'en' ? 'Upload photo in JPG, PNG or JPEG format (Max 5MB)' :
-                    language === 'mr' ? 'JPG, PNG किंवा JPEG फॉर्मेटमध्ये फोटो अपलोड करा (जास्तीत जास्त 5MB)' :
+                  {i18n.language === 'en' ? 'Upload photo in JPG, PNG or JPEG format (Max 5MB)' :
+                    i18n.language === 'mr' ? 'JPG, PNG किंवा JPEG फॉर्मेटमध्ये फोटो अपलोड करा (जास्तीत जास्त 5MB)' :
                       'JPG, PNG या JPEG फॉर्मेट में फोटो अपलोड करें (अधिकतम 5MB)'}
                 </p>
               </div>
@@ -722,7 +714,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
                 >
                   <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
                   <Upload className="w-5 h-5 relative z-10" />
-                  <span className="font-semibold relative z-10">{language === 'en' ? 'Choose from Gallery' : language === 'mr' ? 'गॅलरीतून निवडा' : 'गैलरी से चुनें'}</span>
+                  <span className="font-semibold relative z-10">{i18n.language === 'en' ? 'Choose from Gallery' : i18n.language === 'mr' ? 'गॅलरीतून निवडा' : 'गैलरी से चुनें'}</span>
                 </button>
 
                 <button
@@ -756,7 +748,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
             >
               <X className="w-5 h-5" />
             </button>
-            
+
             <div className="mb-6">
               <h3 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">{t('uploadedImage')}</h3>
             </div>
@@ -781,7 +773,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
                       <Zap className="relative w-12 h-12 text-primary-600" />
                     </div>
                     <h4 className="text-lg font-semibold text-gray-800 mb-2">
-                      {language === 'en' ? 'Ready for Analysis' : language === 'mr' ? 'विश्लेषणासाठी तयार' : 'विश्लेषण के लिए तैयार'}
+                      {i18n.language === 'en' ? 'Ready for Analysis' : i18n.language === 'mr' ? 'विश्लेषणासाठी तयार' : 'विश्लेषण के लिए तैयार'}
                     </h4>
                     <p className="text-gray-600 mb-4">{t('cropCheckDescription')}</p>
                     <button
@@ -816,7 +808,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
                   <h4 className="text-lg font-semibold flex items-center justify-between">
                     <div className="flex items-center">
                       <CheckCircle className="w-5 h-5 mr-2" />
-                      {language === 'en' ? 'AI Diagnosis Report' : language === 'mr' ? 'AI निदान रिपोर्ट' : 'AI निदान रिपोर्ट'}
+                      {i18n.language === 'en' ? 'AI Diagnosis Report' : i18n.language === 'mr' ? 'AI निदान रिपोर्ट' : 'AI निदान रिपोर्ट'}
                     </div>
                     {isCachedResult && (
                       <span className="text-xs bg-white/20 px-2 py-1 rounded">
@@ -831,10 +823,10 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
                 <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-t border-gray-200 rounded-b-xl">
                   <div className="flex flex-col sm:flex-row gap-2">
                     <button className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white py-2 px-4 rounded-lg text-sm transition-all duration-200 transform hover:scale-105 font-semibold">
-                      {language === 'en' ? 'Consult Expert' : language === 'mr' ? 'तज्ञांशी सल्लामसलत करा' : 'विशेषज्ञ से सलाह लें'}
+                      {i18n.language === 'en' ? 'Consult Expert' : i18n.language === 'mr' ? 'तज्ञांशी सल्लामसलत करा' : 'विशेषज्ञ से सलाह लें'}
                     </button>
                     <button className="flex-1 bg-gradient-to-r from-accent-600 to-accent-700 hover:from-accent-700 hover:to-accent-800 text-white py-2 px-4 rounded-lg text-sm transition-all duration-200 transform hover:scale-105 font-semibold">
-                      {language === 'en' ? 'Order Medicine' : language === 'mr' ? 'औषध ऑर्डर करा' : 'दवाई ऑर्डर करें'}
+                      {i18n.language === 'en' ? 'Order Medicine' : i18n.language === 'mr' ? 'औषध ऑर्डर करा' : 'दवाई ऑर्डर करें'}
                     </button>
                   </div>
                 </div>
@@ -899,7 +891,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
                       onClick={resetDetection}
                       className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 px-4 rounded-lg transition-colors"
                     >
-                      {language === 'en' ? 'Check New Photo' : language === 'mr' ? 'नवीन फोटो तपासा' : 'नई फोटो जांचें'}
+                      {i18n.language === 'en' ? 'Check New Photo' : i18n.language === 'mr' ? 'नवीन फोटो तपासा' : 'नई फोटो जांचें'}
                     </button>
                     {import.meta.env.DEV && (
                       <button
@@ -924,7 +916,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
             <div className="absolute inset-0 bg-gradient-to-br from-accent-50 via-primary-50 to-accent-100 animate-gradient"></div>
             <div className="relative glass rounded-2xl p-6 m-1">
               <h3 className="text-xl font-bold bg-gradient-to-r from-accent-600 to-primary-600 bg-clip-text text-transparent mb-6">
-                {language === 'en' ? '💡 Tips for Better Results' : language === 'mr' ? '💡 उत्तम परिणामांसाठी टिप्स' : '💡 बेहतर परिणाम के लिए टिप्स'}
+                {i18n.language === 'en' ? '💡 Tips for Better Results' : i18n.language === 'mr' ? '💡 उत्तम परिणामांसाठी टिप्स' : '💡 बेहतर परिणाम के लिए टिप्स'}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-start space-x-3 p-3 bg-white/50 rounded-lg hover:bg-white/70 transition-all duration-200">
@@ -932,7 +924,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
                     <span className="text-white text-xs font-bold">✓</span>
                   </span>
                   <span className="text-gray-700 text-sm font-medium">
-                    {language === 'en' ? 'Take clear, sharp photos' : language === 'mr' ? 'स्वच्छ आणि स्पष्ट फोटो घ्या' : 'साफ और स्पष्ट फोटो लें'}
+                    {i18n.language === 'en' ? 'Take clear, sharp photos' : i18n.language === 'mr' ? 'स्वच्छ आणि स्पष्ट फोटो घ्या' : 'साफ और स्पष्ट फोटो लें'}
                   </span>
                 </div>
                 <div className="flex items-start space-x-3 p-3 bg-white/50 rounded-lg hover:bg-white/70 transition-all duration-200">
@@ -940,7 +932,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
                     <span className="text-white text-xs font-bold">✓</span>
                   </span>
                   <span className="text-gray-700 text-sm font-medium">
-                    {language === 'en' ? 'Use natural lighting' : language === 'mr' ? 'नैसर्गिक प्रकाशात फोटो घ्या' : 'प्राकृतिक रोशनी में फोटो लें'}
+                    {i18n.language === 'en' ? 'Use natural lighting' : i18n.language === 'mr' ? 'नैसर्गिक प्रकाशात फोटो घ्या' : 'प्राकृतिक रोशनी में फोटो लें'}
                   </span>
                 </div>
                 <div className="flex items-start space-x-3 p-3 bg-white/50 rounded-lg hover:bg-white/70 transition-all duration-200">
@@ -948,7 +940,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
                     <span className="text-white text-xs font-bold">✓</span>
                   </span>
                   <span className="text-gray-700 text-sm font-medium">
-                    {language === 'en' ? 'Show the diseased area close-up' : language === 'mr' ? 'रोगग्रस्त भाग जवळून दाखवा' : 'रोग ग्रस्त भाग को करीब से दिखाएं'}
+                    {i18n.language === 'en' ? 'Show the diseased area close-up' : i18n.language === 'mr' ? 'रोगग्रस्त भाग जवळून दाखवा' : 'रोग ग्रस्त भाग को करीब से दिखाएं'}
                   </span>
                 </div>
                 <div className="flex items-start space-x-3 p-3 bg-white/50 rounded-lg hover:bg-white/70 transition-all duration-200">
@@ -956,7 +948,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
                     <span className="text-white text-xs font-bold">✓</span>
                   </span>
                   <span className="text-gray-700 text-sm font-medium">
-                    {language === 'en' ? 'Include the full leaf or fruit' : language === 'mr' ? 'पान किंवा फळाचा पूर्ण भाग दाखवा' : 'पत्ती या फल का पूरा हिस्सा दिखाएं'}
+                    {i18n.language === 'en' ? 'Include the full leaf or fruit' : i18n.language === 'mr' ? 'पान किंवा फळाचा पूर्ण भाग दाखवा' : 'पत्ती या फल का पूरा हिस्सा दिखाएं'}
                   </span>
                 </div>
               </div>
@@ -978,7 +970,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
             <div className="flex items-center justify-between p-4 glass-dark">
               <h3 className="text-white text-lg font-semibold flex items-center space-x-2">
                 <Camera className="w-5 h-5" />
-                <span>{language === 'en' ? 'Take Photo' : language === 'mr' ? 'फोटो काढा' : 'फोटो लें'}</span>
+                <span>{i18n.language === 'en' ? 'Take Photo' : i18n.language === 'mr' ? 'फोटो काढा' : 'फोटो लें'}</span>
               </h3>
               <button
                 onClick={stopCamera}
@@ -1004,7 +996,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
                   <div className="w-full h-full border-2 border-white/20 rounded-lg">
                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-white/50 rounded-lg">
                       <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-white text-sm">
-                        {language === 'en' ? 'Focus the crop here' : language === 'mr' ? 'पीक येथे फोकस करा' : 'फसल को यहाँ फोकस करें'}
+                        {i18n.language === 'en' ? 'Focus the crop here' : i18n.language === 'mr' ? 'पीक येथे फोकस करा' : 'फसल को यहाँ फोकस करें'}
                       </div>
                     </div>
                   </div>
@@ -1019,7 +1011,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
                   onClick={stopCamera}
                   className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
                 >
-                  {language === 'en' ? 'Cancel' : language === 'mr' ? 'रद्द करा' : 'रद्द करें'}
+                  {i18n.language === 'en' ? 'Cancel' : i18n.language === 'mr' ? 'रद्द करा' : 'रद्द करें'}
                 </button>
 
                 <button
@@ -1028,7 +1020,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
                 >
                   <Camera className="w-6 h-6" />
                   <span className="font-semibold">
-                    {language === 'en' ? 'Capture' : language === 'mr' ? 'कॅप्चर' : 'कैप्चर'}
+                    {i18n.language === 'en' ? 'Capture' : i18n.language === 'mr' ? 'कॅप्चर' : 'कैप्चर'}
                   </span>
                 </button>
 
@@ -1037,9 +1029,9 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
 
               <div className="mt-4 text-center">
                 <p className="text-white/70 text-sm">
-                  {language === 'en'
+                  {i18n.language === 'en'
                     ? 'Position the diseased part of the crop within the frame and tap capture'
-                    : language === 'mr'
+                    : i18n.language === 'mr'
                       ? 'फसलाचा रोगग्रस्त भाग फ्रेममध्ये ठेवा आणि कॅप्चर दाबा'
                       : 'फसल के रोगग्रस्त हिस्से को फ्रेम में रखें और कैप्चर दबाएं'}
                 </p>
