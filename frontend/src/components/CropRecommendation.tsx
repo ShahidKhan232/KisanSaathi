@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Sprout, Droplets, Thermometer, Wind, Activity } from 'lucide-react';
 // import { useLanguage } from '../hooks/useLanguage';
 
+import { useTranslation } from 'react-i18next';
+
 export function CropRecommendation() {
-    // const { t } = useLanguage(); -> Unused for now, using hardcoded English
+    const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<{ crop: string; probability: number }[] | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -66,8 +68,8 @@ export function CropRecommendation() {
                         <Sprout className="w-6 h-6 text-green-600" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-800">Crop Recommendation</h2>
-                        <p className="text-gray-500">Get AI-powered crop suggestions based on soil and weather conditions</p>
+                        <h2 className="text-2xl font-bold text-gray-800">{t('cropRecommendation')}</h2>
+                        <p className="text-gray-500">{t('aiCropSuggestions')}</p>
                     </div>
                 </div>
 
@@ -75,7 +77,7 @@ export function CropRecommendation() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                <Activity className="w-4 h-4 text-blue-500" /> Nitrogen (N)
+                                <Activity className="w-4 h-4 text-blue-500" /> {t('nitrogen')}
                             </label>
                             <input
                                 type="number"
@@ -88,7 +90,7 @@ export function CropRecommendation() {
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                <Activity className="w-4 h-4 text-orange-500" /> Phosphorus (P)
+                                <Activity className="w-4 h-4 text-orange-500" /> {t('phosphorus')}
                             </label>
                             <input
                                 type="number"
@@ -101,7 +103,7 @@ export function CropRecommendation() {
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                <Activity className="w-4 h-4 text-yellow-500" /> Potassium (K)
+                                <Activity className="w-4 h-4 text-yellow-500" /> {t('potassium')}
                             </label>
                             <input
                                 type="number"
@@ -114,7 +116,7 @@ export function CropRecommendation() {
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                <Thermometer className="w-4 h-4 text-red-500" /> Temperature (°C)
+                                <Thermometer className="w-4 h-4 text-red-500" /> {t('temperatureC')}
                             </label>
                             <input
                                 type="number"
@@ -128,7 +130,7 @@ export function CropRecommendation() {
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                <Droplets className="w-4 h-4 text-blue-400" /> Humidity (%)
+                                <Droplets className="w-4 h-4 text-blue-400" /> {t('humidityPercent')}
                             </label>
                             <input
                                 type="number"
@@ -142,7 +144,7 @@ export function CropRecommendation() {
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                Soil pH
+                                {t('soilPh')}
                             </label>
                             <input
                                 type="number"
@@ -156,7 +158,7 @@ export function CropRecommendation() {
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                <Wind className="w-4 h-4 text-gray-400" /> Rainfall (mm)
+                                <Wind className="w-4 h-4 text-gray-400" /> {t('rainfallMm')}
                             </label>
                             <input
                                 type="number"
@@ -175,7 +177,7 @@ export function CropRecommendation() {
                         disabled={loading}
                         className="w-full md:w-auto px-8 py-3 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {loading ? 'Analyzing...' : 'Get Recommendations'}
+                        {loading ? t('analyzing') : t('getRecommendations')}
                     </button>
                 </form>
 
@@ -187,7 +189,7 @@ export function CropRecommendation() {
 
                 {result && (
                     <div className="mt-8 space-y-4">
-                        <h3 className="text-lg font-semibold text-gray-800">Top Recommendations</h3>
+                        <h3 className="text-lg font-semibold text-gray-800">{t('topRecommendations')}</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {result.map((item, index) => (
                                 <div

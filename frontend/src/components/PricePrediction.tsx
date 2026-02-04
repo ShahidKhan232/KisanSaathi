@@ -271,21 +271,21 @@ export function PricePrediction() {
           <div className="flex-1">
             <h2 className="text-3xl font-bold text-white flex items-center space-x-3">
               <TrendingUp className="w-8 h-8" />
-              <span>{t('pricePrediction')}</span>
+              <span>{t('marketPrices')}</span>
             </h2>
             <div className="flex items-center space-x-4 mt-3">
               <p className="text-green-50 flex items-center space-x-2">
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm">
                   {i18n.language === 'en'
-                    ? `Last updated: ${lastUpdate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
-                    : `${t('lastUpdate')}: ${lastUpdate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+                    ? `${t('last')} ${t('updated')}: ${lastUpdate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+                    : `${t('last')} ${t('updated')}: ${lastUpdate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
                   }
                 </span>
               </p>
               {aiPriceStatus && (
                 <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-medium">
-                  {aiPriceStatus.aiGeneratedPriceCount} AI Prices Available
+                  {aiPriceStatus.aiGeneratedPriceCount} {t('aiPricesAvailable')}
                 </span>
               )}
             </div>
@@ -312,7 +312,7 @@ export function PricePrediction() {
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-gray-800 flex items-center space-x-2">
-                <span>🤖 AI-Generated Market Prices</span>
+                <span>🤖 {t('aiGeneratedPrices')}</span>
               </h3>
               <p className="text-gray-700 text-sm mt-2 leading-relaxed">
                 {i18n.language === 'en'
@@ -328,11 +328,11 @@ export function PricePrediction() {
                     ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
                     : 'bg-gradient-to-r from-yellow-400 to-orange-400 text-white'
                     }`}>
-                    {aiPriceStatus.status === 'fresh' ? '✓ Fresh Data' : '⚠ Updating Soon'}
+                    {aiPriceStatus.status === 'fresh' ? `✓ ${t('freshData')}` : `⚠ ${t('updatingSoon')}`}
                   </span>
                   {aiPriceStatus.lastFetchTime && (
                     <span className="px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full text-sm text-purple-700 font-medium shadow-sm">
-                      Last: {new Date(aiPriceStatus.lastFetchTime).toLocaleString('en-IN', {
+                      {t('last')}: {new Date(aiPriceStatus.lastFetchTime).toLocaleString('en-IN', {
                         month: 'short',
                         day: 'numeric',
                         hour: '2-digit',
@@ -341,7 +341,7 @@ export function PricePrediction() {
                     </span>
                   )}
                   <span className="px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full text-sm text-blue-700 font-medium shadow-sm">
-                    Next: {aiPriceStatus.nextScheduledFetch}
+                    {t('next')}: {aiPriceStatus.nextScheduledFetch}
                   </span>
                 </div>
               )}
@@ -358,7 +358,7 @@ export function PricePrediction() {
               <Filter className="w-5 h-5 text-white" />
             </div>
             <h3 className="text-lg font-bold text-gray-800">
-              {i18n.language === 'en' ? 'Filter Prices' : i18n.language === 'mr' ? 'किंमती फिल्टर करा' : 'कीमतें फ़िल्टर करें'}
+              {t('filterPrices')}
             </h3>
           </div>
 
@@ -379,7 +379,7 @@ export function PricePrediction() {
               onChange={(e) => setSelectedMarket(e.target.value)}
               className="flex-1 min-w-[200px] px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-gray-50 hover:bg-white font-medium"
             >
-              <option value="all">{i18n.language === 'en' ? 'All Markets' : i18n.language === 'mr' ? 'सर्व बाजार' : 'सभी बाज़ार'}</option>
+              <option value="all">{t('allMarkets')}</option>
               {Array.from(new Set(priceData.map(item => item.market))).map(market => (
                 <option key={market} value={market}>{market}</option>
               ))}
@@ -390,10 +390,10 @@ export function PricePrediction() {
           <div className="w-full border-t pt-4 mt-4">
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-sm font-medium text-blue-700">
-                {i18n.language === 'en' ? 'Live Market Data Filters:' : i18n.language === 'mr' ? 'जिवंत बाजार डेटा फिल्टर:' : 'लाइव बाज़ार डेटा फिल्टर:'}
+                {t('liveMarketDataFilters')}:
               </span>
               <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                {i18n.language === 'en' ? 'Latest 30 Days Only' : i18n.language === 'mr' ? 'फक्त गेले ३० दिवस' : 'केवल पिछले 30 दिन'}
+                {t('latest30DaysOnly')}
               </span>
             </div>
 
@@ -407,7 +407,7 @@ export function PricePrediction() {
                 />
                 {stateFilter && (
                   <span className="absolute right-2 top-2 text-xs text-green-600">
-                    ✓ {stateFilter.length} chars
+                    ✓ {stateFilter.length} {t('chars')}
                   </span>
                 )}
               </div>
@@ -421,7 +421,7 @@ export function PricePrediction() {
                 />
                 {districtFilter && (
                   <span className="absolute right-2 top-2 text-xs text-green-600">
-                    ✓ {districtFilter.length} chars
+                    ✓ {districtFilter.length} {t('chars')}
                   </span>
                 )}
               </div>
@@ -435,7 +435,7 @@ export function PricePrediction() {
                 />
                 {commodityFilter && (
                   <span className="absolute right-2 top-2 text-xs text-green-600">
-                    ✓ {commodityFilter.length} chars
+                    ✓ {commodityFilter.length} {t('chars')}
                   </span>
                 )}
               </div>
@@ -450,10 +450,7 @@ export function PricePrediction() {
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   )}
                   <span>
-                    {isLoadingLive
-                      ? (i18n.language === 'en' ? 'Loading...' : i18n.language === 'mr' ? 'लोड करत आहे...' : 'लोड हो रहा है...')
-                      : (i18n.language === 'en' ? 'Search' : i18n.language === 'mr' ? 'शोधा' : 'खोजें')
-                    }
+                    {isLoadingLive ? t('loading') : t('search')}
                   </span>
                 </button>
 
@@ -467,7 +464,7 @@ export function PricePrediction() {
                   }}
                   className="px-3 py-2 bg-gray-500 text-white rounded-md text-sm hover:bg-gray-600 transition-colors"
                 >
-                  {i18n.language === 'en' ? 'Clear' : i18n.language === 'mr' ? 'साफ' : 'साफ़'}
+                  {t('clear')}
                 </button>
               </div>
             </div>
@@ -475,7 +472,7 @@ export function PricePrediction() {
             {/* Quick Filter Buttons */}
             <div className="flex flex-wrap gap-2 mt-3">
               <span className="text-sm text-gray-600 mr-2">
-                {i18n.language === 'en' ? 'Quick filters:' : i18n.language === 'mr' ? 'द्रुत फिल्टर:' : 'त्वरित फिल्टर:'}
+                {t('quickFilters')}:
               </span>
               {['Wheat', 'Rice', 'Onion', 'Potato', 'Tomato', 'Cotton', 'Soybean', 'Gram'].map(commodity => (
                 <button
@@ -497,7 +494,7 @@ export function PricePrediction() {
                 }}
                 className="px-3 py-1 text-xs rounded-full bg-red-100 text-red-700 border border-red-300 hover:bg-red-200 transition-colors"
               >
-                {i18n.language === 'en' ? 'Clear All' : i18n.language === 'mr' ? 'सर्व साफ करा' : 'सभी साफ़ करें'}
+                {t('clearAll')}
               </button>
             </div>
           </div>
@@ -514,7 +511,7 @@ export function PricePrediction() {
                 <h3 className="text-2xl font-bold text-white flex items-center space-x-3">
                   <DollarSign className="w-7 h-7" />
                   <span>
-                    {i18n.language === 'en' ? 'AI-Generated Market Prices' : i18n.language === 'mr' ? 'AI-निर्मित बाजारभाव' : 'AI-जनित बाज़ार भाव'}
+                    {t('aiGeneratedPrices')}
                   </span>
                 </h3>
                 <p className="text-purple-100 text-sm mt-2">
@@ -526,9 +523,9 @@ export function PricePrediction() {
               <div className="text-right">
                 <div className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-xl">
                   <div className="text-white text-sm font-semibold">
-                    {i18n.language === 'en' ? 'AI-Powered' : i18n.language === 'mr' ? 'AI-संचालित' : 'AI-संचालित'}
+                    {t('aiPowered')}
                   </div>
-                  <div className="text-purple-200 text-xs">Updated Daily</div>
+                  <div className="text-purple-200 text-xs">{t('updatedDaily')}</div>
                 </div>
               </div>
             </div>
@@ -596,18 +593,18 @@ export function PricePrediction() {
                       {/* Today's Price - Prominent Display */}
                       <div className="text-center py-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
                         <div className="text-sm font-medium text-gray-600 mb-2">
-                          {i18n.language === 'en' ? "Today's Price" : i18n.language === 'mr' ? 'आजचा भाव' : 'आज का भाव'}
+                          {t('todaysPrice')}
                         </div>
                         <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                           {formatPrice(modalPrice)}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">per quintal</div>
+                        <div className="text-xs text-gray-500 mt-1">{t('perQuintal')}</div>
                       </div>
 
                       {/* Tomorrow's Forecast */}
                       <div>
                         <div className="text-sm text-gray-600 mb-1">
-                          {i18n.language === 'en' ? "Tomorrow's Forecast" : i18n.language === 'mr' ? 'उद्याचा अंदाज' : 'कल का पूर्वानुमान'}
+                          {t('tomorrowsForecast')}
                         </div>
                         <div className={`text-xl font-bold ${isPositiveForecast ? 'text-green-600' : 'text-red-600'
                           }`}>
@@ -618,14 +615,14 @@ export function PricePrediction() {
                       {/* Price Range */}
                       <div className="bg-gray-50 rounded-lg p-3">
                         <div className="text-xs text-gray-600 mb-2">
-                          {i18n.language === 'en' ? 'Price Range' : i18n.language === 'mr' ? 'भाव श्रेणी' : 'भाव सीमा'}
+                          {t('priceRange')}
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-green-600 font-medium">
-                            Min: {formatPrice(minPrice)}
+                            {t('min')}: {formatPrice(minPrice)}
                           </span>
                           <span className="text-red-600 font-medium">
-                            Max: {formatPrice(maxPrice)}
+                            {t('max')}: {formatPrice(maxPrice)}
                           </span>
                         </div>
                         <div className="w-full h-2 bg-gradient-to-r from-green-400 to-red-400 rounded-full mt-2"></div>
@@ -635,7 +632,7 @@ export function PricePrediction() {
                       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                         <div>
                           <div className="text-sm text-gray-600">
-                            {i18n.language === 'en' ? 'Reliability' : i18n.language === 'mr' ? 'विश्वसनीयता' : 'विश्वसनीयता'}
+                            {t('reliability')}
                           </div>
                           <div className={`text-lg font-bold ${confidence >= 80 ? 'text-green-600' :
                             confidence >= 60 ? 'text-yellow-600' : 'text-red-600'
@@ -646,10 +643,10 @@ export function PricePrediction() {
                         <div className="text-right">
                           <div className="text-xs text-purple-600 flex items-center space-x-1">
                             <BarChart3 className="w-3 h-3" />
-                            <span>ML Model</span>
+                            <span>{t('mlModel')}</span>
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
-                            {i18n.language === 'en' ? 'AI Prediction' : i18n.language === 'mr' ? 'AI पूर्वानुमान' : 'AI पूर्वानुमान'}
+                            {t('aiPrediction')}
                           </div>
                         </div>
                       </div>
@@ -658,7 +655,7 @@ export function PricePrediction() {
                       <div className="text-xs text-gray-500 flex items-center space-x-1">
                         <Calendar className="w-3 h-3" />
                         <span>
-                          {i18n.language === 'en' ? 'Updated' : i18n.language === 'mr' ? 'अपडेट' : 'अपडेट'}: {formatDate(record.Arrival_Date)}
+                          {t('updated')}: {formatDate(record.Arrival_Date)}
                         </span>
                       </div>
                     </div>
@@ -674,12 +671,12 @@ export function PricePrediction() {
               <div className="flex items-center space-x-4">
                 <span className="flex items-center space-x-1">
                   <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                  <span>{i18n.language === 'en' ? 'Live Data' : i18n.language === 'mr' ? 'जिवंत डेटा' : 'लाइव डेटा'}</span>
+                  <span>{t('liveData')}</span>
                 </span>
-                <span>{i18n.language === 'en' ? `All ${sortedLiveData.length} available markets` : i18n.language === 'mr' ? `सर्व ${sortedLiveData.length} उपलब्ध बाजार` : `सभी ${sortedLiveData.length} उपलब्ध बाज़ार`}</span>
+                <span>{t('allAvailableMarkets', { count: sortedLiveData.length })}</span>
               </div>
               <div className="text-xs">
-                {i18n.language === 'en' ? 'Powered by Government Open Data' : i18n.language === 'mr' ? 'सरकारी ओपन डेटाने चालविले' : 'सरकारी ओपन डेटा द्वारा संचालित'}
+                {t('poweredByGovData')}
               </div>
             </div>
           </div>

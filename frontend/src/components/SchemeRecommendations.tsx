@@ -55,10 +55,10 @@ interface Scheme {
   featuresMr?: string[];
 }
 
-// Fetch schemes from backend API with i18n.language support
-const fetchSchemes = async (i18n.language: 'en' | 'hi' | 'mr'): Promise<Scheme[]> => {
+// Fetch schemes from backend API with language support
+const fetchSchemes = async (language: 'en' | 'hi' | 'mr'): Promise<Scheme[]> => {
   try {
-    const response = await fetch(`/api/schemes?i18n.language=${i18n.language}`);
+    const response = await fetch(`/api/schemes?language=${language}`);
     if (!response.ok) {
       throw new Error('Failed to fetch schemes');
     }
@@ -325,12 +325,20 @@ export function SchemeRecommendations() {
 
 
 
+    // Helper function to ensure language is one of the supported types
+    const getValidLanguage = (lang: string): 'en' | 'hi' | 'mr' => {
+      if (lang === 'en' || lang === 'hi' || lang === 'mr') {
+        return lang;
+      }
+      return 'en'; // Default to English if language is not supported
+    };
+
     const loadSchemes = async () => {
       try {
         setLoading(true);
 
         // Fetch schemes from backend API
-        const schemes = await fetchSchemes(i18n.language);
+        const schemes = await fetchSchemes(getValidLanguage(i18n.language));
 
         if (!isActive) return;
 
@@ -474,95 +482,6 @@ export function SchemeRecommendations() {
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('governmentSchemes')}</h2>
         <p className="text-gray-600">{t('recommendedSchemes')}</p>
-      </div>
-
-      {/* User Profile Summary */}
-      <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <Users className="w-6 h-6" />
-            <h3 className="text-lg font-semibold">{t('personalInfo')}</h3>
-          </div>
-          <button
-            className="text-white/80 hover:text-white"
-            onClick={() => {
-              // Open edit dialog or modal
-              console.log('Open edit profile');
-            }}
-          >
-            <Edit2 className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="group relative">
-            <p className="text-green-100 text-sm">{i18n.language === 'en' ? 'Land' : i18n.language === 'mr' ? 'जमीन' : 'भूमि'}</p>
-            <div className="flex items-center space-x-2">
-              <p className="font-semibold">
-                {userProfile?.landSize || '--'} {i18n.language === 'en' ? 'Acres' : i18n.language === 'mr' ? 'एकर' : 'एकड़'}
-              </p>
-              <button
-                onClick={() => {
-                  const newSize = prompt(i18n.language === 'en' ? 'Enter land size in acres' : i18n.language === 'mr' ? 'एकर मध्ये जमीन आकार प्रविष्ट करा' : 'एकड़ में भूमि का आकार दर्ज करें');
-                  if (newSize && !isNaN(parseFloat(newSize))) {
-                    updateLandSize(newSize);
-                  }
-                }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          <div className="group relative">
-            <p className="text-green-100 text-sm">{t('myCrops')}</p>
-            <div className="flex items-center space-x-2">
-              <p className="font-semibold">{userProfile?.crops?.join(', ') || '--'}</p>
-              <button
-                onClick={() => {
-                  const newCrop = prompt(i18n.language === 'en' ? 'Enter crop name' : i18n.language === 'mr' ? 'पीक नाव प्रविष्ट करा' : 'फसल का नाम दर्ज करें');
-                  if (newCrop) {
-                    addCrop(newCrop);
-                  }
-                }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          <div className="group relative">
-            <p className="text-green-100 text-sm">KCC</p>
-            <div className="flex items-center space-x-2">
-              <p className="font-semibold">{
-                userProfile?.hasKCC !== undefined
-                  ? userProfile.hasKCC
-                    ? (i18n.language === 'en' ? 'Available' : i18n.language === 'mr' ? 'उपलब्ध' : 'उपलब्ध')
-                    : (i18n.language === 'en' ? 'Not Available' : i18n.language === 'mr' ? 'उपलब्ध नाही' : 'उपलब्ध नहीं')
-                  : '--'
-              }</p>
-              <button
-                onClick={() => {
-                  if (confirm(
-                    i18n.language === 'en'
-                      ? 'Toggle KCC status?'
-                      : i18n.language === 'mr'
-                        ? 'KCC स्थिती बदलायची?'
-                        : 'KCC स्थिति बदलें?'
-                  )) {
-                    updateKCCStatus(!userProfile?.hasKCC);
-                  }
-                }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          <div>
-            <p className="text-green-100 text-sm">{t('suitableSchemes')}</p>
-            <p className="font-semibold">{filteredSchemes.length}</p>
-          </div>
-        </div>
       </div>
 
       {/* Search and Filters */}

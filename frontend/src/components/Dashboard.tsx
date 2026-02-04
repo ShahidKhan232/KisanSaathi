@@ -51,7 +51,7 @@ export function Dashboard() {
     if (profile?.name) return profile.name;
     if (user?.name) return user.name;
     if (user?.email) return user.email.split('@')[0];
-    return 'Farmer';
+    return t('farmer');
   };
 
   return (
@@ -60,7 +60,7 @@ export function Dashboard() {
       <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white">
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h2 className="text-2xl font-bold mb-2">{`Welcome, ${getUserDisplayName()}!`}</h2>
+            <h2 className="text-2xl font-bold mb-2">{t('welcomeUser', { name: getUserDisplayName() })}</h2>
             <p className="text-green-100">{t('farmStatus')}</p>
             {profile?.location && (
               <div className="flex items-center space-x-1 text-green-100 mt-1">
@@ -73,7 +73,7 @@ export function Dashboard() {
             <div className="bg-white/20 rounded-lg p-3 text-center">
               <div className="flex items-center space-x-2 justify-center">
                 <Sprout className="w-5 h-5" />
-                <span className="text-sm font-medium">{t('landSize') || 'Land Size'}</span>
+                <span className="text-sm font-medium">{t('landSize')}</span>
               </div>
               <p className="text-lg font-bold mt-1">{profile.landSize}</p>
             </div>
@@ -90,7 +90,7 @@ export function Dashboard() {
           <div className="bg-white/20 rounded-lg p-3">
             <div className="flex items-center space-x-2">
               <Sprout className="w-5 h-5" />
-              <span className="text-sm font-medium">{t('totalCrops') || 'Total Crops'}</span>
+              <span className="text-sm font-medium">{t('totalCrops')}</span>
             </div>
             <p className="text-xl font-bold mt-1">{crops.length}</p>
           </div>
@@ -110,7 +110,7 @@ export function Dashboard() {
                 <MapPin className="w-4 h-4" />
                 <span>{weather?.location || profile?.location}</span>
                 {!weather?.location && profile?.location && (
-                  <span className="text-xs text-gray-400">(from profile)</span>
+                  <span className="text-xs text-gray-400">{t('fromProfile')}</span>
                 )}
               </div>
             )}
@@ -132,8 +132,8 @@ export function Dashboard() {
         {weather?.description && (
           <div className="mb-4 flex items-center space-x-2">
             <div className="text-sm text-gray-600 capitalize">{weather.description}</div>
-            {loading && <div className="text-xs text-blue-600">Updating...</div>}
-            {error && <div className="text-xs text-red-600">Update failed</div>}
+            {loading && <div className="text-xs text-blue-600">{t('updatingWeather')}</div>}
+            {error && <div className="text-xs text-red-600">{t('updateFailed')}</div>}
           </div>
         )}
 
@@ -166,15 +166,15 @@ export function Dashboard() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <Gauge className="w-4 h-4" />
-              <span>Pressure: {weather.pressure} hPa</span>
+              <span>{t('pressure')}: {weather.pressure} hPa</span>
             </div>
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <Eye className="w-4 h-4" />
-              <span>Visibility: {weather.visibility} km</span>
+              <span>{t('visibility')}: {weather.visibility} km</span>
             </div>
             {lastUpdated && (
               <div className="text-xs text-gray-500">
-                Updated: {lastUpdated.toLocaleTimeString()}
+                {t('updated')}: {lastUpdated.toLocaleTimeString()}
               </div>
             )}
           </div>
@@ -183,12 +183,12 @@ export function Dashboard() {
         {/* 5-Day Forecast */}
         {forecast.length > 0 && (
           <div className="mt-4 pt-4 border-t border-gray-100">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">5-Day Forecast</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-3">{t('fiveDayForecast')}</h4>
             <div className="grid grid-cols-5 gap-2">
               {forecast.map((day, index) => (
                 <div key={index} className="text-center p-2 bg-gray-50 rounded-lg">
                   <div className="text-xs text-gray-600 mb-1">
-                    {index === 0 ? 'Today' : new Date(day.date).toLocaleDateString('en', { weekday: 'short' })}
+                    {index === 0 ? t('today') : new Date(day.date).toLocaleDateString('en', { weekday: 'short' })}
                   </div>
                   <div className="text-sm font-medium text-gray-800">
                     {day.maxTemp}°/{day.minTemp}°
@@ -206,7 +206,7 @@ export function Dashboard() {
       {/* Profile Summary */}
       {profile && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('profileSummary') || 'Profile Summary'}</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('profileSummary')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {profile.phone && (
               <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
@@ -214,7 +214,7 @@ export function Dashboard() {
                   <Activity className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-700">{t('phoneNumber') || 'Phone'}</p>
+                  <p className="text-sm font-medium text-gray-700">{t('phoneNumber')}</p>
                   <p className="text-gray-600">{profile.phone}</p>
                 </div>
               </div>
@@ -225,7 +225,7 @@ export function Dashboard() {
                   <TrendingUp className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-700">{t('kccNumber') || 'KCC Number'}</p>
+                  <p className="text-sm font-medium text-gray-700">{t('kccNumber')}</p>
                   <p className="text-gray-600">{profile.kccNumber}</p>
                 </div>
               </div>
@@ -236,7 +236,7 @@ export function Dashboard() {
                   <Users className="w-5 h-5 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-700">{t('bankAccount') || 'Bank Account'}</p>
+                  <p className="text-sm font-medium text-gray-700">{t('bankAccount')}</p>
                   <p className="text-gray-600">{profile.bankAccount}</p>
                 </div>
               </div>
@@ -244,7 +244,7 @@ export function Dashboard() {
           </div>
           {(!profile.phone && !profile.kccNumber && !profile.bankAccount) && (
             <div className="text-center py-4 text-gray-500">
-              <p className="text-sm">{t('completeProfile') || 'Complete your profile to see more information'}</p>
+              <p className="text-sm">{t('completeProfile')}</p>
             </div>
           )}
         </div>
@@ -256,11 +256,11 @@ export function Dashboard() {
           <h3 className="text-lg font-semibold text-gray-800">{t('myCrops')}</h3>
           {profile?.crops && profile.crops.length > 0 ? (
             <div className="text-sm text-green-600 font-medium">
-              {profile.crops.length} {t('cropsRegistered') || 'crops registered'}
+              {profile.crops.length} {t('cropsRegistered')}
             </div>
           ) : (
             <div className="text-sm text-gray-500">
-              {profileLoading ? 'Loading...' : 'No crops registered'}
+              {profileLoading ? t('loading') : t('noCropsRegistered')}
             </div>
           )}
         </div>
@@ -283,7 +283,7 @@ export function Dashboard() {
                     : 'bg-yellow-100 text-yellow-800'
                   }`}>
                   {crop.status === 'healthy' ? `✓ ${t('healthy')}` :
-                    crop.status === 'excellent' ? `★ ${t('excellent') || 'Excellent'}` :
+                    crop.status === 'excellent' ? `★ ${t('excellent')}` :
                       `⚠ ${t('attention')}`}
                 </div>
               </div>
@@ -292,8 +292,8 @@ export function Dashboard() {
         ) : (
           <div className="text-center py-8 text-gray-500">
             <Sprout className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p className="text-lg font-medium mb-2">{t('noCropsYet') || 'No crops registered yet'}</p>
-            <p className="text-sm">{t('addCropsInProfile') || 'Add crops in your profile to see them here'}</p>
+            <p className="text-lg font-medium mb-2">{t('noCropsYet')}</p>
+            <p className="text-sm">{t('addCropsInProfile')}</p>
           </div>
         )}
       </div>
