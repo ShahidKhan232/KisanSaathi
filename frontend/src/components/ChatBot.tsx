@@ -4,6 +4,7 @@ import { useVoice } from '../hooks/useVoice';
 import { useTranslation } from 'react-i18next';
 import { aiService } from '../services/aiService';
 import { chatHistoryAPI, type ChatMessage as APIChatMessage } from '../services/apiService';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   id: string;
@@ -436,45 +437,80 @@ export function ChatBot() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110 z-50"
+        className="fixed bottom-6 right-6 bg-gradient-to-br from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white p-5 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 hover:shadow-green-500/50 z-50 group"
         aria-label="Open Chat"
       >
-        <MessageCircle size={24} />
+        <MessageCircle size={28} className="group-hover:rotate-12 transition-transform duration-300" />
+        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-pulse"></span>
       </button>
     );
   }
 
   const voiceButtonClass =
-    'p-3 rounded-full transition-colors ' +
-    (isListening ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200');
+    'p-3 rounded-full transition-all duration-200 ' +
+    (isListening ? 'bg-red-500 text-white shadow-lg shadow-red-500/50 scale-110' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:scale-105');
+
+  // Markdown components for AI messages (dark text)
+  const aiMarkdownComponents = {
+    p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
+    strong: ({ children }: any) => <strong className="font-bold text-gray-900">{children}</strong>,
+    em: ({ children }: any) => <em className="italic">{children}</em>,
+    ul: ({ children }: any) => <ul className="list-disc list-inside mb-2 space-y-1 ml-1">{children}</ul>,
+    ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-1 ml-1">{children}</ol>,
+    li: ({ children }: any) => <li className="ml-2">{children}</li>,
+    h1: ({ children }: any) => <h1 className="text-base font-bold mb-2 mt-1">{children}</h1>,
+    h2: ({ children }: any) => <h2 className="text-sm font-bold mb-2 mt-1">{children}</h2>,
+    h3: ({ children }: any) => <h3 className="text-sm font-semibold mb-1">{children}</h3>,
+    code: ({ children }: any) => <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono text-gray-800">{children}</code>,
+    blockquote: ({ children }: any) => <blockquote className="border-l-4 border-green-500 pl-3 italic my-2">{children}</blockquote>,
+  };
+
+  // Markdown components for user messages (white text)
+  const userMarkdownComponents = {
+    p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
+    strong: ({ children }: any) => <strong className="font-bold text-white">{children}</strong>,
+    em: ({ children }: any) => <em className="italic">{children}</em>,
+    ul: ({ children }: any) => <ul className="list-disc list-inside mb-2 space-y-1 ml-1">{children}</ul>,
+    ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-1 ml-1">{children}</ol>,
+    li: ({ children }: any) => <li className="ml-2">{children}</li>,
+    h1: ({ children }: any) => <h1 className="text-base font-bold mb-2 mt-1">{children}</h1>,
+    h2: ({ children }: any) => <h2 className="text-sm font-bold mb-2 mt-1">{children}</h2>,
+    h3: ({ children }: any) => <h3 className="text-sm font-semibold mb-1">{children}</h3>,
+    code: ({ children }: any) => <code className="bg-white/20 px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>,
+    blockquote: ({ children }: any) => <blockquote className="border-l-4 border-white/50 pl-3 italic my-2">{children}</blockquote>,
+  };
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 flex flex-col overflow-hidden">
+    <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-4 rounded-t-2xl">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-br from-green-600 via-green-600 to-green-700 text-white p-5 rounded-t-2xl relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+        <div className="relative flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-              <MessageCircle size={18} />
+            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/30">
+              <MessageCircle size={20} className="drop-shadow-lg" />
             </div>
             <div>
-              <h3 className="font-semibold text-sm">Kisanसाथी AI</h3>
-              <p className="text-xs text-green-100">Always here to help</p>
+              <h3 className="font-bold text-base tracking-wide">Kisanसाथी AI</h3>
+              <div className="flex items-center space-x-1.5">
+                <span className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></span>
+                <p className="text-xs text-green-50 font-medium">Always here to help</p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1">
             <button
               onClick={clearChat}
-              className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/20 rounded-lg transition-all duration-200 hover:scale-110 backdrop-blur-sm"
               title="Clear chat"
             >
-              <RotateCcw size={16} />
+              <RotateCcw size={18} />
             </button>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/20 rounded-lg transition-all duration-200 hover:scale-110 backdrop-blur-sm"
             >
-              <X size={16} />
+              <X size={18} />
             </button>
           </div>
         </div>
@@ -483,63 +519,74 @@ export function ChatBot() {
       {/* Messages */}
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50"
-        style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}
+        className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-gray-50 to-gray-100/50"
+        style={{ scrollbarWidth: 'thin', scrollbarColor: '#10b981 transparent' }}
       >
-        {messages.map((message) => {
-          const messageContainerClass = message.sender === 'user' ? 'flex justify-end' : 'flex justify-start';
+        {messages.map((message, index) => {
+          const messageContainerClass = message.sender === 'user' ? 'flex justify-end animate-in slide-in-from-right-2 duration-300' : 'flex justify-start animate-in slide-in-from-left-2 duration-300';
           const messageBubbleClass =
-            'max-w-[85%] rounded-2xl px-4 py-2 ' +
+            'max-w-[85%] rounded-2xl px-4 py-3 transition-all duration-200 hover:scale-[1.02] ' +
             (message.sender === 'user'
-              ? 'bg-green-600 text-white rounded-br-sm'
-              : 'bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100');
+              ? 'bg-gradient-to-br from-green-600 to-green-700 text-white rounded-br-md shadow-lg shadow-green-600/30'
+              : 'bg-white text-gray-800 rounded-bl-md shadow-md border border-gray-200/50 hover:shadow-lg');
+
           return (
-            <div key={message.id} className={messageContainerClass}>
+            <div key={message.id} className={messageContainerClass} style={{ animationDelay: `${index * 50}ms` }}>
               <div className={messageBubbleClass}>
                 {message.isTyping ? (
-                  <div className="flex items-center space-x-2">
-                    <Loader2 className="animate-spin" size={16} />
-                    <span className="text-sm text-gray-500">Thinking...</span>
+                  <div className="flex items-center space-x-3 py-1">
+                    <div className="flex space-x-1">
+                      <span className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                      <span className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                      <span className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    </div>
+                    <span className="text-sm text-gray-500 font-medium">Thinking...</span>
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</p>
+                    <div className="text-sm leading-relaxed prose prose-sm max-w-none" style={{ lineHeight: '1.6' }}>
+                      <ReactMarkdown
+                        components={message.sender === 'user' ? userMarkdownComponents : aiMarkdownComponents}
+                      >
+                        {message.text}
+                      </ReactMarkdown>
+                    </div>
                     {message.sender === 'ai' && !message.isTyping && (
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-                        <div className="flex items-center space-x-1">
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200/70">
+                        <div className="flex items-center space-x-0.5">
                           <button
                             onClick={() => reactToMessage(message.id, 'like')}
                             className={
-                              'p-1 rounded hover:bg-gray-100 transition-colors ' +
-                              (message.reactions === 'like' ? 'text-green-600' : 'text-gray-400')
+                              'p-1.5 rounded-lg hover:bg-gray-100 transition-all duration-200 hover:scale-110 ' +
+                              (message.reactions === 'like' ? 'text-green-600 bg-green-50' : 'text-gray-400')
                             }
                             title="Good response"
                           >
-                            <ThumbsUp size={12} />
+                            <ThumbsUp size={14} />
                           </button>
                           <button
                             onClick={() => reactToMessage(message.id, 'dislike')}
                             className={
-                              'p-1 rounded hover:bg-gray-100 transition-colors ' +
-                              (message.reactions === 'dislike' ? 'text-red-600' : 'text-gray-400')
+                              'p-1.5 rounded-lg hover:bg-gray-100 transition-all duration-200 hover:scale-110 ' +
+                              (message.reactions === 'dislike' ? 'text-red-600 bg-red-50' : 'text-gray-400')
                             }
                             title="Poor response"
                           >
-                            <ThumbsDown size={12} />
+                            <ThumbsDown size={14} />
                           </button>
                           <button
                             onClick={() => copyToClipboard(message.text)}
-                            className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-400"
+                            className="p-1.5 rounded-lg hover:bg-gray-100 transition-all duration-200 text-gray-400 hover:text-gray-600 hover:scale-110"
                             title="Copy"
                           >
-                            <Copy size={12} />
+                            <Copy size={14} />
                           </button>
                           <button
                             onClick={() => speak(message.text)}
-                            className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-400"
+                            className="p-1.5 rounded-lg hover:bg-gray-100 transition-all duration-200 text-gray-400 hover:text-gray-600 hover:scale-110"
                             title="Read aloud"
                           >
-                            {isSpeaking ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                            {isSpeaking ? <VolumeX size={14} /> : <Volume2 size={14} />}
                           </button>
                           {message.truncated && (
                             <button
@@ -551,14 +598,14 @@ export function ChatBot() {
                                   setShowSuggestions(false);
                                 }
                               }}
-                              className="p-1 rounded hover:bg-gray-100 transition-colors text-blue-500 text-xs"
+                              className="ml-1 px-2.5 py-1 rounded-full bg-blue-50 hover:bg-blue-100 transition-all duration-200 text-blue-600 text-xs font-semibold hover:scale-105 shadow-sm"
                               title="Get more details"
                             >
-                              More
+                              More Details
                             </button>
                           )}
                         </div>
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-gray-400 font-medium">
                           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
@@ -572,16 +619,20 @@ export function ChatBot() {
 
         {/* Quick Suggestions */}
         {showSuggestions && messages.length <= 1 && (
-          <div className="space-y-2">
-            <p className="text-sm text-gray-500 font-medium">Quick suggestions:</p>
-            <div className="grid grid-cols-1 gap-2">
+          <div className="space-y-3 animate-in fade-in duration-500">
+            <p className="text-sm text-gray-600 font-semibold flex items-center space-x-2">
+              <span className="w-1 h-4 bg-green-600 rounded-full"></span>
+              <span>Quick suggestions:</span>
+            </p>
+            <div className="grid grid-cols-1 gap-2.5">
               {quickSuggestions[i18n.language as keyof typeof quickSuggestions]?.slice(0, 3).map((suggestion, index) => (
                 <button
                   key={index}
                   onClick={() => handleSuggestionClick(suggestion)}
-                  className="text-left p-3 bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-colors text-sm"
+                  className="text-left p-3.5 bg-white rounded-xl border-2 border-gray-200 hover:border-green-400 hover:bg-gradient-to-br hover:from-green-50 hover:to-white transition-all duration-200 text-sm font-medium text-gray-700 hover:text-green-700 shadow-sm hover:shadow-md hover:scale-[1.02] group"
+                  style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  {suggestion}
+                  <span className="group-hover:translate-x-1 inline-block transition-transform duration-200">{suggestion}</span>
                 </button>
               ))}
             </div>
@@ -592,7 +643,7 @@ export function ChatBot() {
       </div>
 
       {/* Input */}
-      <div className="p-4 bg-white border-t border-gray-200">
+      <div className="p-4 bg-white border-t border-gray-200 shadow-lg">
         <form onSubmit={handleSubmit} className="flex items-center space-x-2">
           <div className="flex-1 relative">
             <input
@@ -601,7 +652,7 @@ export function ChatBot() {
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               placeholder={t('chatPlaceholder') || "Ask about farming..."}
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+              className="w-full px-5 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-all duration-200 placeholder:text-gray-400"
               disabled={isLoading}
             />
           </div>
@@ -612,15 +663,15 @@ export function ChatBot() {
             disabled={isLoading}
             title={isListening ? 'Stop listening' : 'Voice input'}
           >
-            {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+            {isListening ? <MicOff size={18} /> : <Mic size={18} />}
           </button>
           <button
             type="submit"
             disabled={!inputMessage.trim() || isLoading}
-            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white p-3 rounded-full transition-colors"
+            className="bg-gradient-to-br from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-300 disabled:to-gray-400 text-white p-3.5 rounded-full transition-all duration-200 shadow-lg hover:shadow-green-500/50 hover:scale-105 disabled:scale-100 disabled:shadow-none"
             title="Send message"
           >
-            {isLoading ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
+            {isLoading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
           </button>
         </form>
       </div>

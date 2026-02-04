@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { aiService } from '../services/aiService';
 import { cropDiseaseAPI } from '../services/apiService';
 import { DiseaseHistory } from './DiseaseHistory';
+import ReactMarkdown from 'react-markdown';
 
 interface DetectionResult {
   disease: string;
@@ -202,64 +203,24 @@ const formatAIResponse = (response: string): JSX.Element => {
             <span className="text-xl">🤖</span>
             <span>AI Analysis</span>
           </h5>
-          <div className="prose prose-sm max-w-none">
-            {sections['AI Analysis'].map((paragraph, index) => {
-              // Define formatting function for unstructured content
-              const formatTextForUnstructured = (text: string) => {
-                let formatted = text;
-
-                // Highlight scientific names in italics
-                formatted = formatted.replace(/\*([^*]+)\*/g, '<em class="text-blue-600 font-medium">$1</em>');
-
-                // Bold important keywords and phrases (same as structured content)
-                const importantKeywords = [
-                  'Early Blight', 'Late Blight', 'Leaf Spot', 'Powdery Mildew', 'Bacterial Wilt', 'Mosaic Virus',
-                  'Fusarium', 'Alternaria', 'Phytophthora', 'Septoria',
-                  'Always follow label instructions', 'follow label instructions', 'label instructions',
-                  'Never exceed', 'Consult', 'Important Note', 'Important Disclaimer', 'WARNING', 'CAUTION',
-                  'certified', 'extension office', 'crop consultant',
-                  'Fungicide', 'chlorothalonil', 'mancozeb', 'copper-based', 'strobilurin',
-                  'Remove infected', 'destroy infected', 'burn or bury',
-                  'Crop Rotation', 'Disease-resistant', 'resistant varieties', 'Proper spacing',
-                  'air circulation', 'Weed control', 'Sanitation', 'certified seed',
-                  'immediately', 'regularly', 'avoid', 'prevent', 'reduce spread'
-                ];
-
-                importantKeywords.forEach(keyword => {
-                  const regex = new RegExp(`\\b(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi');
-                  formatted = formatted.replace(regex, '<strong class="text-gray-900 font-bold">$1</strong>');
-                });
-
-                // Highlight temperatures and measurements
-                formatted = formatted.replace(/(\d+[-–]\d+°[CF]|\d+°[CF]|\d+%)/g, '<span class="bg-blue-100 text-blue-800 px-1 py-0.5 rounded text-xs font-medium">$1</span>');
-
-                // Make "Important" phrases stand out more
-                formatted = formatted.replace(/(Important[^:]*:)/gi, '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-bold text-sm">⚠️ $1</span>');
-
-                return { __html: formatted };
-              };
-
-              return (
-                <div key={index} className="mb-4">
-                  {paragraph.startsWith('* ') || paragraph.startsWith('- ') ? (
-                    <div className="flex items-start space-x-3 ml-4 p-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
-                      <span className="text-gray-700 text-sm leading-relaxed"
-                        dangerouslySetInnerHTML={formatTextForUnstructured(paragraph.substring(2))}
-                      />
-                    </div>
-                  ) : paragraph.startsWith('**') && paragraph.endsWith('**') ? (
-                    <h6 className="font-semibold text-gray-800 mt-4 mb-2 text-base">
-                      {paragraph.replace(/\*\*/g, '')}
-                    </h6>
-                  ) : (
-                    <p className="text-gray-700 text-sm leading-relaxed mb-2"
-                      dangerouslySetInnerHTML={formatTextForUnstructured(paragraph)}
-                    />
-                  )}
-                </div>
-              );
-            })}
+          <div className="prose prose-sm max-w-none text-gray-700">
+            <ReactMarkdown
+              components={{
+                p: ({ children }: any) => <p className="mb-3 last:mb-0 text-sm leading-relaxed">{children}</p>,
+                strong: ({ children }: any) => <strong className="font-bold text-gray-900">{children}</strong>,
+                em: ({ children }: any) => <em className="text-blue-600 font-medium italic">{children}</em>,
+                ul: ({ children }: any) => <ul className="list-disc list-inside mb-3 space-y-1.5 ml-2">{children}</ul>,
+                ol: ({ children }: any) => <ol className="list-decimal list-inside mb-3 space-y-1.5 ml-2">{children}</ol>,
+                li: ({ children }: any) => <li className="ml-2 text-sm">{children}</li>,
+                h1: ({ children }: any) => <h1 className="text-lg font-bold mb-3 mt-4 first:mt-0">{children}</h1>,
+                h2: ({ children }: any) => <h2 className="text-base font-bold mb-2 mt-3">{children}</h2>,
+                h3: ({ children }: any) => <h3 className="text-sm font-semibold mb-2 mt-2">{children}</h3>,
+                code: ({ children }: any) => <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono text-gray-800">{children}</code>,
+                blockquote: ({ children }: any) => <blockquote className="border-l-4 border-blue-500 pl-3 italic my-3 text-gray-600">{children}</blockquote>,
+              }}
+            >
+              {sections['AI Analysis'].join('\n\n')}
+            </ReactMarkdown>
           </div>
         </div>
       )}
@@ -271,91 +232,24 @@ const formatAIResponse = (response: string): JSX.Element => {
             <span className="text-xl">{getSectionIcon(title)}</span>
             <span>{title}</span>
           </h5>
-          <div className="space-y-2">
-            {content.map((item, itemIndex) => {
-              // Handle sub-headers
-              if (item.startsWith('SUB_HEADER:')) {
-                const subHeader = item.replace('SUB_HEADER:', '');
-                return (
-                  <h6 key={itemIndex} className="font-semibold text-gray-700 mt-4 mb-2 text-base">
-                    📌 {subHeader}
-                  </h6>
-                );
-              }
-
-              // Handle bullet points
-              if (item.startsWith('* ') || item.startsWith('- ')) {
-                const bulletContent = item.substring(2);
-                const isImportant = bulletContent.toLowerCase().includes('always') ||
-                  bulletContent.toLowerCase().includes('important') ||
-                  bulletContent.toLowerCase().includes('strictly');
-
-                return (
-                  <div key={itemIndex} className={`flex items-start space-x-3 ml-4 p-2 rounded ${isImportant ? 'bg-yellow-50' : ''}`}>
-                    <span className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${isImportant ? 'bg-yellow-500' : 'bg-gray-400'}`}></span>
-                    <span className={`text-sm leading-relaxed ${isImportant ? 'text-yellow-800 font-medium' : 'text-gray-700'}`}>
-                      {bulletContent}
-                    </span>
-                  </div>
-                );
-              }
-
-              // Handle regular content
-              const formatText = (text: string) => {
-                let formatted = text;
-
-                // Highlight scientific names in italics
-                formatted = formatted.replace(/\*([^*]+)\*/g, '<em class="text-blue-600 font-medium">$1</em>');
-
-                // Bold important keywords and phrases
-                const importantKeywords = [
-                  // Disease names
-                  'Early Blight', 'Late Blight', 'Leaf Spot', 'Powdery Mildew', 'Bacterial Wilt', 'Mosaic Virus',
-                  'Fusarium', 'Alternaria', 'Phytophthora', 'Septoria',
-
-                  // Safety and warnings
-                  'Always follow label instructions', 'follow label instructions', 'label instructions',
-                  'Never exceed', 'Consult', 'Important Note', 'Important Disclaimer', 'WARNING', 'CAUTION',
-                  'certified', 'extension office', 'crop consultant',
-
-                  // Treatment methods
-                  'Fungicide', 'chlorothalonil', 'mancozeb', 'copper-based', 'strobilurin',
-                  'Remove infected', 'destroy infected', 'burn or bury',
-
-                  // Prevention measures
-                  'Crop Rotation', 'Disease-resistant', 'resistant varieties', 'Proper spacing',
-                  'air circulation', 'Weed control', 'Sanitation', 'certified seed',
-
-                  // Critical actions
-                  'immediately', 'regularly', 'avoid', 'prevent', 'reduce spread',
-                  'good drainage', 'proper ventilation'
-                ];
-
-                // Apply bold formatting to important keywords
-                importantKeywords.forEach(keyword => {
-                  const regex = new RegExp(`\\b(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi');
-                  formatted = formatted.replace(regex, '<strong class="text-gray-900 font-bold">$1</strong>');
-                });
-
-                // Highlight temperatures and measurements
-                formatted = formatted.replace(/(\d+[-–]\d+°[CF]|\d+°[CF]|\d+%)/g, '<span class="bg-blue-100 text-blue-800 px-1 py-0.5 rounded text-xs font-medium">$1</span>');
-
-                // Highlight dosage and application rates
-                formatted = formatted.replace(/(\d+[\.,]?\d*\s*(ml|g|kg|L|liter|gram|kilogram)\/[^,\s]+)/gi, '<span class="bg-green-100 text-green-800 px-1 py-0.5 rounded text-xs font-medium">$1</span>');
-
-                // Make "Important" phrases stand out more
-                formatted = formatted.replace(/(Important[^:]*:)/gi, '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-bold text-sm">⚠️ $1</span>');
-
-                return { __html: formatted };
-              };
-
-              return (
-                <p key={itemIndex}
-                  className="text-gray-700 text-sm leading-relaxed"
-                  dangerouslySetInnerHTML={formatText(item)}
-                />
-              );
-            })}
+          <div className="prose prose-sm max-w-none text-gray-700">
+            <ReactMarkdown
+              components={{
+                p: ({ children }: any) => <p className="mb-2 last:mb-0 text-sm leading-relaxed">{children}</p>,
+                strong: ({ children }: any) => <strong className="font-bold text-gray-900">{children}</strong>,
+                em: ({ children }: any) => <em className="text-blue-600 font-medium italic">{children}</em>,
+                ul: ({ children }: any) => <ul className="list-disc list-inside mb-2 space-y-1 ml-2">{children}</ul>,
+                ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-1 ml-2">{children}</ol>,
+                li: ({ children }: any) => <li className="ml-2 text-sm">{children}</li>,
+                h1: ({ children }: any) => <h1 className="text-base font-bold mb-2 mt-3 first:mt-0">{children}</h1>,
+                h2: ({ children }: any) => <h2 className="text-sm font-bold mb-2 mt-2">{children}</h2>,
+                h3: ({ children }: any) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
+                code: ({ children }: any) => <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono text-gray-800">{children}</code>,
+                blockquote: ({ children }: any) => <blockquote className="border-l-4 border-green-500 pl-3 italic my-2">{children}</blockquote>,
+              }}
+            >
+              {content.join('\n\n')}
+            </ReactMarkdown>
           </div>
         </div>
       ))}
@@ -518,7 +412,12 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
         const cacheStatsBefore = aiService.getCacheStats();
         console.log('Cache stats before analysis:', cacheStatsBefore);
 
-        const text = await aiService.analyzeCropImage(base64, query, i18n.language);
+        // Type guard to ensure language is one of the expected values
+        const language: 'en' | 'mr' | 'hi' = ['en', 'mr', 'hi'].includes(i18n.language)
+          ? i18n.language as 'en' | 'mr' | 'hi'
+          : 'en';
+
+        const text = await aiService.analyzeCropImage(base64, query, language);
 
         const cacheStatsAfter = aiService.getCacheStats();
         console.log('AI response received:', text.substring(0, 100) + '...');
@@ -535,7 +434,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
         }
 
         setAiTextResult(text);
-        
+
         // Save disease detection to database
         try {
           const token = localStorage.getItem('token');
@@ -583,7 +482,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
 
             const savedDetection = await cropDiseaseAPI.saveDiseaseDetection(dataToSave);
             console.log('✅ Disease detection saved to database successfully!', savedDetection);
-            
+
             // Trigger refresh of disease history
             setTimeout(() => {
               const event = new CustomEvent('detectionSaved', { detail: savedDetection });
@@ -616,7 +515,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
         const randomResult = mockResults[Math.floor(Math.random() * mockResults.length)];
         setResult(randomResult);
         setAiTextResult(`**Error**: ${error instanceof Error ? error.message : 'Unknown error'}\n\n**Fallback Diagnosis**:\n${randomResult.disease}`);
-        
+
         // Save fallback detection to database
         try {
           const token = localStorage.getItem('token');
@@ -633,7 +532,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
 
             const savedDetection = await cropDiseaseAPI.saveDiseaseDetection(dataToSave);
             console.log('✅ Fallback detection saved to database successfully!', savedDetection);
-            
+
             // Trigger refresh of disease history
             setTimeout(() => {
               const event = new CustomEvent('detectionSaved', { detail: savedDetection });
@@ -756,7 +655,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
             >
               <X className="w-5 h-5" />
             </button>
-            
+
             <div className="mb-6">
               <h3 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">{t('uploadedImage')}</h3>
             </div>
