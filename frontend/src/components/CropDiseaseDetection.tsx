@@ -226,33 +226,126 @@ const formatAIResponse = (response: string): JSX.Element => {
       )}
 
       {/* Show structured sections only if not unstructured */}
-      {!isUnstructured && Object.entries(sections).map(([title, content], index) => (
-        <div key={index} className={`border rounded-lg p-4 ${getSectionColor(title)}`}>
-          <h5 className="text-lg font-semibold text-gray-800 mb-3 flex items-center space-x-2">
-            <span className="text-xl">{getSectionIcon(title)}</span>
-            <span>{title}</span>
-          </h5>
-          <div className="prose prose-sm max-w-none text-gray-700">
-            <ReactMarkdown
-              components={{
-                p: ({ children }: any) => <p className="mb-2 last:mb-0 text-sm leading-relaxed">{children}</p>,
-                strong: ({ children }: any) => <strong className="font-bold text-gray-900">{children}</strong>,
-                em: ({ children }: any) => <em className="text-blue-600 font-medium italic">{children}</em>,
-                ul: ({ children }: any) => <ul className="list-disc list-inside mb-2 space-y-1 ml-2">{children}</ul>,
-                ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-1 ml-2">{children}</ol>,
-                li: ({ children }: any) => <li className="ml-2 text-sm">{children}</li>,
-                h1: ({ children }: any) => <h1 className="text-base font-bold mb-2 mt-3 first:mt-0">{children}</h1>,
-                h2: ({ children }: any) => <h2 className="text-sm font-bold mb-2 mt-2">{children}</h2>,
-                h3: ({ children }: any) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
-                code: ({ children }: any) => <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono text-gray-800">{children}</code>,
-                blockquote: ({ children }: any) => <blockquote className="border-l-4 border-green-500 pl-3 italic my-2">{children}</blockquote>,
-              }}
-            >
-              {content.join('\n\n')}
-            </ReactMarkdown>
+      {!isUnstructured && Object.entries(sections).map(([title, content], index) => {
+        // Process content to handle subsections
+        const processedContent: JSX.Element[] = [];
+        let currentSubsection: string[] = [];
+        let currentSubsectionTitle = '';
+
+        content.forEach((line, lineIndex) => {
+          // Check if this is a subsection header
+          if (line.startsWith('SUB_HEADER:')) {
+            // Save previous subsection if exists
+            if (currentSubsectionTitle && currentSubsection.length > 0) {
+              processedContent.push(
+                <div key={`subsection-${lineIndex}`} className="mb-4">
+                  <h6 className="text-sm font-bold text-gray-800 mb-2 mt-3">{currentSubsectionTitle}</h6>
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }: any) => <p className="mb-2 last:mb-0 text-sm leading-relaxed text-gray-700">{children}</p>,
+                      strong: ({ children }: any) => <strong className="font-bold text-gray-900">{children}</strong>,
+                      em: ({ children }: any) => <em className="text-blue-600 font-medium italic">{children}</em>,
+                      ul: ({ children }: any) => <ul className="list-none space-y-2 ml-0">{children}</ul>,
+                      ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-2 ml-2">{children}</ol>,
+                      li: ({ children }: any) => (
+                        <li className="text-sm leading-relaxed flex items-start">
+                          <span className="text-green-600 mr-2 mt-0.5">•</span>
+                          <span className="flex-1">{children}</span>
+                        </li>
+                      ),
+                      h1: ({ children }: any) => <h1 className="text-base font-bold mb-2 mt-3 first:mt-0">{children}</h1>,
+                      h2: ({ children }: any) => <h2 className="text-sm font-bold mb-2 mt-2">{children}</h2>,
+                      h3: ({ children }: any) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
+                      code: ({ children }: any) => <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono text-gray-800">{children}</code>,
+                      blockquote: ({ children }: any) => <blockquote className="border-l-4 border-green-500 pl-3 italic my-2">{children}</blockquote>,
+                    }}
+                  >
+                    {currentSubsection.join('\n\n')}
+                  </ReactMarkdown>
+                </div>
+              );
+            }
+
+            // Start new subsection
+            currentSubsectionTitle = line.replace('SUB_HEADER:', '');
+            currentSubsection = [];
+          } else {
+            currentSubsection.push(line);
+          }
+        });
+
+        // Add the last subsection or all content if no subsections
+        if (currentSubsection.length > 0) {
+          if (currentSubsectionTitle) {
+            processedContent.push(
+              <div key={`subsection-last`} className="mb-2">
+                <h6 className="text-sm font-bold text-gray-800 mb-2 mt-3">{currentSubsectionTitle}</h6>
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }: any) => <p className="mb-2 last:mb-0 text-sm leading-relaxed text-gray-700">{children}</p>,
+                    strong: ({ children }: any) => <strong className="font-bold text-gray-900">{children}</strong>,
+                    em: ({ children }: any) => <em className="text-blue-600 font-medium italic">{children}</em>,
+                    ul: ({ children }: any) => <ul className="list-none space-y-2 ml-0">{children}</ul>,
+                    ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-2 ml-2">{children}</ol>,
+                    li: ({ children }: any) => (
+                      <li className="text-sm leading-relaxed flex items-start">
+                        <span className="text-green-600 mr-2 mt-0.5">•</span>
+                        <span className="flex-1">{children}</span>
+                      </li>
+                    ),
+                    h1: ({ children }: any) => <h1 className="text-base font-bold mb-2 mt-3 first:mt-0">{children}</h1>,
+                    h2: ({ children }: any) => <h2 className="text-sm font-bold mb-2 mt-2">{children}</h2>,
+                    h3: ({ children }: any) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
+                    code: ({ children }: any) => <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono text-gray-800">{children}</code>,
+                    blockquote: ({ children }: any) => <blockquote className="border-l-4 border-green-500 pl-3 italic my-2">{children}</blockquote>,
+                  }}
+                >
+                  {currentSubsection.join('\n\n')}
+                </ReactMarkdown>
+              </div>
+            );
+          } else {
+            // No subsections, render all content with enhanced bullet points
+            processedContent.push(
+              <ReactMarkdown
+                key="main-content"
+                components={{
+                  p: ({ children }: any) => <p className="mb-2 last:mb-0 text-sm leading-relaxed text-gray-700">{children}</p>,
+                  strong: ({ children }: any) => <strong className="font-bold text-gray-900">{children}</strong>,
+                  em: ({ children }: any) => <em className="text-blue-600 font-medium italic">{children}</em>,
+                  ul: ({ children }: any) => <ul className="list-none space-y-2 ml-0">{children}</ul>,
+                  ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-2 ml-2">{children}</ol>,
+                  li: ({ children }: any) => (
+                    <li className="text-sm leading-relaxed flex items-start">
+                      <span className="text-green-600 mr-2 mt-0.5 flex-shrink-0">•</span>
+                      <span className="flex-1">{children}</span>
+                    </li>
+                  ),
+                  h1: ({ children }: any) => <h1 className="text-base font-bold mb-2 mt-3 first:mt-0">{children}</h1>,
+                  h2: ({ children }: any) => <h2 className="text-sm font-bold mb-2 mt-2">{children}</h2>,
+                  h3: ({ children }: any) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
+                  code: ({ children }: any) => <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono text-gray-800">{children}</code>,
+                  blockquote: ({ children }: any) => <blockquote className="border-l-4 border-green-500 pl-3 italic my-2">{children}</blockquote>,
+                }}
+              >
+                {currentSubsection.join('\n\n')}
+              </ReactMarkdown>
+            );
+          }
+        }
+
+        return (
+          <div key={index} className={`border rounded-lg p-5 ${getSectionColor(title)}`}>
+            <h5 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2 border-b pb-2">
+              <span className="text-2xl">{getSectionIcon(title)}</span>
+              <span>{title}</span>
+            </h5>
+            <div className="prose prose-sm max-w-none">
+              {processedContent}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {/* Important Note Section - only show if we have structured content */}
       {!isUnstructured && (
