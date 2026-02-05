@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const signInEmail = useCallback(async (email: string, password: string) => {
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-      
+
       if (!res.ok) {
         let errorMsg = 'Login failed';
         try {
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError(errorMsg);
         throw new Error(errorMsg);
       }
-      
+
       const data = await res.json() as { token: string; user: JwtUser };
       setUser(data.user);
       setToken(data.token);
@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name })
       });
-      
+
       if (!res.ok) {
         let errorMsg = 'Registration failed';
         try {
@@ -115,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError(errorMsg);
         throw new Error(errorMsg);
       }
-      
+
       const data = await res.json() as { token: string; user: JwtUser };
       setUser(data.user);
       setToken(data.token);

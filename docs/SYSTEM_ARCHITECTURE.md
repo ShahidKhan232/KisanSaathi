@@ -44,63 +44,57 @@
 
 ---
 
-## High-Level Architecture
+## High-Level System Architecture
 
-```mermaid
-graph TB
-    subgraph "Client Layer"
-        A[React Frontend<br/>Vite + TypeScript]
-        A1[Components<br/>18 UI Components]
-        A2[Contexts<br/>Auth, Profile, Voice]
-        A3[Services<br/>API Integration]
-        A --> A1
-        A --> A2
-        A --> A3
-    end
-
-    subgraph "API Gateway Layer"
-        B[Express.js Server<br/>TypeScript]
-        B1[Middleware<br/>Auth, CORS, Rate Limit]
-        B2[Routes<br/>16 Route Modules]
-        B --> B1
-        B --> B2
-    end
-
-    subgraph "Business Logic Layer"
-        C1[Controllers<br/>15 Controllers]
-        C2[Services<br/>WebSocket, AI, Market]
-        C3[Utilities<br/>Cron Jobs, Validation]
-    end
-
-    subgraph "Data Layer"
-        D1[(MongoDB<br/>12 Collections)]
-        D2[Models<br/>Mongoose Schemas]
-    end
-
-    subgraph "External Services"
-        E1[Google Gemini API<br/>Chat & Vision]
-        E2[MyScheme API<br/>Government Data]
-        E3[Python ML Service<br/>Crop Recommendation]
-    end
-
-    A -->|HTTP/WebSocket| B
-    B --> C1
-    C1 --> C2
-    C1 --> C3
-    C2 --> D2
-    C3 --> D2
-    D2 --> D1
-    C2 -->|API Calls| E1
-    C2 -->|API Calls| E2
-    C2 -->|HTTP| E3
-
-    style A fill:#61dafb,stroke:#333,stroke-width:2px
-    style B fill:#68a063,stroke:#333,stroke-width:2px
-    style D1 fill:#4db33d,stroke:#333,stroke-width:2px
-    style E1 fill:#4285f4,stroke:#333,stroke-width:2px
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      CLIENT LAYER                           │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │   React Frontend (Vite + TypeScript)                  │  │
+│  │   - 18 Components                                     │  │
+│  │   - 4 Contexts (Auth, Profile, Voice)                 │  │
+│  │   - 8 Services (API Integration)                      │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                            ↕ HTTP/WebSocket
+┌─────────────────────────────────────────────────────────────┐
+│                   API GATEWAY LAYER                         │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │   Express.js Server (TypeScript)                      │  │
+│  │   - Middleware: Auth, CORS, Rate Limit, Helmet        │  │
+│  │   - 16 Route Modules                                  │  │
+│  │   - 15 Controllers                                    │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   BUSINESS LOGIC LAYER                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │  Services    │  │  Utilities   │  │  Validation  │      │
+│  │  - WebSocket │  │  - Cron Jobs │  │  - Zod       │      │
+│  │  - AI Price  │  │  - JWT       │  │  - Input     │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+└─────────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│                      DATA LAYER                             │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │   MongoDB Database                                    │  │
+│  │   - 12 Collections (User, MarketPrice, CropDisease,  │  │
+│  │     CropRecommendation, GovernmentScheme, etc.)      │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   EXTERNAL SERVICES                         │
+│  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐        │
+│  │   Google    │  │  MyScheme   │  │   Python     │        │
+│  │ Gemini API  │  │     API     │  │  ML Service  │        │
+│  │ (Chat+Vision)│ │  (Gov Data) │  │ (Crop Rec.)  │        │
+│  └─────────────┘  └─────────────┘  └──────────────┘        │
+└─────────────────────────────────────────────────────────────┘
 ```
 
----
 
 ## Technology Stack
 
@@ -160,85 +154,45 @@ graph TB
 
 ## Component Architecture
 
-### Frontend Architecture
+### Frontend Component Architecture
 
-```mermaid
-graph LR
-    subgraph "Frontend Application"
-        A[App.tsx<br/>Root Component]
-        
-        subgraph "Core Components"
-            B1[Header]
-            B2[Navigation]
-            B3[Landing]
-            B4[Dashboard]
-        end
-        
-        subgraph "Feature Components"
-            C1[ChatBot]
-            C2[CropDiseaseDetection]
-            C3[CropRecommendation]
-            C4[PricePrediction]
-            C5[SchemeRecommendations]
-        end
-        
-        subgraph "Auth Components"
-            D1[AuthForm]
-            D2[Onboarding]
-            D3[Profile]
-        end
-        
-        subgraph "Utility Components"
-            E1[Modal]
-            E2[ErrorBoundary]
-            E3[ApplicationProgressTracker]
-        end
-        
-        subgraph "Contexts"
-            F1[AuthContext]
-            F2[FarmerProfileContext]
-            F3[VoiceContext]
-        end
-        
-        subgraph "Services"
-            G1[aiService]
-            G2[apiService]
-            G3[pricePredictionService]
-            G4[schemeRecommendationService]
-            G5[alertService]
-            G6[weatherService]
-            G7[socketService]
-            G8[userProfileService]
-        end
-    end
-    
-    A --> B1
-    A --> B2
-    A --> B3
-    A --> B4
-    A --> C1
-    A --> C2
-    A --> C3
-    A --> C4
-    A --> C5
-    A --> D1
-    A --> D2
-    A --> D3
-    
-    C1 --> F1
-    C2 --> F1
-    C3 --> F1
-    C4 --> F1
-    
-    C1 --> G1
-    C2 --> G1
-    C3 --> G2
-    C4 --> G3
-    C5 --> G4
-    
-    F1 --> G2
-    F2 --> G8
 ```
+                        ┌─────────────┐
+                        │   App.tsx   │
+                        │    (Root)   │
+                        └──────┬──────┘
+                               │
+        ┌──────────────────────┼──────────────────────┐
+        │                      │                      │
+        ▼                      ▼                      ▼
+┌───────────────┐    ┌──────────────────┐    ┌──────────────┐
+│ CORE (4)      │    │  FEATURES (5)    │    │  AUTH (3)    │
+├───────────────┤    ├──────────────────┤    ├──────────────┤
+│ • Header      │    │ • ChatBot        │    │ • AuthForm   │
+│ • Navigation  │    │ • CropDisease    │    │ • Onboarding │
+│ • Landing     │    │ • CropRecommend  │    │ • Profile    │
+│ • Dashboard   │    │ • PricePrediction│    └──────────────┘
+└───────────────┘    │ • SchemeRecommend│
+                     └──────────────────┘
+                               │
+                ┌──────────────┼──────────────┐
+                │              │              │
+                ▼              ▼              ▼
+        ┌──────────────┐ ┌──────────┐ ┌────────────────┐
+        │  CONTEXTS    │ │ SERVICES │ │   UTILITIES    │
+        ├──────────────┤ ├──────────┤ ├────────────────┤
+        │ • Auth       │ │ • AI     │ │ • Modal        │
+        │ • Profile    │ │ • API    │ │ • ErrorBoundary│
+        │ • Voice      │ │ • Price  │ │ • ProgressTrack│
+        └──────────────┘ │ • Scheme │ └────────────────┘
+                         │ • Alert  │
+                         │ • Weather│
+                         │ • Socket │
+                         │ • Profile│
+                         └──────────┘
+```
+
+---
 
 #### Component Breakdown
 
@@ -271,98 +225,59 @@ graph LR
 - [ErrorBoundary.tsx](file:///d:/KisanSaathi/frontend/src/components/ErrorBoundary.tsx) - Error handling
 - [ApplicationProgressTracker.tsx](file:///d:/KisanSaathi/frontend/src/components/ApplicationProgressTracker.tsx) - Progress tracking
 
-### Backend Architecture
+### Backend Service Architecture
 
-```mermaid
-graph TB
-    subgraph "Express Server"
-        A[index.ts<br/>Server Entry Point]
-        
-        subgraph "Middleware Layer"
-            M1[helmet<br/>Security Headers]
-            M2[cors<br/>Cross-Origin]
-            M3[express.json<br/>Body Parser]
-            M4[morgan<br/>HTTP Logger]
-            M5[rateLimit<br/>Rate Limiting]
-            M6[authenticateToken<br/>JWT Auth]
-        end
-        
-        subgraph "Routes (16)"
-            R1[authRoutes]
-            R2[profileRoutes]
-            R3[aiRoutes]
-            R4[cropRoutes]
-            R5[marketPriceRoutes]
-            R6[schemeRoutes]
-            R7[cropDiseaseRoutes]
-            R8[chatHistoryRoutes]
-            R9[weatherRoutes]
-            R10[priceAlertRoutes]
-        end
-        
-        subgraph "Controllers (15)"
-            C1[authController]
-            C2[profileController]
-            C3[aiController]
-            C4[cropRecommendationController]
-            C5[marketPriceController]
-            C6[governmentSchemeController]
-            C7[cropDiseaseController]
-            C8[chatHistoryController]
-        end
-        
-        subgraph "Services (3)"
-            S1[WebSocketManager]
-            S2[marketPriceAI.service]
-        end
-        
-        subgraph "Utils (7)"
-            U1[priceFetchCron]
-            U2[generateInitialPrices]
-            U3[createSamplePrices]
-            U4[jwt]
-            U5[validation]
-            U6[seedDatabase]
-        end
-        
-        subgraph "Models (12)"
-            D1[User]
-            D2[MarketPrice]
-            D3[CropInfo]
-            D4[CropDisease]
-            D5[CropRecommendation]
-            D6[GovernmentScheme]
-            D7[PriceAlert]
-            D8[WeatherData]
-            D9[ChatHistory]
-        end
-    end
-    
-    A --> M1
-    M1 --> M2
-    M2 --> M3
-    M3 --> M4
-    M4 --> M5
-    M5 --> R1
-    
-    R1 --> C1
-    R2 --> C2
-    R3 --> C3
-    R4 --> C4
-    R5 --> C5
-    R6 --> C6
-    R7 --> C7
-    R8 --> C8
-    
-    C1 --> D1
-    C3 --> S1
-    C5 --> S2
-    C5 --> D2
-    C7 --> D4
-    
-    S2 --> U1
-    U1 --> U2
 ```
+┌──────────────────────────────────────────────────────────────┐
+│                        index.ts                              │
+│                    (Server Entry Point)                      │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────┐
+│                    MIDDLEWARE LAYER                          │
+├──────────────────────────────────────────────────────────────┤
+│  helmet → cors → express.json → morgan → rateLimit → auth   │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────┐
+│                     ROUTES (16)                              │
+├──────────────────────────────────────────────────────────────┤
+│  /auth  /profile  /ai  /crop  /market-prices  /schemes      │
+│  /crop-disease  /chat  /weather  /alerts  /test  /health    │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────┐
+│                   CONTROLLERS (15)                           │
+├──────────────────────────────────────────────────────────────┤
+│  authController, profileController, aiController,            │
+│  cropRecommendationController, marketPriceController,        │
+│  governmentSchemeController, cropDiseaseController, etc.     │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+                ┌────────────┼────────────┐
+                │            │            │
+                ▼            ▼            ▼
+        ┌──────────┐  ┌──────────┐  ┌──────────┐
+        │ SERVICES │  │ UTILITIES│  │  MODELS  │
+        ├──────────┤  ├──────────┤  ├──────────┤
+        │ WebSocket│  │ Cron Jobs│  │ User     │
+        │ AI Price │  │ JWT      │  │ Market   │
+        │          │  │ Validation│ │ Crop     │
+        └──────────┘  └──────────┘  │ Disease  │
+                                     │ Scheme   │
+                                     │ Alert    │
+                                     └────┬─────┘
+                                          │
+                                          ▼
+                                    ┌──────────┐
+                                    │ MongoDB  │
+                                    └──────────┘
+```
+
+---
 
 #### Backend Component Breakdown
 
@@ -391,133 +306,53 @@ graph TB
 
 ---
 
-## Database Schema
+## Database Schema (12 Collections)
 
-### MongoDB Collections (12)
-
-```mermaid
-erDiagram
-    User ||--o{ ChatHistory : has
-    User ||--o{ CropDisease : detects
-    User ||--o{ CropRecommendation : requests
-    User ||--o{ PriceAlert : creates
-    
-    User {
-        ObjectId _id
-        string name
-        string email
-        string password
-        string phone
-        string role
-        object farmDetails
-        object preferences
-        date createdAt
-        date updatedAt
-    }
-    
-    ChatHistory {
-        ObjectId _id
-        ObjectId userId
-        string sessionId
-        array messages
-        string language
-        date createdAt
-        date updatedAt
-    }
-    
-    CropDisease {
-        ObjectId _id
-        ObjectId userId
-        string cropName
-        string diseaseName
-        number confidence
-        string imageUrl
-        array symptoms
-        string treatment
-        string prevention
-        date detectedAt
-    }
-    
-    CropRecommendation {
-        ObjectId _id
-        ObjectId userId
-        object soilData
-        object climate
-        array recommendedCrops
-        date createdAt
-    }
-    
-    MarketPrice {
-        ObjectId _id
-        string commodity
-        string variety
-        string market
-        string state
-        string district
-        number minPrice
-        number maxPrice
-        number modalPrice
-        date priceDate
-        string source
-        number arrivals
-        date fetchedAt
-    }
-    
-    GovernmentScheme {
-        ObjectId _id
-        string name
-        string description
-        string category
-        array eligibility
-        array benefits
-        string applicationProcess
-        array documents
-        string state
-        date startDate
-        date endDate
-        object contactInfo
-        boolean isActive
-    }
-    
-    PriceAlert {
-        ObjectId _id
-        ObjectId userId
-        string commodity
-        string market
-        number targetPrice
-        string condition
-        boolean isActive
-        date lastTriggered
-    }
-    
-    CropInfo {
-        ObjectId _id
-        string name
-        string scientificName
-        string category
-        array season
-        number duration
-        array soilType
-        string climate
-        string waterRequirement
-        object cultivation
-        object yield
-        object marketPrice
-    }
-    
-    WeatherData {
-        ObjectId _id
-        string location
-        object coordinates
-        object temperature
-        number humidity
-        number rainfall
-        number windSpeed
-        array forecast
-        date recordDate
-        string source
-    }
 ```
+┌─────────────┐
+│    User     │──────┐
+└─────────────┘      │
+                     │ has many
+                     ▼
+            ┌─────────────────┐
+            │  ChatHistory    │
+            └─────────────────┘
+
+┌─────────────┐      │ has many
+│    User     │──────┤
+└─────────────┘      │
+                     ▼
+            ┌─────────────────┐
+            │  CropDisease    │
+            └─────────────────┘
+
+┌─────────────┐      │ has many
+│    User     │──────┤
+└─────────────┘      │
+                     ▼
+            ┌──────────────────────┐
+            │ CropRecommendation   │
+            └──────────────────────┘
+
+┌─────────────┐      │ has many
+│    User     │──────┤
+└─────────────┘      │
+                     ▼
+            ┌─────────────────┐
+            │  PriceAlert     │
+            └─────────────────┘
+
+STANDALONE COLLECTIONS:
+┌─────────────────┐  ┌──────────────────┐  ┌─────────────┐
+│  MarketPrice    │  │ GovernmentScheme │  │  CropInfo   │
+└─────────────────┘  └──────────────────┘  └─────────────┘
+
+┌─────────────────┐
+│  WeatherData    │
+└─────────────────┘
+```
+
+---
 
 ### Key Indexes
 
@@ -591,162 +426,169 @@ erDiagram
     └── GET /database        # Database status
 ```
 
-### Authentication Flow
+## Data Flow: AI Chatbot
 
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant S as Server
-    participant DB as MongoDB
-    participant JWT as JWT Service
-    
-    C->>S: POST /api/auth/register
-    S->>DB: Create user (hashed password)
-    DB-->>S: User created
-    S->>JWT: Generate token
-    JWT-->>S: JWT token
-    S-->>C: {user, token}
-    
-    C->>S: POST /api/auth/login
-    S->>DB: Find user by email
-    DB-->>S: User data
-    S->>S: Verify password (bcrypt)
-    S->>JWT: Generate token
-    JWT-->>S: JWT token
-    S-->>C: {user, token}
-    
-    C->>S: GET /api/profile (with JWT)
-    S->>S: Verify JWT token
-    S->>DB: Get user profile
-    DB-->>S: Profile data
-    S-->>C: Profile data
+```
+┌──────┐     1. Type message      ┌──────────┐
+│ User │ ───────────────────────> │ Frontend │
+└──────┘                           └────┬─────┘
+                                        │ 2. Send via WebSocket
+                                        ▼
+                                  ┌──────────┐
+                                  │ Backend  │
+                                  └────┬─────┘
+                                       │ 3. Save to DB
+                                       ▼
+                                  ┌──────────┐
+                                  │ MongoDB  │
+                                  └──────────┘
+                                       │
+                                       │ 4. Send to AI
+                                       ▼
+                                  ┌──────────┐
+                                  │  Gemini  │
+                                  │   API    │
+                                  └────┬─────┘
+                                       │ 5. AI Response
+                                       ▼
+                                  ┌──────────┐
+                                  │ Backend  │
+                                  └────┬─────┘
+                                       │ 6. Save response
+                                       ▼
+                                  ┌──────────┐
+                                  │ MongoDB  │
+                                  └──────────┘
+                                       │
+                                       │ 7. Send to client
+                                       ▼
+┌──────┐     8. Display          ┌──────────┐
+│ User │ <───────────────────── │ Frontend │
+└──────┘           
+```
+---
+## Data Flow: Crop Disease Detection
+
+```
+┌──────┐  1. Upload image   ┌──────────┐
+│ User │ ─────────────────> │ Frontend │
+└──────┘                     └────┬─────┘
+                                  │ 2. Convert to base64
+                                  ▼
+                             ┌──────────┐
+                             │ Backend  │
+                             └────┬─────┘
+                                  │ 3. Send to Gemini Vision
+                                  ▼
+                             ┌──────────┐
+                             │  Gemini  │
+                             │  Vision  │
+                             └────┬─────┘
+                                  │ 4. Disease analysis
+                                  ▼
+                             ┌──────────┐
+                             │ Backend  │
+                             └────┬─────┘
+                                  │ 5. Save to DB
+                                  ▼
+                             ┌──────────┐
+                             │ MongoDB  │
+                             └──────────┘
+                                  │
+                                  │ 6. Return result
+                                  ▼
+┌──────┐  7. Display result ┌──────────┐
+│ User │ <───────────────── │ Frontend │
+└──────┘                     └──────────┘
 ```
 
 ---
 
-## Data Flow
+## Data Flow: Market Price Generation (Cron Job)
 
-### AI Chatbot Flow
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant F as Frontend
-    participant WS as WebSocket
-    participant B as Backend
-    participant G as Gemini API
-    participant DB as MongoDB
-    
-    U->>F: Type message
-    F->>WS: Send message via Socket.IO
-    WS->>B: Receive message
-    B->>DB: Save message to ChatHistory
-    B->>G: Send to Gemini API
-    G-->>B: AI response
-    B->>DB: Save AI response
-    B->>WS: Send response
-    WS->>F: Receive response
-    F->>U: Display response
 ```
+┌──────────────┐  Midnight IST   ┌─────────────────┐
+│  Cron Job    │ ──────────────> │ marketPriceAI   │
+└──────────────┘                 │    Service      │
+                                 └────────┬────────┘
+                                          │ Check if stale
+                                          ▼
+                                 ┌─────────────────┐
+                                 │  Gemini API     │
+                                 │ (Generate prices│
+                                 │  for 25+ crops) │
+                                 └────────┬────────┘
+                                          │ Return prices
+                                          ▼
+                                 ┌─────────────────┐
+                                 │    MongoDB      │
+                                 │ (Save/Update)   │
+                                 └─────────────────┘
 
-### Crop Disease Detection Flow
+Later...
 
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant F as Frontend
-    participant B as Backend
-    participant GV as Gemini Vision API
-    participant DB as MongoDB
-    
-    U->>F: Upload crop image
-    F->>F: Convert to base64
-    F->>B: POST /api/crop-disease/detect
-    B->>GV: Send image for analysis
-    GV-->>B: Disease detection result
-    B->>DB: Save detection to CropDisease
-    B-->>F: Return result
-    F->>U: Display disease, treatment, prevention
-```
-
-### Market Price Generation Flow
-
-```mermaid
-sequenceDiagram
-    participant Cron as Cron Job
-    participant S as marketPriceAI.service
-    participant G as Gemini API
-    participant DB as MongoDB
-    participant U as User
-    
-    Cron->>S: Trigger daily (midnight IST)
-    S->>S: Check if prices stale (>24h)
-    S->>G: Request AI price generation
-    Note over G: Generate prices for 25+ crops<br/>across multiple markets
-    G-->>S: Return price data
-    S->>DB: Save/update MarketPrice
-    DB-->>S: Confirmation
-    S->>Cron: Log success
-    
-    U->>DB: GET /api/market-prices
-    DB-->>U: Return latest prices
-```
-
-### Crop Recommendation Flow
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant F as Frontend
-    participant B as Backend
-    participant ML as Python ML Service
-    participant DB as MongoDB
-    
-    U->>F: Enter soil data (N, P, K, pH)
-    U->>F: Enter climate data
-    F->>B: POST /api/crop/recommendation
-    B->>ML: HTTP request with parameters
-    ML->>ML: Load crop_model.pkl
-    ML->>ML: Predict top 3 crops
-    ML-->>B: Return predictions
-    B->>DB: Save to CropRecommendation
-    B-->>F: Return recommendations
-    F->>U: Display top 3 crops with confidence
+┌──────┐  GET /market-prices  ┌──────────┐
+│ User │ ───────────────────> │ Backend  │
+└──────┘                       └────┬─────┘
+                                    │ Query DB
+                                    ▼
+                               ┌──────────┐
+                               │ MongoDB  │
+                               └────┬─────┘
+                                    │ Return latest
+                                    ▼
+┌──────┐  Display prices      ┌──────────┐
+│ User │ <─────────────────── │ Frontend │
+└──────┘                       └──────────┘
 ```
 
 ---
+
 
 ## Security Architecture
 
-### Security Layers
-
-```mermaid
-graph TB
-    subgraph "Security Measures"
-        A[Client Request]
-        
-        B1[CORS<br/>Origin Validation]
-        B2[Helmet<br/>Security Headers]
-        B3[Rate Limiting<br/>120 req/min]
-        
-        C1[JWT Authentication<br/>Token Verification]
-        C2[Input Validation<br/>Zod Schemas]
-        
-        D1[Password Hashing<br/>bcryptjs]
-        D2[Environment Variables<br/>.env Protection]
-        
-        E[Secure Response]
-    end
-    
-    A --> B1
-    B1 --> B2
-    B2 --> B3
-    B3 --> C1
-    C1 --> C2
-    C2 --> D1
-    D1 --> D2
-    D2 --> E
 ```
+┌────────────────┐
+│ Client Request │
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│  CORS Check    │ ← Origin validation
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│ Helmet Headers │ ← Security headers
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│ Rate Limiting  │ ← 120 req/min per IP
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│ JWT Auth       │ ← Token verification
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│ Input Valid.   │ ← Zod schemas
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│ Password Hash  │ ← bcryptjs (10 rounds)
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│ Secure Response│
+└────────────────┘
+```
+
+---
 
 ### Security Features
 
@@ -777,32 +619,7 @@ graph TB
 
 ---
 
-## AI/ML Integration
-
-### Google Gemini Integration
-
-```mermaid
-graph LR
-    subgraph "Gemini API Integration"
-        A[Backend Services]
-        
-        B1[Gemini 1.5 Flash<br/>Chatbot]
-        B2[Gemini Vision<br/>Disease Detection]
-        B3[Gemini Pro<br/>Price Generation]
-        
-        C1[Chat Responses]
-        C2[Disease Analysis]
-        C3[Market Prices]
-    end
-    
-    A -->|Text Prompts| B1
-    A -->|Image + Prompt| B2
-    A -->|Structured Prompt| B3
-    
-    B1 --> C1
-    B2 --> C2
-    B3 --> C3
-```
+## AI Integration
 
 **Gemini Use Cases**
 
@@ -844,35 +661,7 @@ Crop-Recommendation-System/
 - **Integration**: HTTP API endpoint called by backend
 
 ---
-
-## Deployment Architecture
-
-### Development Environment
-
-```mermaid
-graph TB
-    subgraph "Development Setup"
-        A[Developer Machine]
-        
-        B1[Frontend Dev Server<br/>Vite :5173]
-        B2[Backend Dev Server<br/>Node.js :5001]
-        B3[MongoDB Local<br/>:27017]
-        B4[Python ML Service<br/>:8000]
-        
-        C1[Hot Reload]
-        C2[TypeScript Watch]
-        C3[Nodemon]
-    end
-    
-    A --> B1
-    A --> B2
-    A --> B3
-    A --> B4
-    
-    B1 --> C1
-    B2 --> C2
-    B2 --> C3
-```
+## Development Setup
 
 **Development Commands**
 ```bash
@@ -887,40 +676,6 @@ npm run dev:frontend  # Port 5173
 npm run dev:backend   # Port 5001
 ```
 
-### Production Architecture
-
-```mermaid
-graph TB
-    subgraph "Production Environment"
-        A[Load Balancer]
-        
-        B1[Frontend<br/>Static Files<br/>CDN]
-        B2[Backend Instances<br/>Node.js Cluster]
-        
-        C1[MongoDB Atlas<br/>Replica Set]
-        C2[Redis Cache<br/>Session Store]
-        
-        D1[Google Gemini API]
-        D2[External APIs]
-        D3[Python ML Service]
-    end
-    
-    A --> B1
-    A --> B2
-    B2 --> C1
-    B2 --> C2
-    B2 --> D1
-    B2 --> D2
-    B2 --> D3
-```
-
-**Production Considerations**
-- **Frontend**: Static build deployed to CDN (Vercel/Netlify)
-- **Backend**: Node.js cluster with PM2 process manager
-- **Database**: MongoDB Atlas with replica sets
-- **Caching**: Redis for session management and caching
-- **Monitoring**: Application logs, error tracking
-- **CI/CD**: Automated deployment pipeline
 
 ---
 
@@ -942,32 +697,9 @@ graph TB
 
 ---
 
-## WebSocket Architecture
+## WebSocket 
 
-### Real-time Communication
 
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant WS as WebSocket Server
-    participant B as Backend
-    participant DB as Database
-    
-    C->>WS: Connect (Socket.IO)
-    WS-->>C: Connection established
-    
-    C->>WS: Emit 'chat:message'
-    WS->>B: Process message
-    B->>DB: Save message
-    B-->>WS: Response
-    WS-->>C: Emit 'chat:response'
-    
-    B->>WS: Price update event
-    WS-->>C: Emit 'price:update'
-    
-    B->>WS: Alert triggered
-    WS-->>C: Emit 'alert:notification'
-```
 
 **WebSocket Events**
 - `chat:message` - User sends chat message
