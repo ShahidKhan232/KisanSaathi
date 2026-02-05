@@ -72,3 +72,6 @@ coverage-final.json
 # IDE specific
 .idea/
 *.iml
+
+# agent
+.qodo
