@@ -477,7 +477,7 @@ This project is licensed under the MIT License — see the [LICENSE](./LICENSE) 
 
 ## 📞 Support
 
-For issues, questions, or suggestions:
+For issues, questions, suggestions:
 - **GitHub Issues**: [Create an issue](https://github.com/ShahidKhan232/KisanSaathi/issues)
 - **Email**: Contact the development team
 
