@@ -22,6 +22,13 @@ KisanSaathi is an intelligent, multilingual digital assistant designed to empowe
 - Treatment suggestions and prevention guidance
 - Disease history tracking
 
+### 🌱 Crop Recommendation System
+- **ML-Powered Recommendations**: Random Forest model with 99% accuracy
+- **Smart Analysis**: Considers soil nutrients (N, P, K, pH) and climate factors
+- **Top 3 Predictions**: Ranked crop suggestions with confidence scores
+- **22 Crops Supported**: Cereals, pulses, cash crops, fruits, and spices
+- **Easy Integration**: Python API with Streamlit interface
+
 ### 💰 AI-Generated Market Prices
 - **AI-Powered Pricing**: Daily market prices generated using Google Gemini AI
 - **25 Major Crops**: Wheat, Rice, Cotton, Soybean, Vegetables, Pulses, and more
@@ -48,24 +55,98 @@ KisanSaathi is an intelligent, multilingual digital assistant designed to empowe
 ## 🧩 System Architecture
 
 ```
-┌─────────────────────────────────────┐
-│   React + TypeScript Frontend       │
-│   (Vite, TailwindCSS, Recharts)    │
-└──────────────┬──────────────────────┘
-               │ HTTP/WebSocket
-┌──────────────▼──────────────────────┐
-│   Express.js Backend (TypeScript)   │
-│   ├── /api/auth     → JWT Auth     │
-│   ├── /api/ai       → Gemini AI    │
-│   ├── /api/profile  → User Data    │
-│   └── /api/users    → User Mgmt    │
-└──────────────┬──────────────────────┘
-               │
-┌──────────────▼──────────────────────┐
-│         MongoDB Database            │
-│   (User, Profile, Chat History)    │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                         CLIENT LAYER                                │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │   React Frontend (Vite + TypeScript)                          │  │
+│  │   • 18 Components (ChatBot, CropDisease, Dashboard, etc.)     │  │
+│  │   • 4 Contexts (Auth, Profile, Voice, Language)               │  │
+│  │   • 8 Services (AI, API, Price, Scheme, Alert, Weather)       │  │
+│  │   • Real-time: Socket.IO Client                               │  │
+│  │   • Multilingual: i18next (English, Hindi, Marathi)           │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+                                ↕ HTTP/WebSocket
+┌─────────────────────────────────────────────────────────────────────┐
+│                      API GATEWAY LAYER                              │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │   Express.js Server (TypeScript)                              │  │
+│  │   • Middleware: Auth, CORS, Rate Limit, Helmet, Morgan        │  │
+│  │   • 16 Route Modules                                          │  │
+│  │   • 15 Controllers                                            │  │
+│  │   • WebSocket: Socket.IO Server                               │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+                                ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                    BUSINESS LOGIC LAYER                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐              │
+│  │  Services    │  │  Utilities   │  │  Validation  │              │
+│  │  • WebSocket │  │  • Cron Jobs │  │  • Zod       │              │
+│  │  • AI Price  │  │  • JWT       │  │  • Input     │              │
+│  │    Generator │  │  • Logging   │  │    Schemas   │              │
+│  └──────────────┘  └──────────────┘  └──────────────┘              │
+└─────────────────────────────────────────────────────────────────────┘
+                                ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                         DATA LAYER                                  │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │   MongoDB Database (12 Collections)                          │  │
+│  │   • User, ChatHistory, CropDisease, CropRecommendation        │  │
+│  │   • MarketPrice, GovernmentScheme, PriceAlert, WeatherData    │  │
+│  │   • CropInfo, and more...                                     │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+                                ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                      EXTERNAL SERVICES                              │
+│  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐                │
+│  │   Google    │  │  MyScheme   │  │   Python     │                │
+│  │ Gemini API  │  │     API     │  │  ML Service  │                │
+│  │ • Chat AI   │  │ • Gov Data  │  │ • Crop Rec.  │                │
+│  │ • Vision    │  │ • Schemes   │  │ • Random     │                │
+│  │ • Prices    │  │             │  │   Forest     │                │
+│  └─────────────┘  └─────────────┘  └──────────────┘                │
+└─────────────────────────────────────────────────────────────────────┘
 ```
+
+> **📖 Detailed Architecture**: For comprehensive architecture documentation with Mermaid diagrams, data flows, and component interactions, see [System Architecture Documentation](./docs/SYSTEM_ARCHITECTURE.md)
+
+---
+
+## 📚 Documentation
+
+### System Architecture
+For a comprehensive understanding of the system design, components, and data flows:
+- **[System Architecture Documentation](./docs/SYSTEM_ARCHITECTURE.md)** - Complete technical architecture with diagrams
+  - High-level architecture overview
+  - Frontend & backend component breakdown
+  - Database schema with ER diagrams
+  - API endpoint structure
+  - Data flow diagrams (AI chatbot, disease detection, market prices)
+  - Security architecture
+  - Deployment architecture
+
+### Crop Recommendation System
+For details on the ML-based crop recommendation engine:
+- **[Crop Recommendation README](./Crop-Recommendation-System/README.md)** - ML system documentation
+  - Model details and performance metrics
+  - Installation and setup guide
+  - Usage examples (Streamlit UI, Python API, Backend integration)
+  - Training guide
+  - API reference
+
+### Component Documentation
+Each major directory contains detailed README files:
+- **[Frontend Components](./frontend/src/components/README.md)** - All 18 React components
+- **[Frontend Contexts](./frontend/src/contexts/README.md)** - 4 context providers
+- **[Frontend Hooks](./frontend/src/hooks/README.md)** - 8 custom hooks
+- **[Frontend Services](./frontend/src/services/README.md)** - 8 API services
+- **[Backend Controllers](./server/src/controllers/README.md)** - 15 API controllers
+- **[Backend Routes](./server/src/routes/README.md)** - Complete API reference
+- **[Backend Models](./server/src/models/README.md)** - 12 MongoDB schemas
+- **[Backend Services](./server/src/services/README.md)** - Business logic services
+- **[Backend Utils](./server/src/utils/README.md)** - Utilities and cron jobs
 
 ---
 
@@ -93,6 +174,10 @@ KisanSaathi is an intelligent, multilingual digital assistant designed to empowe
 ### AI & ML
 - **Conversational AI**: Google Gemini 1.5 Flash/Pro
 - **Image Analysis**: Gemini Vision API for crop disease detection
+- **Crop Recommendation**: Random Forest ML model (Python + scikit-learn)
+  - 300 decision trees with 99% accuracy
+  - Predicts top 3 suitable crops based on soil (NPK, pH) and climate data
+  - Supports 22 different crops (cereals, pulses, cash crops, fruits, spices)
 - **Voice Interface**: Google Cloud Speech & Text-to-Speech APIs (planned)
 
 ---
@@ -111,9 +196,11 @@ KisanSaathi is an intelligent, multilingual digital assistant designed to empowe
 ```
 KisanSaathi/
 ├── package.json           # Root workspace configuration
+├── docs/                  # Documentation
+│   └── SYSTEM_ARCHITECTURE.md  # Complete system architecture documentation
 ├── frontend/              # Frontend project (Workspace A)
 │   ├── src/               # React + TypeScript source code
-│   │   ├── components/    # 17 React components (with README.md)
+│   │   ├── components/    # 18 React components (with README.md)
 │   │   ├── contexts/      # 4 React context providers (with README.md)
 │   │   ├── hooks/         # 8 custom React hooks (with README.md)
 │   │   ├── services/      # 8 API service modules (with README.md)
@@ -123,20 +210,28 @@ KisanSaathi/
 │   └── .env               # Frontend environment variables
 ├── server/                # Express.js Backend (Workspace B)
 │   ├── src/               # Backend source code
-│   │   ├── controllers/   # 14 API controllers (with README.md)
+│   │   ├── controllers/   # 15 API controllers (with README.md)
 │   │   ├── services/      # Business logic services (with README.md)
-│   │   ├── routes/        # 15 API route definitions (with README.md)
-│   │   ├── models/        # 11 MongoDB schemas (with README.md)
-│   │   ├── utils/         # 6 utility scripts & cron jobs (with README.md)
+│   │   ├── routes/        # 16 API route definitions (with README.md)
+│   │   ├── models/        # 12 MongoDB schemas (with README.md)
+│   │   ├── utils/         # 7 utility scripts & cron jobs (with README.md)
 │   │   ├── middleware/    # Authentication & validation
 │   │   ├── config/        # Database & app configuration
 │   │   └── types/         # TypeScript interfaces
 │   ├── package.json       # Backend dependencies
 │   └── .env               # Backend environment variables
+├── Crop-Recommendation-System/  # ML-based crop recommendation
+│   ├── app.py             # Streamlit web interface
+│   ├── predict.py         # Prediction logic and API
+│   ├── train.py           # Model training script
+│   ├── crop_model.pkl     # Trained Random Forest model (11MB)
+│   ├── data.xlsx          # Training dataset
+│   ├── requirements.txt   # Python dependencies
+│   └── README.md          # ML system documentation
 └── README.md              # Project documentation
 ```
 
-> **📚 Comprehensive Documentation**: Each major directory contains a detailed README.md file documenting all components, their features, usage patterns, and best practices. See [Documentation Summary](./docs/documentation_summary.md) for complete overview.
+> **📚 Comprehensive Documentation**: Each major directory contains a detailed README.md file documenting all components, their features, usage patterns, and best practices. See [Documentation](#-documentation) section above for complete overview.
 ---
 
 ## 💡 How It Works
@@ -382,7 +477,7 @@ This project is licensed under the MIT License — see the [LICENSE](./LICENSE) 
 
 ## 📞 Support
 
-For issues, questions, or suggestions:
+For issues, questions, suggestions:
 - **GitHub Issues**: [Create an issue](https://github.com/ShahidKhan232/KisanSaathi/issues)
 - **Email**: Contact the development team
 
