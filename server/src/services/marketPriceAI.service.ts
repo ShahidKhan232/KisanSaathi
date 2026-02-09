@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { MarketPriceModel } from '../models/MarketPrice.js';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash-latest';
 let genAI: GoogleGenerativeAI | null = null;
 
 if (GEMINI_API_KEY) {
@@ -62,19 +63,48 @@ class MarketPriceAIService {
             throw new Error('Gemini AI not initialized');
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
         const prompt = this.getPromptForMarketPrices();
+        const modelCandidates = [
+            GEMINI_MODEL,
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-flash-002',
+            'gemini-1.5-pro-latest'
+        ].filter((value, index, self) => self.indexOf(value) === index);
 
-        console.log('📡 Requesting market prices from Gemini AI...');
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-        const text = response.text();
+        console.log(`📡 Requesting market prices from Gemini AI using model ${modelCandidates[0]}...`);
 
-        console.log('📥 Received AI response, parsing prices...');
-        const prices = this.parsePricesFromAI(text);
+        let lastError: unknown = null;
+        for (const modelName of modelCandidates) {
+            try {
+                const model = genAI.getGenerativeModel({ model: modelName });
+                const result = await model.generateContent(prompt);
+                const response = result.response;
+                const text = response.text();
 
-        console.log(`📊 Parsed ${prices.length} price records from AI`);
-        return prices;
+                console.log(`✅ Received response from model ${modelName}`);
+
+                console.log('📥 Received AI response, parsing prices...');
+                const prices = this.parsePricesFromAI(text);
+
+                console.log(`📊 Parsed ${prices.length} price records from AI`);
+                return prices;
+            } catch (error) {
+                lastError = error;
+                const message = error instanceof Error ? error.message : String(error);
+                const isNotFound = message.includes('404') || message.includes('not found') || message.includes('Not Found');
+
+                if (isNotFound) {
+                    console.warn(`⚠️  Model ${modelName} not available. Trying next model...`);
+                    continue;
+                }
+
+                throw error;
+            }
+        }
+
+        throw new Error(
+            `All configured Gemini models failed. Last error: ${lastError instanceof Error ? lastError.message : String(lastError)}`
+        );
     }
 
     /**
