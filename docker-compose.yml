@@ -1,0 +1,113 @@
+# =============================================================================
+# KisanSaathi - Docker Compose Configuration
+# =============================================================================
+# Orchestrates all services: MongoDB, Backend, Frontend, and ML Service
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # MongoDB Database
+  # ---------------------------------------------------------------------------
+  mongodb:
+    image: mongo:7.0
+    container_name: kisansaathi-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: kisan_saathi
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - kisansaathi-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/kisan_saathi --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # ---------------------------------------------------------------------------
+  # Backend API Server (Node.js/Express)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: kisansaathi-backend
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=production
+      - PORT=5001
+      - MONGO_URI=mongodb://mongodb:27017/kisan_saathi
+      - CLIENT_ORIGIN=http://localhost:80,http://localhost:5173
+      - CLIENT_URL=http://localhost:80
+    env_file:
+      - ./server/.env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - kisansaathi-network
+    volumes:
+      # Mount for hot-reloading in development (optional, comment out for production)
+      # - ./server/src:/app/src
+      - backend_node_modules:/app/node_modules
+
+  # ---------------------------------------------------------------------------
+  # Frontend (React/Vite with Nginx)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        - VITE_SERVER_URL=http://localhost:5001
+    container_name: kisansaathi-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - kisansaathi-network
+
+  # ---------------------------------------------------------------------------
+  # ML Service (Python/Streamlit) - Optional
+  # ---------------------------------------------------------------------------
+  ml-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.ml
+    container_name: kisansaathi-ml
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    networks:
+      - kisansaathi-network
+    profiles:
+      - ml  # This service only starts when explicitly requested with --profile ml
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  kisansaathi-network:
+    driver: bridge
+    name: kisansaathi-network
+
+# =============================================================================
+# Volumes (Persistent Storage)
+# =============================================================================
+volumes:
+  mongodb_data:
+    name: kisansaathi-mongodb-data
+  mongodb_config:
+    name: kisansaathi-mongodb-config
+  backend_node_modules:
+    name: kisansaathi-backend-node-modules

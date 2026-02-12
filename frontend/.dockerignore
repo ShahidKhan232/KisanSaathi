@@ -1,0 +1,12 @@
+# Frontend .dockerignore
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+*.test.ts
+*.test.tsx
+*.test.js
+coverage/
+.vscode/
+.idea/

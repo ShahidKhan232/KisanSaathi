@@ -248,7 +248,36 @@ KisanSaathi/
 
 ---
 
+## 🐳 Docker Setup (Recommended)
+
+The easiest way to run KisanSaathi is using Docker. This method handles all dependencies and services automatically.
+
+### Quick Start with Docker
+
+**Prerequisites**: Docker Desktop installed ([Download here](https://www.docker.com/products/docker-desktop))
+
+```powershell
+# 1. Clone the repository
+git clone https://github.com/ShahidKhan232/KisanSaathi.git
+cd KisanSaathi
+
+# 2. Configure environment (copy and edit with your API keys)
+Copy-Item server\.env.docker.example server\.env
+
+# 3. Start all services (MongoDB, Backend, Frontend)
+docker-compose up -d
+
+# 4. Access the application
+# Frontend: http://localhost:5173
+# Backend API: http://localhost:5001
+```
+
+**📖 Complete Docker Guide**: See [DOCKER_SETUP.md](./DOCKER_SETUP.md) for detailed instructions, troubleshooting, and production deployment.
+
+---
+
 ## � Quick Setup (Development)
+
 
 > These commands are optimized for Windows PowerShell. Adjust as needed for macOS/Linux.
 
