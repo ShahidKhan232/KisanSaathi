@@ -1,7 +1,22 @@
 import { Response } from 'express';
 import { CropDiseaseModel } from '../models/CropDisease.js';
+import { UserModel } from '../models/User.js';
 import mongoose from 'mongoose';
 import { AuthRequest } from '../middleware/auth.js';
+
+/**
+ * Resolve a user ID to a MongoDB ObjectId.
+ * Handles both legacy MongoDB ObjectIds and Firebase UIDs.
+ */
+async function resolveMongoId(userId: string): Promise<mongoose.Types.ObjectId | null> {
+    if (mongoose.Types.ObjectId.isValid(userId)) {
+        return new mongoose.Types.ObjectId(userId);
+    }
+    // Firebase UID — look up user by firebaseUid
+    const user = await UserModel.findOne({ firebaseUid: userId }).lean();
+    if (!user) return null;
+    return user._id as mongoose.Types.ObjectId;
+}
 
 // Get disease detection history for a user
 export const getDiseaseHistory = async (req: AuthRequest, res: Response) => {
@@ -13,7 +28,12 @@ export const getDiseaseHistory = async (req: AuthRequest, res: Response) => {
 
         const { cropName, limit = 20, skip = 0 } = req.query;
 
-        const query: any = { userId: new mongoose.Types.ObjectId(userId) };
+        const mongoId = await resolveMongoId(userId);
+        if (!mongoId) {
+            return res.json([]); // New Firebase user with no history yet
+        }
+
+        const query: any = { userId: mongoId };
         if (cropName) {
             query.cropName = new RegExp(String(cropName), 'i');
         }
@@ -37,10 +57,8 @@ export const saveDiseaseDetection = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.id;
 
-        // Enhanced logging: Log incoming request
         console.log('📥 Received disease detection save request');
         console.log('   User ID:', userId);
-        console.log('   Request body:', JSON.stringify(req.body, null, 2));
 
         if (!userId) {
             console.error('❌ Unauthorized: No user ID found in request');
@@ -58,7 +76,6 @@ export const saveDiseaseDetection = async (req: AuthRequest, res: Response) => {
             location
         } = req.body;
 
-        // Enhanced validation with detailed error messages
         if (!cropName || !detectedDisease || confidence === undefined) {
             const missingFields = [];
             if (!cropName) missingFields.push('cropName');
@@ -73,17 +90,15 @@ export const saveDiseaseDetection = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        // Log data being saved
-        console.log('💾 Attempting to save disease detection:');
-        console.log('   Crop:', cropName);
-        console.log('   Disease:', detectedDisease);
-        console.log('   Confidence:', confidence);
-        console.log('   Symptoms count:', symptoms?.length || 0);
-        console.log('   Has treatment:', !!treatment);
-        console.log('   Prevention tips count:', preventionTips?.length || 0);
+        const mongoId = await resolveMongoId(userId);
+        if (!mongoId) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        console.log('💾 Saving disease detection:', cropName, '-', detectedDisease);
 
         const detection = await CropDiseaseModel.create({
-            userId: new mongoose.Types.ObjectId(userId),
+            userId: mongoId,
             cropName,
             imageUrl,
             detectedDisease,
@@ -94,19 +109,10 @@ export const saveDiseaseDetection = async (req: AuthRequest, res: Response) => {
             location
         });
 
-        console.log(`✅ Successfully saved disease detection!`);
-        console.log(`   ID: ${detection._id}`);
-        console.log(`   Disease: ${detectedDisease} on ${cropName}`);
-        console.log(`   User: ${userId}`);
-        console.log(`   Timestamp: ${detection.detectedAt}`);
-
+        console.log(`✅ Saved disease detection ${detection._id} for user ${userId}`);
         res.status(201).json(detection);
     } catch (error) {
-        console.error('❌ Error saving disease detection:');
-        console.error('   Error type:', error instanceof Error ? error.name : typeof error);
-        console.error('   Error message:', error instanceof Error ? error.message : String(error));
-        console.error('   Full error:', error);
-
+        console.error('❌ Error saving disease detection:', error instanceof Error ? error.message : error);
         res.status(500).json({
             error: 'Failed to save disease detection',
             details: error instanceof Error ? error.message : 'Unknown error'
@@ -124,9 +130,14 @@ export const getDiseaseById = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
+        const mongoId = await resolveMongoId(userId);
+        if (!mongoId) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
         const detection = await CropDiseaseModel.findOne({
             _id: new mongoose.Types.ObjectId(id),
-            userId: new mongoose.Types.ObjectId(userId)
+            userId: mongoId
         });
 
         if (!detection) {
@@ -150,9 +161,14 @@ export const deleteDiseaseDetection = async (req: AuthRequest, res: Response) =>
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
+        const mongoId = await resolveMongoId(userId);
+        if (!mongoId) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
         const result = await CropDiseaseModel.deleteOne({
             _id: new mongoose.Types.ObjectId(id),
-            userId: new mongoose.Types.ObjectId(userId)
+            userId: mongoId
         });
 
         if (result.deletedCount === 0) {

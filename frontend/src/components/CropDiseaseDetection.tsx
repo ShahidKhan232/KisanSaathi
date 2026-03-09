@@ -530,7 +530,8 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
 
         // Save disease detection to database
         try {
-          const token = localStorage.getItem('token');
+          // AuthContext stores JWT as 'auth_token'
+          const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
           if (token) {
             // Extract disease information from AI response
             const diseaseMatch = text.match(/(?:disease|problem|issue)[:\s]+([^\n.]+)/i);
@@ -611,7 +612,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
 
         // Save fallback detection to database
         try {
-          const token = localStorage.getItem('token');
+          const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
           if (token) {
             const dataToSave = {
               cropName: 'Unknown',

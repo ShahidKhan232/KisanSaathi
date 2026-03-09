@@ -3,7 +3,9 @@ import mongoose, { Schema, model, Model, Document } from 'mongoose';
 export interface IUser {
     name?: string;
     email: string;
-    passwordHash: string;
+    passwordHash: string;     // Optional for Firebase-only users
+    firebaseUid?: string;     // Firebase UID — set for Firebase-authenticated users
+    provider?: 'email' | 'google' | 'firebase'; // how the user signed up
     createdAt: Date;
     phone?: string;
     location?: string;
@@ -42,7 +44,9 @@ export interface IUserDoc extends Document, IUser {
 const UserSchema = new Schema<IUserDoc>({
     name: { type: String, trim: true },
     email: { type: String, unique: true, required: true, lowercase: true, trim: true },
-    passwordHash: { type: String, required: true },
+    passwordHash: { type: String, default: '' },   // empty for Firebase-only users
+    firebaseUid: { type: String, sparse: true, unique: true, index: true }, // Firebase UID
+    provider: { type: String, enum: ['email', 'google', 'firebase'], default: 'email' },
     createdAt: { type: Date, default: Date.now },
     phone: { type: String, trim: true },
     location: { type: String, trim: true },

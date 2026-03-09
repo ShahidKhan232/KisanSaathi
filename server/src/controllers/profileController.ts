@@ -7,13 +7,26 @@ import type { AuthRequest } from '../middleware/auth.js';
 import mongoose from 'mongoose';
 import { WebSocketManager } from '../services/WebSocketManager.js';
 
+/**
+ * Find a MongoDB user document by either:
+ *  - MongoDB ObjectId (legacy JWT / firebase-sync returns mongoId)
+ *  - Firebase UID (when Firebase Admin is unconfigured and uid is passed directly)
+ */
+async function resolveUser(id: string) {
+    if (mongoose.Types.ObjectId.isValid(id)) {
+        return UserModel.findById(id);
+    }
+    // id is a Firebase UID — look up by firebaseUid field
+    return UserModel.findOne({ firebaseUid: id });
+}
+
 export const getProfile = async (req: AuthRequest, res: Response): Promise<void> => {
     const { id } = req.user!;
     console.log(`Fetching profile for user ${id}`);
 
     try {
         if (mongoReady) {
-            const user = await UserModel.findById(id).lean();
+            const user = await resolveUser(id).then(u => u?.toObject() ?? null);
             if (!user) {
                 console.log(`User ${id} not found in database`);
                 res.status(404).json({ error: 'User not found' });
@@ -96,14 +109,20 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
                 }
             });
 
+            // Find the document first so we get the ObjectId regardless of id type
+            const existing = await resolveUser(id);
+            if (!existing) {
+                console.log(`User ${id} not found for profile update (by id or firebaseUid)`);
+                res.status(404).json({ error: 'User not found' });
+                return;
+            }
             const user = await UserModel.findByIdAndUpdate(
-                id,
+                existing._id,
                 { $set: update },
                 { new: true, runValidators: true }
             );
 
             if (!user) {
-                console.log(`User ${id} not found for profile update`);
                 res.status(404).json({ error: 'User not found' });
                 return;
             }

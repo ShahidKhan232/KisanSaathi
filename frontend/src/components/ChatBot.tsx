@@ -343,7 +343,8 @@ export function ChatBot() {
 
       // Save chat messages to database (async, don't block UI)
       try {
-        const token = localStorage.getItem('token');
+        // AuthContext stores JWT as 'auth_token'
+        const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
         if (token) {
           // Save both user and AI messages
           const userMsg: APIChatMessage = {

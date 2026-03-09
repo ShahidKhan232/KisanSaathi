@@ -10,7 +10,7 @@ export function DiseaseHistory() {
     const [error, setError] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const { i18n } = useTranslation();
-    const { token, user } = useAuth();
+    const { token, user, loading: authLoading } = useAuth();
 
     useEffect(() => {
         loadHistory();
@@ -26,14 +26,16 @@ export function DiseaseHistory() {
         return () => {
             window.removeEventListener('detectionSaved', handleDetectionSaved);
         };
-    }, [token, user]); // Re-run when auth state changes
+    }, [token, user, authLoading]); // Re-run when auth state changes
 
     const loadHistory = async () => {
         try {
             setIsLoading(true);
             setError(null);
 
-            // Check if user is logged in using AuthContext
+            // Wait for Firebase auth to finish initializing
+            if (authLoading) return;
+
             if (!token || !user) {
                 setError('Please log in to view disease detection history');
                 setIsLoading(false);
@@ -45,9 +47,14 @@ export function DiseaseHistory() {
             const historyData = await cropDiseaseAPI.getDiseaseHistory();
             setHistory(historyData);
             console.log(`🌾 Loaded ${historyData.length} disease detections for user ${user.email}`);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error loading disease history:', err);
-            setError('Failed to load disease history. Please try again.');
+            // 401 just means user session expired — show empty rather than error
+            if (err?.response?.status === 401 || err?.response?.status === 404) {
+                setHistory([]);
+            } else {
+                setError('Failed to load disease history. Please try again.');
+            }
         } finally {
             setIsLoading(false);
         }
