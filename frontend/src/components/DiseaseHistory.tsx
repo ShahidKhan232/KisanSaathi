@@ -288,13 +288,9 @@ ${detection.location ? `📍 Location: ${detection.location.address || `${detect
                                         </div>
                                     )}
                                     
-                                    {/* Overlay with crop name */}
+                                    {/* Overlay with disease info */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent">
                                         <div className="absolute bottom-4 left-4 right-4">
-                                            <div className="flex items-center space-x-2 mb-2">
-                                                <Leaf className="w-5 h-5 text-white" />
-                                                <h4 className="text-lg font-bold text-white">{detection.cropName}</h4>
-                                            </div>
                                             <div className="flex items-center space-x-2">
                                                 <AlertCircle className="w-4 h-4 text-red-300" />
                                                 <p className="text-white font-medium text-sm">{detection.detectedDisease}</p>

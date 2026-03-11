@@ -56,19 +56,34 @@ export const recommendCrop = async (req: Request, res: Response) => {
                     // Save to database if user is authenticated
                     if (user && user.id) {
                         try {
-                            await CropRecommendationModel.create({
-                                userId: user.id,
-                                nitrogen: Number(N),
-                                phosphorus: Number(P),
-                                potassium: Number(K),
-                                temperature: Number(temperature),
-                                humidity: Number(humidity),
-                                ph: Number(ph),
-                                rainfall: Number(rainfall),
-                                recommendedCrop: result.prediction,
-                                confidence: result.confidence || 0
-                            });
-                            console.log(`✅ Recommendation saved for user ${user.id}`);
+                            // Resolve MongoDB ObjectId — consistent with all other controllers
+                            let mongoId: mongoose.Types.ObjectId;
+                            if (mongoose.Types.ObjectId.isValid(user.id)) {
+                                mongoId = new mongoose.Types.ObjectId(user.id);
+                            } else {
+                                const dbUser = await UserModel.findOne({ firebaseUid: user.id }).lean();
+                                if (!dbUser) {
+                                    throw new Error(`No user found for Firebase UID ${user.id}`);
+                                }
+                                mongoId = dbUser._id as mongoose.Types.ObjectId;
+                            }
+
+                            const topRecommendation = result.recommendations?.[0];
+                            if (topRecommendation) {
+                                await CropRecommendationModel.create({
+                                    userId: mongoId,
+                                    nitrogen: Number(N),
+                                    phosphorus: Number(P),
+                                    potassium: Number(K),
+                                    temperature: Number(temperature),
+                                    humidity: Number(humidity),
+                                    ph: Number(ph),
+                                    rainfall: Number(rainfall),
+                                    recommendedCrop: topRecommendation.crop,
+                                    confidence: topRecommendation.probability || 0
+                                });
+                                console.log(`✅ Recommendation saved for user ${user.id}`);
+                            }
                         } catch (dbError) {
                             console.error('❌ Error saving recommendation history:', dbError);
                             // Don't fail the request if saving history fails

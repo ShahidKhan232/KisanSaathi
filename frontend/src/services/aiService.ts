@@ -74,6 +74,11 @@ class AIService {
     };
   }
 
+  private getAuthHeaders(): Record<string, string> {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  }
+
   // Multilingual farming assistant
   async getChatResponse(
     message: string,
@@ -91,7 +96,7 @@ class AIService {
       const systemPrompt = systemPromptOverride || this.getSystemPrompt(language);
       const res = await fetch(`${this.backendUrl}/api/ai/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
         body: JSON.stringify({ message, systemPrompt })
       });
       
@@ -143,7 +148,7 @@ class AIService {
       const systemPrompt = this.getCropAnalysisPrompt(language);
       const res = await fetch(`${this.backendUrl}/api/ai/analyze-image`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
         body: JSON.stringify({ imageBase64, query, systemPrompt })
       });
       
@@ -196,7 +201,7 @@ class AIService {
       const systemPrompt = this.getSchemePrompt(language);
       const res = await fetch(`${this.backendUrl}/api/ai/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
         body: JSON.stringify({ message: userSituation, systemPrompt })
       });
       

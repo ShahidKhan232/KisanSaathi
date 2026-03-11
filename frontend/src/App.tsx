@@ -39,8 +39,11 @@ function AppInner() {
         });
         if (res.ok) {
           const data = await res.json();
-          // Show onboarding if profile is not marked complete OR has no name/location set
-          const isIncomplete = !data.profileComplete || (!data.name && !data.location && !data.phone);
+          // Show onboarding only when profileComplete is false AND the user has not filled
+          // any basic fields yet (name / location / phone). This prevents the form from
+          // re-appearing if the profileComplete flag somehow wasn't persisted but the user
+          // already provided their info.
+          const isIncomplete = !data.profileComplete && !data.name && !data.location && !data.phone;
           setShowOnboarding(isIncomplete);
         } else {
           // Profile fetch failed (404 / new user) — show onboarding
@@ -77,7 +80,7 @@ function AppInner() {
           )}
         </main>
         {user && <Navigation activeTab={activeTab} onTabChange={setActiveTab} />}
-        <ChatBot />
+         <ChatBot />
 
         {/* Onboarding modal — shown as overlay above everything for new users */}
         {showOnboarding && user && (

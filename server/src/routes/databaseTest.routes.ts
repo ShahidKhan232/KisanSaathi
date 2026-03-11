@@ -4,8 +4,8 @@ import { testDatabaseConnections, createSampleData } from '../controllers/databa
 
 const router = Router();
 
-// Test database connections (public - no auth required for basic test)
-router.get('/test', testDatabaseConnections);
+// Test database connections (requires authentication to see user-specific data)
+router.get('/test', authRequired, testDatabaseConnections);
 
 // Create sample data (requires authentication)
 router.post('/sample-data', authRequired, createSampleData);

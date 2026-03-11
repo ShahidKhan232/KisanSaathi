@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, RotateCcw, Copy, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, RotateCcw, Copy, ThumbsUp, ThumbsDown, Loader2, History } from 'lucide-react';
+import { ChatHistory } from './ChatHistory';
 import { useVoice } from '../hooks/useVoice';
 import { useTranslation } from 'react-i18next';
 import { aiService } from '../services/aiService';
@@ -69,6 +70,7 @@ export function ChatBot() {
   const [currentCrop, setCurrentCrop] = useState<string | null>(null);
   const [currentDisease, setCurrentDisease] = useState<string | null>(null);
   const [sessionId] = useState<string>(() => `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const [showHistory, setShowHistory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -501,12 +503,21 @@ export function ChatBot() {
           </div>
           <div className="flex items-center space-x-1">
             <button
-              onClick={clearChat}
-              className="p-2 hover:bg-white/20 rounded-lg transition-all duration-200 hover:scale-110 backdrop-blur-sm"
-              title="Clear chat"
+              onClick={() => setShowHistory(h => !h)}
+              className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 backdrop-blur-sm ${showHistory ? 'bg-white/30' : 'hover:bg-white/20'}`}
+              title={showHistory ? 'Back to chat' : 'Chat history'}
             >
-              <RotateCcw size={18} />
+              <History size={18} />
             </button>
+            {!showHistory && (
+              <button
+                onClick={clearChat}
+                className="p-2 hover:bg-white/20 rounded-lg transition-all duration-200 hover:scale-110 backdrop-blur-sm"
+                title="Clear chat"
+              >
+                <RotateCcw size={18} />
+              </button>
+            )}
             <button
               onClick={() => setIsOpen(false)}
               className="p-2 hover:bg-white/20 rounded-lg transition-all duration-200 hover:scale-110 backdrop-blur-sm"
@@ -517,10 +528,17 @@ export function ChatBot() {
         </div>
       </div>
 
+      {/* History panel */}
+      {showHistory && (
+        <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-gray-50 to-gray-100/50" style={{ scrollbarWidth: 'thin', scrollbarColor: '#10b981 transparent' }}>
+          <ChatHistory />
+        </div>
+      )}
+
       {/* Messages */}
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-gray-50 to-gray-100/50"
+        className={`flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-gray-50 to-gray-100/50 ${showHistory ? 'hidden' : ''}`}
         style={{ scrollbarWidth: 'thin', scrollbarColor: '#10b981 transparent' }}
       >
         {messages.map((message, index) => {
@@ -644,6 +662,7 @@ export function ChatBot() {
       </div>
 
       {/* Input */}
+      {!showHistory && (
       <div className="p-4 bg-white border-t border-gray-200 shadow-lg">
         <form onSubmit={handleSubmit} className="flex items-center space-x-2">
           <div className="flex-1 relative">
@@ -676,6 +695,7 @@ export function ChatBot() {
           </button>
         </form>
       </div>
+      )}
     </div>
   );
 }

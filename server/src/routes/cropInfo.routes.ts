@@ -7,6 +7,7 @@ import {
     updateCrop,
     deleteCrop
 } from '../controllers/cropInfo.controller.js';
+import { authRequired } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -15,9 +16,9 @@ router.get('/', getAllCrops);
 router.get('/name/:name', getCropByName);
 router.get('/:id', getCropById);
 
-// Admin routes - can add auth middleware later
-router.post('/', createCrop);
-router.put('/:id', updateCrop);
-router.delete('/:id', deleteCrop);
+// Admin routes - require authentication
+router.post('/', authRequired, createCrop);
+router.put('/:id', authRequired, updateCrop);
+router.delete('/:id', authRequired, deleteCrop);
 
 export default router;

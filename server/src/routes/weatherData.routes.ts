@@ -23,8 +23,8 @@ router.get('/user/preferences', authRequired, getUserWeatherPreferences);
 router.get('/user/history', authRequired, getUserWeatherHistory);
 router.post('/user', authRequired, saveUserWeatherData);
 
-// Admin/Service routes - for saving and managing weather data
-router.post('/', saveWeatherData);
-router.delete('/cleanup', cleanupOldWeatherData);
+// Admin/Service routes - require authentication
+router.post('/', authRequired, saveWeatherData);
+router.delete('/cleanup', authRequired, cleanupOldWeatherData);
 
 export default router;

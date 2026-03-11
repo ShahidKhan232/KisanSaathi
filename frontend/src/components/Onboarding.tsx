@@ -82,9 +82,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       if (!res.ok) throw new Error('Failed to save profile');
       onComplete();
     } catch (err) {
-      setError('Could not save your details. You can update them later in Profile.');
-      // Still proceed after a brief moment so user isn't stuck
-      setTimeout(onComplete, 2500);
+      setError('Could not save your profile. Please check your connection and try again.');
+      // Do NOT auto-dismiss — let the user retry so profileComplete is actually saved
     } finally {
       setSaving(false);
     }
@@ -215,9 +214,16 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           )}
 
           {error && (
-            <p className="mt-3 text-sm text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-              {error}
-            </p>
+            <div className="mt-3 text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 flex items-center justify-between gap-3">
+              <span>{error}</span>
+              <button
+                type="button"
+                onClick={onComplete}
+                className="text-xs underline whitespace-nowrap text-amber-600 hover:text-amber-800"
+              >
+                Skip for now
+              </button>
+            </div>
           )}
         </div>
 

@@ -957,9 +957,18 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
           </div>
 
           {/* Disease History Section */}
-          <div className="mt-8">
-            <DiseaseHistory />
-          </div>
+          {showHistory && (
+            <div className="mt-8">
+              <DiseaseHistory />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Disease History — shown below whenever toggled, regardless of image state */}
+      {showHistory && !selectedImage && (
+        <div className="mt-2">
+          <DiseaseHistory />
         </div>
       )}
 

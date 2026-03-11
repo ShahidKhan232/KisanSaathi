@@ -15,7 +15,7 @@ export interface IForecast {
 }
 
 export interface IWeatherData {
-    userId?: mongoose.Types.ObjectId; // Optional user association
+    userId: mongoose.Types.ObjectId; // Required user association — weather records are user-scoped
     location: string;
     coordinates?: {
         latitude: number;
@@ -52,7 +52,7 @@ const ForecastSchema = new Schema<IForecast>({
 }, { _id: false });
 
 const WeatherDataSchema = new Schema<IWeatherDataDoc>({
-    userId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     location: { type: String, required: true, trim: true, index: true },
     coordinates: {
         latitude: { type: Number },

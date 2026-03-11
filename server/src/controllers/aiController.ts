@@ -2,8 +2,19 @@ import { Request, Response } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { CropDiseaseModel } from '../models/CropDisease.js';
 import { ChatHistoryModel } from '../models/ChatHistory.js';
+import { UserModel } from '../models/User.js';
 import { AuthRequest } from '../middleware/auth.js';
 import mongoose from 'mongoose';
+
+/** Resolve Firebase UID or MongoDB ObjectId to a MongoDB ObjectId */
+async function resolveMongoId(userId: string): Promise<mongoose.Types.ObjectId | null> {
+    if (mongoose.Types.ObjectId.isValid(userId)) {
+        return new mongoose.Types.ObjectId(userId);
+    }
+    const user = await UserModel.findOne({ firebaseUid: userId }).lean();
+    if (!user) return null;
+    return user._id as mongoose.Types.ObjectId;
+}
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
@@ -59,14 +70,21 @@ export const chat = async (req: Request, res: Response): Promise<void> => {
                     // If no sessionId provided, we create a new conversation
                     const effectiveSessionId = sessionId || new mongoose.Types.ObjectId().toString();
 
+                    const mongoId = await resolveMongoId(user.id);
+                    if (!mongoId) {
+                        console.error(`User not found for AI chat: ${user.id}`);
+                        res.json({ text, sessionId: effectiveSessionId });
+                        return;
+                    }
+
                     let chatHistory = await ChatHistoryModel.findOne({
-                        userId: user.id,
+                        userId: mongoId,
                         sessionId: effectiveSessionId
                     });
 
                     if (!chatHistory) {
                         chatHistory = new ChatHistoryModel({
-                            userId: user.id,
+                            userId: mongoId,
                             sessionId: effectiveSessionId,
                             messages: []
                         });
@@ -210,18 +228,21 @@ export const analyzeImage = async (req: Request, res: Response): Promise<void> =
             // Save to database if user is authenticated
             if (user && user.id && analysisData.isPlant) {
                 try {
-                    await CropDiseaseModel.create({
-                        userId: user.id,
-                        cropName: analysisData.cropName || 'Unknown',
-                        imageUrl: '', // We don't save the base64 to DB to avoid size limits, ideally upload to S3/Cloudinary
-                        detectedDisease: analysisData.detectedDisease,
-                        confidence: analysisData.confidence,
-                        symptoms: analysisData.symptoms,
-                        treatment: analysisData.treatment,
-                        preventionTips: analysisData.preventionTips,
-                        detectedAt: new Date()
-                    });
-                    console.log(`✅ Disease analysis saved to database for user ${user.id}`);
+                    const mongoId = await resolveMongoId(user.id);
+                    if (mongoId) {
+                        await CropDiseaseModel.create({
+                            userId: mongoId,
+                            cropName: analysisData.cropName || 'Unknown',
+                            imageUrl: '', // We don't save the base64 to DB to avoid size limits, ideally upload to S3/Cloudinary
+                            detectedDisease: analysisData.detectedDisease,
+                            confidence: analysisData.confidence,
+                            symptoms: analysisData.symptoms,
+                            treatment: analysisData.treatment,
+                            preventionTips: analysisData.preventionTips,
+                            detectedAt: new Date()
+                        });
+                        console.log(`✅ Disease analysis saved to database for user ${user.id}`);
+                    }
                 } catch (dbError) {
                     console.error('❌ Error saving disease record:', dbError);
                 }

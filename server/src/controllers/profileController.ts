@@ -34,7 +34,7 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
             }
 
             console.log(`Profile found in database for user ${id}`);
-            const { _id, email, name, phone, location, landSize, crops, kccNumber, aadhaar, bankAccount } = user as any;
+            const { _id, email, name, phone, location, landSize, crops, kccNumber, aadhaar, bankAccount, profileComplete } = user as any;
 
             res.json({
                 id: String(_id),
@@ -46,7 +46,8 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
                 crops: crops ?? [],
                 kccNumber: kccNumber ?? null,
                 aadhaar: aadhaar ?? null,
-                bankAccount: bankAccount ?? null
+                bankAccount: bankAccount ?? null,
+                profileComplete: profileComplete ?? false
             });
             return;
         }
@@ -68,7 +69,8 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
             email: mem.email,
             name: mem.name ?? null,
             ...prof,
-            crops: prof.crops ?? []
+            crops: prof.crops ?? [],
+            profileComplete: (prof as any).profileComplete ?? false
         });
     } catch (error) {
         console.error('Profile fetch error:', error);
@@ -128,14 +130,14 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
             }
 
             console.log(`Profile updated successfully for user ${id}`);
-            const { _id, email, name, phone, location, landSize, crops, kccNumber, aadhaar, bankAccount } = user as any;
+            const { _id, email, name, phone, location, landSize, crops, kccNumber, aadhaar, bankAccount, profileComplete } = user as any;
 
             // Emit real-time update
             const wsManager = req.app.get('wsManager') as WebSocketManager;
             if (wsManager) {
                 wsManager.emitToUser(id, 'profile:update', {
                     profile: {
-                        name, phone, email, location, landSize, crops, kccNumber, aadhaar, bankAccount
+                        name, phone, email, location, landSize, crops, kccNumber, aadhaar, bankAccount, profileComplete
                     }
                 });
             }
@@ -150,7 +152,8 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
                 crops: crops ?? [],
                 kccNumber: kccNumber ?? null,
                 aadhaar: aadhaar ?? null,
-                bankAccount: bankAccount ?? null
+                bankAccount: bankAccount ?? null,
+                profileComplete: profileComplete ?? false
             });
             return;
         }
@@ -210,7 +213,7 @@ export const getProfileStats = async (req: AuthRequest, res: Response): Promise<
         };
 
         if (mongoReady) {
-            const user = await UserModel.findById(id).lean();
+            const user = await resolveUser(id);
             if (user && (user as any).crops) {
                 stats.totalCrops = (user as any).crops.length;
             }
