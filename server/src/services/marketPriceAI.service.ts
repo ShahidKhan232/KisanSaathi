@@ -319,14 +319,22 @@ CRITICAL: Return ONLY the JSON array, no additional text or explanation. Ensure 
     }
 
     /**
-     * Check if prices need to be refreshed (older than 24 hours)
+     * Check if prices need to be refreshed.
+     * Returns true when no fetch has happened today (IST calendar day).
      */
     async needsRefresh(): Promise<boolean> {
         const lastFetch = await this.getLastFetchTime();
         if (!lastFetch) return true;
 
-        const hoursSinceLastFetch = (Date.now() - lastFetch.getTime()) / (1000 * 60 * 60);
-        return hoursSinceLastFetch >= 24;
+        // Compare calendar dates in IST (UTC+5:30)
+        const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+        const nowIST = new Date(Date.now() + IST_OFFSET_MS);
+        const lastFetchIST = new Date(lastFetch.getTime() + IST_OFFSET_MS);
+
+        const todayIST = nowIST.toISOString().slice(0, 10);       // "YYYY-MM-DD"
+        const lastFetchDay = lastFetchIST.toISOString().slice(0, 10);
+
+        return lastFetchDay < todayIST;
     }
 }
 

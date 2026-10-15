@@ -480,8 +480,8 @@ export function SchemeRecommendations() {
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('governmentSchemes')}</h2>
-        <p className="text-gray-600">{t('recommendedSchemes')}</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('Government Schemes')}</h2>
+        <p className="text-gray-600">{t('Recommended Schemes')}</p>
       </div>
 
       {/* Search and Filters */}

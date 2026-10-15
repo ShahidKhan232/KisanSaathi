@@ -272,35 +272,64 @@ class AIService {
 
   private getCropAnalysisPrompt(language: 'hi' | 'mr' | 'en'): string {
     const prompts = {
-      hi: `आप एक कृषि विशेषज्ञ हैं जो फसल की बीमारियों की पहचान करते हैं। इस तस्वीर को देखकर:
+      hi: `आप एक कृषि विशेषज्ञ हैं जो फसल की बीमारियों की पहचान करते हैं। इस तस्वीर को देखकर नीचे दिए गए प्रारूप में हिंदी में उत्तर दें:
 
-      1. फसल की पहचान करें
-      2. किसी बीमारी/समस्या के लक्षण बताएं
-      3. संभावित कारण बताएं
-      4. उपचार के तरीके सुझाएं
-      5. बचाव के उपाय बताएं
-      
-      सरल हिंदी में जवाब दें और किसानों के लिए व्यावहारिक सुझाव दें।`,
-      
-      mr: `तुम्ही एक शेती तज्ञ आहात जे पिकांच्या रोगांची ओळख करतात. हे छायाचित्र पाहून:
+**1. फसल की पहचान:**
+[फसल का नाम और संक्षिप्त विवरण]
 
-      1. पिकाची ओळख करा
-      2. कोणत्याही रोग/समस्येची लक्षणे सांगा
-      3. संभाव्य कारणे सांगा
-      4. उपचाराचे मार्ग सुचवा
-      5. प्रतिबंधाचे उपाय सांगा`,
-      
-      en: `You are an agricultural expert who identifies crop diseases. Looking at this image:
+**2. रोग/समस्या के लक्षण:**
+[दिखाई देने वाले लक्षण]
 
-      1. Identify the crop
-      2. Identify any disease/problem symptoms
-      3. Explain possible causes
-      4. Suggest treatment methods
-      5. Provide prevention measures
-      
-      Give practical advice for farmers in simple language.`
+**3. संभावित कारण:**
+[कारणों की सूची]
+
+**4. उपचार:**
+[उपचार के तरीके और दवाइयां]
+
+**5. बचाव:**
+[बचाव के उपाय]
+
+सरल हिंदी में जवाब दें और किसानों के लिए व्यावहारिक सुझाव दें।`,
+
+      mr: `तुम्ही एक शेती तज्ञ आहात जे पिकांच्या रोगांची ओळख करतात. हे छायाचित्र पाहून खालील प्रारूपात मराठीत उत्तर द्या:
+
+**1. पिकाची ओळख:**
+[पिकाचे नाव आणि थोडक्यात माहिती]
+
+**2. रोग/समस्येची लक्षणे:**
+[दिसणारी लक्षणे]
+
+**3. संभाव्य कारणे:**
+[कारणांची यादी]
+
+**4. उपचार:**
+[उपचाराचे मार्ग आणि औषधे]
+
+**5. प्रतिबंध:**
+[प्रतिबंधाचे उपाय]
+
+सोप्या मराठीत उत्तर द्या आणि शेतकऱ्यांसाठी व्यावहारिक सुचना द्या.`,
+
+      en: `You are an agricultural expert who identifies crop diseases. Looking at this image, respond in the following format in English:
+
+**1. Crop Identification:**
+[Crop name and brief description]
+
+**2. Disease/Problem Symptoms:**
+[Visible symptoms]
+
+**3. Possible Causes:**
+[List of causes]
+
+**4. Treatment:**
+[Treatment methods and medicines]
+
+**5. Prevention:**
+[Prevention measures]
+
+Give practical advice for farmers in simple language.`
     };
-    
+
     return prompts[language];
   }
 

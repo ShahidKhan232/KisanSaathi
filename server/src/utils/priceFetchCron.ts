@@ -46,6 +46,14 @@ export function initializePriceFetchCron() {
  */
 async function checkAndRunIfNeeded() {
     try {
+        const lastFetch = await marketPriceAIService.getLastFetchTime();
+
+        if (lastFetch) {
+            console.log(`ℹ️  Last Gemini price fetch: ${lastFetch.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST`);
+        } else {
+            console.log('ℹ️  No previous Gemini price fetch found in database');
+        }
+
         const needsRefresh = await marketPriceAIService.needsRefresh();
 
         if (needsRefresh) {

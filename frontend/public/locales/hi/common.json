@@ -128,5 +128,15 @@
     "clear": "साफ़",
     "quickFilters": "त्वरित फिल्टर",
     "clearAll": "सभी साफ़ करें",
-    "chars": "अक्षर"
+    "chars": "अक्षर",
+    "quickSummary": "संक्षिप्त सारांश",
+    "identifiedCrop": "पहचानी गई फसल",
+    "mainIssue": "मुख्य समस्या",
+    "treatmentAvailable": "उपचार उपलब्ध",
+    "treatmentProvided": "उपचार की सिफारिशें दी गई हैं",
+    "importantReminder": "महत्वपूर्ण सूचना",
+    "importantReminderPesticide": "किसी भी कीटनाशक का उपयोग करते समय लेबल निर्देशों का पालन करें",
+    "importantReminderExpert": "क्षेत्र-विशिष्ट सलाह के लिए स्थानीय कृषि विशेषज्ञों से परामर्श करें",
+    "importantReminderPreventive": "बचाव के उपायों को सुरक्षा की पहली पंक्ति के रूप में उपयोग करें",
+    "importantReminderMonitor": "नियमित निगरानी से रोग जल्दी पकड़े जाते हैं"
 }

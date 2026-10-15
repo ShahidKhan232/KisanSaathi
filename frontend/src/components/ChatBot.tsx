@@ -196,16 +196,28 @@ export function ChatBot() {
   const isOffTopic = (text: string, aiAskedLocation: boolean): boolean => {
     const lower = text.toLowerCase();
     const agKeywords = [
-      // General
+      // General (English)
       'crop', 'farm', 'farming', 'soil', 'seed', 'plant', 'sow', 'nursery', 'irrigation', 'harvest', 'yield', 'agriculture', 'agri',
-      // Inputs / management
+      // Inputs / management (English)
       'fertilizer', 'pesticide', 'manure', 'compost', 'organic', 'mulch', 'drip', 'spray', 'weed', 'disease', 'pest',
-      // Prices / schemes
+      // Prices / schemes (English)
       'price', 'market', 'mandi', 'scheme', 'subsidy', 'loan', 'pm-kisan', 'kcc',
-      // Machinery
+      // Machinery (English)
       'tractor', 'implement', 'sprayer',
-      // Crops (staples / cash / horticulture)
-      'rice', 'paddy', 'wheat', 'maize', 'corn', 'millet', 'bajra', 'jowar', 'ragi', 'soybean', 'cotton', 'sugarcane', 'pulse', 'lentil', 'gram', 'tur', 'arhar', 'urad', 'moong', 'groundnut', 'peanut', 'mustard', 'rapeseed', 'sunflower', 'potato', 'onion', 'tomato', 'chilli', 'brinjal', 'okra', 'cabbage', 'cauliflower', 'mango', 'banana', 'coconut', 'papaya', 'guava', 'grape', 'pomegranate'
+      // Crops (English)
+      'rice', 'paddy', 'wheat', 'maize', 'corn', 'millet', 'bajra', 'jowar', 'ragi', 'soybean', 'cotton', 'sugarcane', 'pulse', 'lentil', 'gram', 'tur', 'arhar', 'urad', 'moong', 'groundnut', 'peanut', 'mustard', 'rapeseed', 'sunflower', 'potato', 'onion', 'tomato', 'chilli', 'brinjal', 'okra', 'cabbage', 'cauliflower', 'mango', 'banana', 'coconut', 'papaya', 'guava', 'grape', 'pomegranate',
+      // Hindi agricultural keywords
+      'फसल', 'खेती', 'खेत', 'मिट्टी', 'बीज', 'बुवाई', 'सिंचाई', 'खाद', 'उर्वरक', 'कीटनाशक', 'रोग', 'कीट', 'फसलें',
+      'धान', 'गेहूं', 'मक्का', 'बाजरा', 'ज्वार', 'सोयाबीन', 'कपास', 'गन्ना', 'दाल', 'चना', 'अरहर', 'उड़द', 'मूंग',
+      'मूंगफली', 'सरसों', 'सूरजमुखी', 'आलू', 'प्याज', 'टमाटर', 'मिर्च', 'बैंगन', 'भिंडी', 'आम', 'केला', 'अंगूर',
+      'मंडी', 'भाव', 'बाजार', 'योजना', 'सब्सिडी', 'लोन', 'किसान', 'कृषि', 'पशु', 'पशुपालन', 'मौसम', 'वर्षा', 'तापमान',
+      'कटाई', 'बचाव', 'उपचार', 'नर्सरी', 'ट्रैक्टर', 'स्प्रे', 'ड्रिप',
+      // Marathi agricultural keywords
+      'पीक', 'पिक', 'शेती', 'शेत', 'माती', 'बियाणे', 'पेरणी', 'सिंचन', 'खत', 'कीटकनाशक', 'रोग', 'किडी', 'पिके',
+      'भात', 'गहू', 'मका', 'बाजरी', 'ज्वारी', 'सोयाबीन', 'कापूस', 'ऊस', 'डाळ', 'हरभरा', 'तूर', 'उडीद', 'मूग',
+      'भुईमूग', 'मोहरी', 'सूर्यफूल', 'बटाटा', 'कांदा', 'टोमॅटो', 'मिरची', 'वांगी', 'भेंडी', 'आंबा', 'केळी', 'द्राक्षे',
+      'मंडी', 'भाव', 'बाजार', 'योजना', 'अनुदान', 'कर्ज', 'शेतकरी', 'कृषी', 'जनावरे', 'पशुपालन', 'हवामान', 'पाऊस', 'तापमान',
+      'काढणी', 'प्रतिबंध', 'उपचार', 'रोपवाटिका', 'ट्रॅक्टर', 'फवारणी', 'ठिबक', 'टाळायचे', 'टाळणे', 'लागवड', 'वाढ',
     ];
     const locationTokens = ['location', 'land', 'acre', 'hectare', 'area', 'mumbai', 'maharashtra', 'pune', 'nashik', 'nagpur', 'delhi', 'punjab', 'haryana', 'uttar', 'karnataka', 'gujarat', 'bihar', 'kolkata', 'west bengal', 'rajasthan'];
     const agMatch = [...agKeywords, ...locationTokens].some(k => lower.includes(k));
@@ -219,8 +231,20 @@ export function ChatBot() {
   // Extract crop and disease mentions (simple heuristic)
   const updateContextFromUser = (text: string) => {
     const lower = text.toLowerCase();
-    const cropList = ['tomato', 'potato', 'chilli', 'rice', 'paddy', 'wheat', 'maize', 'corn', 'soybean', 'cotton', 'sugarcane', 'onion', 'garlic', 'banana', 'mango', 'grape', 'pomegranate', 'groundnut', 'peanut'];
-    const diseaseList = ['late blight', 'early blight', 'powdery mildew', 'downy mildew', 'bacterial wilt', 'leaf curl', 'blast', 'stem borer', 'fruit borer'];
+    const cropList = [
+      'tomato', 'potato', 'chilli', 'rice', 'paddy', 'wheat', 'maize', 'corn', 'soybean', 'cotton', 'sugarcane', 'onion', 'garlic', 'banana', 'mango', 'grape', 'pomegranate', 'groundnut', 'peanut',
+      // Hindi crop names
+      'टमाटर', 'आलू', 'मिर्च', 'धान', 'गेहूं', 'मक्का', 'सोयाबीन', 'कपास', 'गन्ना', 'प्याज', 'लहसुन', 'केला', 'आम', 'अंगूर', 'मूंगफली',
+      // Marathi crop names
+      'टोमॅटो', 'बटाटा', 'मिरची', 'भात', 'गहू', 'मका', 'कांदा', 'केळी', 'आंबा', 'द्राक्षे', 'भुईमूग',
+    ];
+    const diseaseList = [
+      'late blight', 'early blight', 'powdery mildew', 'downy mildew', 'bacterial wilt', 'leaf curl', 'blast', 'stem borer', 'fruit borer',
+      // Hindi disease names
+      'झुलसा', 'चूर्णिल', 'पत्ती मोड़', 'तना छेदक', 'फल छेदक',
+      // Marathi disease names
+      'करपा', 'भुरी', 'पानगळ', 'खोडकिडा',
+    ];
     const foundCrop = cropList.find(c => lower.includes(c));
     const foundDisease = diseaseList.find(d => lower.includes(d));
     if (foundCrop && foundCrop !== currentCrop) setCurrentCrop(foundCrop);
@@ -272,10 +296,18 @@ export function ChatBot() {
       // Update context
       updateContextFromUser(text);
 
-      const responseLang = '- Respond in ' + (i18n.language === 'hi' ? 'Hindi' : i18n.language === 'mr' ? 'Marathi' : 'English');
+      // Detect response language: prefer app language, but auto-detect Devanagari input
+      const hasDevanagari = /[\u0900-\u097F]/.test(text);
+      const detectedLang = hasDevanagari
+        ? (i18n.language === 'mr' || /[\u0900-\u097F]{2}/.test(text) && i18n.language !== 'hi' ? 'mr' : 'hi')
+        : i18n.language;
+      const langName = detectedLang === 'hi' ? 'Hindi' : detectedLang === 'mr' ? 'Marathi' : 'English';
+      const responseLangInstruction = `CRITICAL INSTRUCTION: You MUST respond ONLY in ${langName}. Do NOT use English in your response. Every word of your answer must be in ${langName}.`;
+
       const locationLine = farmerLocation ? `Farmer location: ${farmerLocation}. Adapt crops, seasons (Kharif/Rabi/Zaid), pests & management to this region.` : 'If location not provided and it is essential for accuracy, politely ask once for state/district.';
       const followUpNeeds = pendingQuestion ? 'The user has now provided missing info (likely location). Provide the complete answer, do NOT ask again.' : '';
       const systemPrompt = [
+        responseLangInstruction,
         'You are Kisanसाथी AI, a focused assistant for Indian farmers.',
         locationLine,
         currentCrop ? `Current crop of concern: ${currentCrop}. Provide stage-appropriate guidance if stage implied.` : '',
@@ -289,8 +321,7 @@ export function ChatBot() {
         '- Highlight critical tips with a leading *Important:*',
         '- Ask at most ONE clarifying question only if absolutely required.',
         '- Prefer specific numbers (e.g., spacing 20-25 cm, N:P:K ratios) where typical.',
-        '- Keep i18n.language simple and farmer-friendly.',
-        responseLang,
+        '- Keep the language simple and farmer-friendly.',
         followUpNeeds,
         "Do NOT repeat generic disclaimers like 'it depends' without also giving best concrete recommendations.",
         "Never ask for location again if it's already provided.",
@@ -300,7 +331,7 @@ export function ChatBot() {
       // Pass the system prompt to AI service
       // Detect if last AI message requested location details
       const lastAiMessage = [...updatedMessages].reverse().find(m => m.sender === 'ai');
-      const aiAskedLocation = !!lastAiMessage && /your location|state and district|tell me your location/i.test(lastAiMessage.text);
+      const aiAskedLocation = !!lastAiMessage && /your location|state and district|tell me your location|आपका स्थान|राज्य.*जिला|तुमचे ठिकाण|राज्य.*जिल्हा/i.test(lastAiMessage.text);
 
       // Enrich location-only replies with agricultural context before sending to AI
       let enrichedText = text;
@@ -328,7 +359,7 @@ export function ChatBot() {
         setMessages(prev => prev.filter(msg => !msg.isTyping).concat(warn));
         return;
       }
-      const response = await aiService.getChatResponse(enrichedText, getValidLanguage(i18n.language), systemPrompt);
+      const response = await aiService.getChatResponse(enrichedText, getValidLanguage(detectedLang), systemPrompt);
       const { formatted: formattedResponse, truncated, topicHint } = formatResponse(response, raw);
 
       const aiMessage: Message = {
@@ -383,7 +414,7 @@ export function ChatBot() {
       }
 
       // Detect if AI is requesting location so we can merge later
-      if (!farmerLocation && /\byour (state|district|location|region)\b|tell me your location/i.test(formattedResponse)) {
+      if (!farmerLocation && /\byour (state|district|location|region)\b|tell me your location|आपका स्थान|तुमचे ठिकाण/i.test(formattedResponse)) {
         setAwaitingLocation(true);
         if (addUserMessage) setPendingQuestion(raw); // store original user intent
       }

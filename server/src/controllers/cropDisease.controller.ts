@@ -18,6 +18,12 @@ async function resolveMongoId(userId: string): Promise<mongoose.Types.ObjectId |
     return user._id as mongoose.Types.ObjectId;
 }
 
+const DUPLICATE_WINDOW_MS = 60 * 1000;
+
+function normalizeText(value: unknown): string {
+    return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
 // Get disease detection history for a user
 export const getDiseaseHistory = async (req: AuthRequest, res: Response) => {
     try {
@@ -96,6 +102,31 @@ export const saveDiseaseDetection = async (req: AuthRequest, res: Response) => {
         }
 
         console.log('💾 Saving disease detection:', cropName, '-', detectedDisease);
+
+        const normalizedCrop = normalizeText(cropName);
+        const normalizedDisease = normalizeText(detectedDisease);
+        const normalizedConfidence = Number(confidence);
+        const duplicateThreshold = new Date(Date.now() - DUPLICATE_WINDOW_MS);
+
+        const recentDetections = await CropDiseaseModel.find({
+            userId: mongoId,
+            detectedAt: { $gte: duplicateThreshold }
+        })
+            .sort({ detectedAt: -1 })
+            .limit(10)
+            .lean();
+
+        const duplicate = recentDetections.find((item) => {
+            const cropMatches = normalizeText(item.cropName) === normalizedCrop;
+            const diseaseMatches = normalizeText(item.detectedDisease) === normalizedDisease;
+            const confidenceMatches = Math.abs(Number(item.confidence) - normalizedConfidence) < 0.0001;
+            return cropMatches && diseaseMatches && confidenceMatches;
+        });
+
+        if (duplicate) {
+            console.log(`♻️ Duplicate detection ignored for user ${userId}, returning existing ${duplicate._id}`);
+            return res.status(200).json(duplicate);
+        }
 
         const detection = await CropDiseaseModel.create({
             userId: mongoId,

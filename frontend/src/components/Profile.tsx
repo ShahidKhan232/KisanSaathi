@@ -176,7 +176,7 @@ export function Profile() {
       formatter: (v: string) => v
     },
     {
-      label: t('schemesApplied'),
+      label: t('Schemes Applied'),
       value: stats.schemesApplied.toString(),
       color: 'text-blue-600',
       loading: loading,
@@ -290,7 +290,7 @@ export function Profile() {
     },
     {
       icon: CreditCard,
-      label: t('paymentHistory'),
+      label: t('Payment History'),
       action: () => {
         setShowPayments(true);
         fetchPayments();
@@ -338,7 +338,7 @@ export function Profile() {
     },
     {
       icon: Phone,
-      label: t('helpSupport'),
+      label: t('Help Support'),
       action: () => setShowSupport(true),
       dialog: showSupport,
       setDialog: setShowSupport,
@@ -569,7 +569,7 @@ export function Profile() {
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-gray-800">{t('personalInfo')}</h3>
+            <h3 className="text-lg font-semibold text-gray-800">{t('Personal Info')}</h3>
             <p className="text-sm text-gray-500 mt-1">
               {loading ? (
                 <span className="inline-flex items-center">
@@ -766,7 +766,7 @@ export function Profile() {
 
       {/* Quick Actions */}
       <div className="bg-white rounded-xl shadow-sm border p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('quickActions')}</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('Quick Actions')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {menuItems.map((item, index) => {
             const Icon = item.icon;
@@ -800,7 +800,7 @@ export function Profile() {
 
       {/* i18n.language Preferences */}
       <div className="bg-white rounded-xl shadow-sm border p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('languageSettings')}</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('Language Settings')}</h3>
         <div className="grid grid-cols-3 gap-2">
           <label className={`flex items-center justify-center space-x-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${i18n.language === 'hi' ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-700'}`}>
             <input

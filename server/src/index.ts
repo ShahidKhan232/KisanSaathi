@@ -143,6 +143,10 @@ connectDatabase()
   .then(async () => {
     // Create indexes for all models after successful connection
     await createIndexes();
+    // Initialize market price cron job AFTER DB is ready so the
+    // startup freshness check can actually query MongoDB.
+    const { initializePriceFetchCron } = await import('./utils/priceFetchCron.js');
+    initializePriceFetchCron();
   })
   .catch(err => {
     console.error('Failed to connect to database:', err);
@@ -155,10 +159,6 @@ const httpServer = createServer(app);
 const wsManager = new WebSocketManager(httpServer);
 app.set('wsManager', wsManager);
 console.log('✅ WebSocket manager initialized');
-
-// Initialize market price cron job
-import { initializePriceFetchCron } from './utils/priceFetchCron.js';
-initializePriceFetchCron();
 
 // Start server
 const PORT = Number(process.env.PORT) || 5001;

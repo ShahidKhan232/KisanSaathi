@@ -92,11 +92,23 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
 
     try {
         if (mongoReady) {
+            // Resolve once so downstream queries always use a valid Mongo ObjectId.
+            const existing = await resolveUser(id);
+            if (!existing) {
+                console.log(`User ${id} not found for profile update (by id or firebaseUid)`);
+                res.status(404).json({ error: 'User not found' });
+                return;
+            }
+
             const update: Partial<IUser> = parsed.data as Partial<IUser>;
+
+            if (typeof update.email === 'string') {
+                update.email = update.email.trim().toLowerCase();
+            }
 
             // If email change requested, ensure uniqueness
             if (update.email) {
-                const exists = await UserModel.findOne({ email: update.email, _id: { $ne: id } }).lean();
+                const exists = await UserModel.findOne({ email: update.email, _id: { $ne: existing._id } }).lean();
                 if (exists) {
                     console.log(`Email ${update.email} already in use by another user`);
                     res.status(409).json({ error: 'Email already in use' });
@@ -110,14 +122,6 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
                     (update[key as keyof IUser] as any) = (update[key as keyof IUser] as string).trim();
                 }
             });
-
-            // Find the document first so we get the ObjectId regardless of id type
-            const existing = await resolveUser(id);
-            if (!existing) {
-                console.log(`User ${id} not found for profile update (by id or firebaseUid)`);
-                res.status(404).json({ error: 'User not found' });
-                return;
-            }
             const user = await UserModel.findByIdAndUpdate(
                 existing._id,
                 { $set: update },
