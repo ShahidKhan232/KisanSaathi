@@ -128,5 +128,15 @@
     "clear": "Clear",
     "quickFilters": "Quick filters",
     "clearAll": "Clear All",
-    "chars": "chars"
+    "chars": "chars",
+    "quickSummary": "Quick Summary",
+    "identifiedCrop": "Identified Crop",
+    "mainIssue": "Main Issue",
+    "treatmentAvailable": "Treatment Available",
+    "treatmentProvided": "Treatment recommendations provided",
+    "importantReminder": "Important Reminder",
+    "importantReminderPesticide": "Always follow label instructions when using any pesticide",
+    "importantReminderExpert": "Consult local agricultural experts for region-specific advice",
+    "importantReminderPreventive": "Use preventive measures as the first line of defense",
+    "importantReminderMonitor": "Regular monitoring helps catch diseases early"
 }

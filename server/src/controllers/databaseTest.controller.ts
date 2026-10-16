@@ -13,7 +13,18 @@ import {
 } from '../models/index.js';
 import mongoose from 'mongoose';
 
-// Test all database connections and collections
+/**
+ * Resolve a MongoDB ObjectId from a raw user id string (ObjectId string or Firebase UID).
+ * Returns null if the user cannot be found.
+ */
+async function resolveMongoId(rawId: string): Promise<mongoose.Types.ObjectId | null> {
+    if (mongoose.Types.ObjectId.isValid(rawId)) {
+        return new mongoose.Types.ObjectId(rawId);
+    }
+    const user = await UserModel.findOne({ firebaseUid: rawId }).lean();
+    return user ? (user._id as mongoose.Types.ObjectId) : null;
+}
+
 export const testDatabaseConnections = async (req: AuthRequest, res: Response) => {
     try {
         const results: any = {
@@ -72,31 +83,35 @@ export const testDatabaseConnections = async (req: AuthRequest, res: Response) =
         // Test user-specific data if authenticated
         if (req.user?.id) {
             try {
-                const userId = req.user.id;
-                results.userData = {};
+                const mongoId = await resolveMongoId(req.user.id);
+                if (mongoId) {
+                    results.userData = {};
 
-                // Get user's chat history
-                const userChats = await ChatHistoryModel.find({ userId }).countDocuments();
-                results.userData.chatHistory = userChats;
+                    // Get user's chat history
+                    const userChats = await ChatHistoryModel.countDocuments({ userId: mongoId });
+                    results.userData.chatHistory = userChats;
 
-                // Get user's disease detections
-                const userDiseases = await CropDiseaseModel.find({ userId }).countDocuments();
-                results.userData.diseaseDetections = userDiseases;
+                    // Get user's disease detections
+                    const userDiseases = await CropDiseaseModel.countDocuments({ userId: mongoId });
+                    results.userData.diseaseDetections = userDiseases;
 
-                // Get user's price alerts
-                const userAlerts = await PriceAlertModel.find({ userId }).countDocuments();
-                results.userData.priceAlerts = userAlerts;
+                    // Get user's price alerts
+                    const userAlerts = await PriceAlertModel.countDocuments({ userId: mongoId });
+                    results.userData.priceAlerts = userAlerts;
 
-                // Get user's crop recommendations
-                const userRecommendations = await CropRecommendationModel.find({ userId }).countDocuments();
-                results.userData.cropRecommendations = userRecommendations;
+                    // Get user's crop recommendations
+                    const userRecommendations = await CropRecommendationModel.countDocuments({ userId: mongoId });
+                    results.userData.cropRecommendations = userRecommendations;
 
-                // Get user's weather data
-                const userWeather = await WeatherDataModel.find({ userId }).countDocuments();
-                results.userData.weatherData = userWeather;
+                    // Get user's weather data
+                    const userWeather = await WeatherDataModel.countDocuments({ userId: mongoId });
+                    results.userData.weatherData = userWeather;
 
-                results.userData.totalUserDataRecords = 
-                    userChats + userDiseases + userAlerts + userRecommendations + userWeather;
+                    results.userData.totalUserDataRecords = 
+                        userChats + userDiseases + userAlerts + userRecommendations + userWeather;
+                } else {
+                    results.userData = { error: 'User not found in database' };
+                }
             } catch (error) {
                 results.userData = {
                     error: error instanceof Error ? error.message : 'Failed to fetch user data'
@@ -118,9 +133,14 @@ export const testDatabaseConnections = async (req: AuthRequest, res: Response) =
 // Test creating sample data for empty collections
 export const createSampleData = async (req: AuthRequest, res: Response) => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
+        const rawUserId = req.user?.id;
+        if (!rawUserId) {
             return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const mongoId = await resolveMongoId(rawUserId);
+        if (!mongoId) {
+            return res.status(404).json({ error: 'User not found in database' });
         }
 
         const results: any = {
@@ -130,10 +150,10 @@ export const createSampleData = async (req: AuthRequest, res: Response) => {
 
         // Create sample chat history
         try {
-            const existingChat = await ChatHistoryModel.findOne({ userId, sessionId: 'test-session' });
+            const existingChat = await ChatHistoryModel.findOne({ userId: mongoId, sessionId: 'test-session' });
             if (!existingChat) {
                 await ChatHistoryModel.create({
-                    userId: new mongoose.Types.ObjectId(userId),
+                    userId: mongoId,
                     sessionId: 'test-session',
                     topic: 'Test Agriculture Query',
                     messages: [
@@ -157,10 +177,10 @@ export const createSampleData = async (req: AuthRequest, res: Response) => {
 
         // Create sample disease detection
         try {
-            const existingDisease = await CropDiseaseModel.findOne({ userId, cropName: 'Wheat' });
+            const existingDisease = await CropDiseaseModel.findOne({ userId: mongoId, cropName: 'Wheat' });
             if (!existingDisease) {
                 await CropDiseaseModel.create({
-                    userId: new mongoose.Types.ObjectId(userId),
+                    userId: mongoId,
                     cropName: 'Wheat',
                     detectedDisease: 'Leaf Rust',
                     confidence: 85,
@@ -177,10 +197,10 @@ export const createSampleData = async (req: AuthRequest, res: Response) => {
 
         // Create sample price alert
         try {
-            const existingAlert = await PriceAlertModel.findOne({ userId, crop: 'Wheat' });
+            const existingAlert = await PriceAlertModel.findOne({ userId: mongoId, crop: 'Wheat' });
             if (!existingAlert) {
                 await PriceAlertModel.create({
-                    userId: new mongoose.Types.ObjectId(userId),
+                    userId: mongoId,
                     crop: 'Wheat',
                     targetPrice: 2500,
                     alertType: 'above',
@@ -195,10 +215,10 @@ export const createSampleData = async (req: AuthRequest, res: Response) => {
 
         // Create sample crop recommendation
         try {
-            const existingRecommendation = await CropRecommendationModel.findOne({ userId });
+            const existingRecommendation = await CropRecommendationModel.findOne({ userId: mongoId });
             if (!existingRecommendation) {
                 await CropRecommendationModel.create({
-                    userId: new mongoose.Types.ObjectId(userId),
+                    userId: mongoId,
                     nitrogen: 50,
                     phosphorus: 30,
                     potassium: 40,
@@ -217,10 +237,10 @@ export const createSampleData = async (req: AuthRequest, res: Response) => {
 
         // Create sample weather data
         try {
-            const existingWeather = await WeatherDataModel.findOne({ userId });
+            const existingWeather = await WeatherDataModel.findOne({ userId: mongoId });
             if (!existingWeather) {
                 await WeatherDataModel.create({
-                    userId: new mongoose.Types.ObjectId(userId),
+                    userId: mongoId,
                     location: 'Punjab',
                     temperature: { min: 15, max: 28, avg: 22 },
                     humidity: 65,

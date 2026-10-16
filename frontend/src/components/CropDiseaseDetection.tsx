@@ -19,7 +19,7 @@ interface CropDiseaseDetectionProps {
 }
 
 // Function to format AI response into structured sections
-const formatAIResponse = (response: string): JSX.Element => {
+const formatAIResponse = (response: string, t: (key: string) => string = (k) => k): JSX.Element => {
   console.log('Raw AI Response:', response); // Debug log
 
   const sections: { [key: string]: string[] } = {};
@@ -114,15 +114,18 @@ const formatAIResponse = (response: string): JSX.Element => {
   // Define section icons and colors
   const getSectionIcon = (title: string) => {
     const lowerTitle = title.toLowerCase();
-    if (lowerTitle.includes('crop') || lowerTitle.includes('identification')) {
+    if (lowerTitle.includes('crop') || lowerTitle.includes('identification') ||
+        lowerTitle.includes('फसल') || lowerTitle.includes('पहचान') ||
+        lowerTitle.includes('पिक') || lowerTitle.includes('पीक') || lowerTitle.includes('ओळख')) {
       return '🌱';
-    } else if (lowerTitle.includes('disease') || lowerTitle.includes('symptom')) {
+    } else if (lowerTitle.includes('disease') || lowerTitle.includes('symptom') ||
+               lowerTitle.includes('रोग') || lowerTitle.includes('लक्षण') || lowerTitle.includes('समस्या')) {
       return '🦠';
-    } else if (lowerTitle.includes('cause')) {
+    } else if (lowerTitle.includes('cause') || lowerTitle.includes('कारण')) {
       return '🔍';
-    } else if (lowerTitle.includes('treatment')) {
+    } else if (lowerTitle.includes('treatment') || lowerTitle.includes('उपचार') || lowerTitle.includes('उपाय')) {
       return '💊';
-    } else if (lowerTitle.includes('prevention')) {
+    } else if (lowerTitle.includes('prevention') || lowerTitle.includes('बचाव') || lowerTitle.includes('प्रतिबंध')) {
       return '🛡️';
     }
     return '📋';
@@ -130,15 +133,18 @@ const formatAIResponse = (response: string): JSX.Element => {
 
   const getSectionColor = (title: string) => {
     const lowerTitle = title.toLowerCase();
-    if (lowerTitle.includes('crop') || lowerTitle.includes('identification')) {
+    if (lowerTitle.includes('crop') || lowerTitle.includes('identification') ||
+        lowerTitle.includes('फसल') || lowerTitle.includes('पहचान') ||
+        lowerTitle.includes('पिक') || lowerTitle.includes('पीक') || lowerTitle.includes('ओळख')) {
       return 'bg-blue-50 border-blue-200';
-    } else if (lowerTitle.includes('disease') || lowerTitle.includes('symptom')) {
+    } else if (lowerTitle.includes('disease') || lowerTitle.includes('symptom') ||
+               lowerTitle.includes('रोग') || lowerTitle.includes('लक्षण') || lowerTitle.includes('समस्या')) {
       return 'bg-red-50 border-red-200';
-    } else if (lowerTitle.includes('cause')) {
+    } else if (lowerTitle.includes('cause') || lowerTitle.includes('कारण')) {
       return 'bg-yellow-50 border-yellow-200';
-    } else if (lowerTitle.includes('treatment')) {
+    } else if (lowerTitle.includes('treatment') || lowerTitle.includes('उपचार') || lowerTitle.includes('उपाय')) {
       return 'bg-green-50 border-green-200';
-    } else if (lowerTitle.includes('prevention')) {
+    } else if (lowerTitle.includes('prevention') || lowerTitle.includes('बचाव') || lowerTitle.includes('प्रतिबंध')) {
       return 'bg-purple-50 border-purple-200';
     }
     return 'bg-gray-50 border-gray-200';
@@ -156,9 +162,9 @@ const formatAIResponse = (response: string): JSX.Element => {
     return [];
   };
 
-  const cropInfo = findSection(['Crop Identification', 'crop', 'plant identification']);
-  const diseaseInfo = findSection(['Disease', 'Problem Symptoms', 'symptoms', 'issue', 'diagnosis']);
-  const treatmentInfo = findSection(['Treatment', 'cure', 'medicine', 'fungicide']);
+  const cropInfo = findSection(['Crop Identification', 'crop', 'plant identification', 'फसल की पहचान', 'फसल', 'पिकाची ओळख', 'पीक', 'पिक']);
+  const diseaseInfo = findSection(['Disease', 'Problem Symptoms', 'symptoms', 'issue', 'diagnosis', 'रोग', 'समस्या', 'लक्षण', 'रोग/समस्या', 'रोग/समस्येची']);
+  const treatmentInfo = findSection(['Treatment', 'cure', 'medicine', 'fungicide', 'उपचार', 'उपाय']);
 
   // If we only have one section (likely unstructured response), show it differently
   const sectionKeys = Object.keys(sections);
@@ -171,25 +177,25 @@ const formatAIResponse = (response: string): JSX.Element => {
         <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4">
           <h5 className="text-lg font-semibold text-gray-800 mb-3 flex items-center space-x-2">
             <span className="text-xl">📊</span>
-            <span>Quick Summary</span>
+            <span>{t('quickSummary')}</span>
           </h5>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {cropInfo.length > 0 && (
               <div className="bg-white rounded-lg p-3 border border-blue-100">
-                <h6 className="font-semibold text-blue-800 text-sm mb-1">🌱 Identified Crop</h6>
+                <h6 className="font-semibold text-blue-800 text-sm mb-1">🌱 {t('identifiedCrop')}</h6>
                 <p className="text-gray-700 text-sm">{cropInfo[0]}</p>
               </div>
             )}
             {diseaseInfo.length > 0 && (
               <div className="bg-white rounded-lg p-3 border border-red-100">
-                <h6 className="font-semibold text-red-800 text-sm mb-1">🦠 Main Issue</h6>
+                <h6 className="font-semibold text-red-800 text-sm mb-1">🦠 {t('mainIssue')}</h6>
                 <p className="text-gray-700 text-sm">{diseaseInfo[0]}</p>
               </div>
             )}
             {treatmentInfo.length > 0 && (
               <div className="bg-white rounded-lg p-3 border border-green-100">
-                <h6 className="font-semibold text-green-800 text-sm mb-1">💊 Treatment Available</h6>
-                <p className="text-gray-700 text-sm">Treatment recommendations provided</p>
+                <h6 className="font-semibold text-green-800 text-sm mb-1">💊 {t('treatmentAvailable')}</h6>
+                <p className="text-gray-700 text-sm">{t('treatmentProvided')}</p>
               </div>
             )}
           </div>
@@ -201,7 +207,7 @@ const formatAIResponse = (response: string): JSX.Element => {
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h5 className="text-lg font-semibold text-gray-800 mb-3 flex items-center space-x-2">
             <span className="text-xl">🤖</span>
-            <span>AI Analysis</span>
+            <span>{t('aiAnalysis')}</span>
           </h5>
           <div className="prose prose-sm max-w-none text-gray-700">
             <ReactMarkdown
@@ -352,13 +358,13 @@ const formatAIResponse = (response: string): JSX.Element => {
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
           <h5 className="text-lg font-semibold text-orange-800 mb-2 flex items-center space-x-2">
             <span className="text-xl">⚠️</span>
-            <span>Important Reminder</span>
+            <span>{t('importantReminder')}</span>
           </h5>
           <ul className="text-orange-700 text-sm space-y-1">
-            <li>• Always follow label instructions when using any pesticide</li>
-            <li>• Consult local agricultural experts for region-specific advice</li>
-            <li>• Use preventive measures as the first line of defense</li>
-            <li>• Regular monitoring helps catch diseases early</li>
+            <li>• {t('importantReminderPesticide')}</li>
+            <li>• {t('importantReminderExpert')}</li>
+            <li>• {t('importantReminderPreventive')}</li>
+            <li>• {t('importantReminderMonitor')}</li>
           </ul>
         </div>
       )}
@@ -400,46 +406,32 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
     setCameraError(null);
 
     try {
-      // Check if getUserMedia is supported
-      console.log('🔍 Checking camera support...');
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Camera not supported on this device');
       }
-      console.log('✅ Camera support detected');
 
-      console.log('📥 Requesting camera access...');
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment', // Use back camera on mobile
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      });
-      console.log('✅ Camera stream obtained:', stream);
+      // Try back camera first, fall back to any available camera
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+
       setCameraStream(stream);
       setShowCamera(true);
-      console.log('🎬 showCamera set to true, modal should appear');
-
-      // Start video stream
-      if (videoRef.current) {
-        console.log('📹 Setting video stream...');
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        console.log('✅ Video stream started');
-      } else {
-        console.error('❌ videoRef.current is null');
-      }
+      // videoRef is not mounted yet — stream attachment is handled in a useEffect below
     } catch (error) {
       console.error('❌ Error accessing camera:', error);
-
       const errorMessage = i18n.language === 'en'
-        ? 'Unable to access camera. Please check permissions or use gallery option.'
+        ? 'Unable to access camera. Please check browser permissions or use the gallery option.'
         : i18n.language === 'mr'
-          ? 'कॅमेरा वापरू शकत नाही. कृपया परवानग्या तपासा किंवा गॅलरी पर्याय वापरा.'
-          : 'कैमरा एक्सेस नहीं कर सका। कृपया अनुमतियां जांचें या गैलरी विकल्प का उपयोग करें।';
-
+          ? 'कॅमेरा वापरू शकत नाही. कृपया ब्राउझर परवानग्या तपासा किंवा गॅलरी पर्याय वापरा.'
+          : 'कैमरा एक्सेस नहीं कर सका। कृपया ब्राउज़र अनुमतियां जांचें या गैलरी विकल्प का उपयोग करें।';
       setCameraError(errorMessage);
-      alert(errorMessage);
+      setShowCamera(true); // open modal to display the error
     }
   };
 
@@ -486,6 +478,14 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
     };
   }, [cameraStream]);
 
+  // Attach stream to video element after modal renders
+  useEffect(() => {
+    if (showCamera && cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream;
+      videoRef.current.play().catch(console.error);
+    }
+  }, [showCamera, cameraStream]);
+
   const analyzeImage = () => {
     if (!selectedImage) return;
 
@@ -528,63 +528,14 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
 
         setAiTextResult(text);
 
-        // Save disease detection to database
-        try {
-          const token = localStorage.getItem('token');
-          if (token) {
-            // Extract disease information from AI response
-            const diseaseMatch = text.match(/(?:disease|problem|issue)[:\s]+([^\n.]+)/i);
-            const cropMatch = text.match(/(?:crop|plant)[:\s]+([^\n.]+)/i);
-            const treatmentMatch = text.match(/(?:treatment|cure|medicine)[:\s]+([^\n.]+)/i);
-
-            // Extract symptoms (look for bullet points or numbered lists)
-            const symptomsMatches = text.match(/(?:symptom|sign)[s]?[:\s]+([^\n]+(?:\n[-•*]\s*[^\n]+)*)/i);
-            const symptoms: string[] = [];
-            if (symptomsMatches && symptomsMatches[1]) {
-              const symptomText = symptomsMatches[1];
-              const bulletPoints = symptomText.match(/[-•*]\s*([^\n]+)/g);
-              if (bulletPoints) {
-                symptoms.push(...bulletPoints.map(s => s.replace(/^[-•*]\s*/, '').trim()));
-              } else {
-                symptoms.push(symptomText.trim());
-              }
-            }
-
-            // Extract prevention tips
-            const preventionMatches = text.match(/(?:prevention|prevent|avoid)[:\s]+([^\n]+(?:\n[-•*]\s*[^\n]+)*)/i);
-            const preventionTips: string[] = [];
-            if (preventionMatches && preventionMatches[1]) {
-              const preventionText = preventionMatches[1];
-              const bulletPoints = preventionText.match(/[-•*]\s*([^\n]+)/g);
-              if (bulletPoints) {
-                preventionTips.push(...bulletPoints.map(s => s.replace(/^[-•*]\s*/, '').trim()));
-              } else {
-                preventionTips.push(preventionText.trim());
-              }
-            }
-
-            const dataToSave = {
-              cropName: cropMatch ? cropMatch[1].trim() : 'Unknown',
-              imageUrl: selectedImage,
-              detectedDisease: diseaseMatch ? diseaseMatch[1].trim() : 'Disease detected',
-              confidence: 85, // Default confidence since AI doesn't provide exact percentage
-              symptoms: symptoms.length > 0 ? symptoms : ['Symptoms detected in image'],
-              treatment: treatmentMatch ? treatmentMatch[1].trim() : text.substring(0, 200),
-              preventionTips: preventionTips.length > 0 ? preventionTips : ['Follow recommended practices']
-            };
-
-            const savedDetection = await cropDiseaseAPI.saveDiseaseDetection(dataToSave);
-            console.log('✅ Disease detection saved to database successfully!', savedDetection);
-
-            // Trigger refresh of disease history
-            setTimeout(() => {
-              const event = new CustomEvent('detectionSaved', { detail: savedDetection });
-              window.dispatchEvent(event);
-            }, 500);
-          }
-        } catch (error) {
-          console.error('❌ Failed to save disease detection to database:', error);
-        }
+        // Successful AI analysis is already persisted by backend /api/ai/analyze-image.
+        // Trigger a history refresh event without creating a second save request.
+        setTimeout(() => {
+          const event = new CustomEvent('detectionSaved', {
+            detail: { source: 'analyze-image' }
+          });
+          window.dispatchEvent(event);
+        }, 500);
       } catch (error) {
         console.error('Crop analysis error:', error);
 
@@ -611,7 +562,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
 
         // Save fallback detection to database
         try {
-          const token = localStorage.getItem('token');
+          const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
           if (token) {
             const dataToSave = {
               cropName: 'Unknown',
@@ -698,7 +649,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
 
               <div>
                 <h3 className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent mb-3">
-                  {t('uploadImage')}
+                  {t('Upload Image')}
                 </h3>
                 <p className="text-gray-700 text-sm mb-4 font-medium">
                   {i18n.language === 'en' ? 'Upload photo in JPG, PNG or JPEG format (Max 5MB)' :
@@ -750,7 +701,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
             </button>
 
             <div className="mb-6">
-              <h3 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">{t('uploadedImage')}</h3>
+              <h3 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">{t('Uploaded Image')}</h3>
             </div>
 
             <div className="flex flex-col lg:flex-row gap-6">
@@ -818,7 +769,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
                   </h4>
                 </div>
                 <div className="p-4 sm:p-6 max-h-[600px] overflow-y-auto bg-white rounded-b-xl">
-                  {formatAIResponse(aiTextResult)}
+                  {formatAIResponse(aiTextResult, t)}
                 </div>
                 <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-t border-gray-200 rounded-b-xl">
                   <div className="flex flex-col sm:flex-row gap-2">
@@ -956,9 +907,18 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
           </div>
 
           {/* Disease History Section */}
-          <div className="mt-8">
-            <DiseaseHistory />
-          </div>
+          {showHistory && (
+            <div className="mt-8">
+              <DiseaseHistory />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Disease History — shown below whenever toggled, regardless of image state */}
+      {showHistory && !selectedImage && (
+        <div className="mt-2">
+          <DiseaseHistory />
         </div>
       )}
 
@@ -982,6 +942,17 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
 
             {/* Camera View */}
             <div className="flex-1 flex items-center justify-center p-4">
+              {cameraError ? (
+                <div className="text-center p-6">
+                  <p className="text-red-400 text-sm font-medium">{cameraError}</p>
+                  <button
+                    onClick={stopCamera}
+                    className="mt-4 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm"
+                  >
+                    {i18n.language === 'en' ? 'Close' : i18n.language === 'mr' ? 'बंद करा' : 'बंद करें'}
+                  </button>
+                </div>
+              ) : (
               <div className="relative w-full max-w-2xl aspect-video bg-black rounded-lg overflow-hidden">
                 <video
                   ref={videoRef}
@@ -1002,6 +973,7 @@ export function CropDiseaseDetection({ }: CropDiseaseDetectionProps = {}) {
                   </div>
                 </div>
               </div>
+              )}
             </div>
 
             {/* Camera Controls */}

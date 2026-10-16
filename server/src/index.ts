@@ -102,6 +102,19 @@ app.use('/api/alerts', priceAlertRoutes);
 app.use('/api/market-prices', marketPriceDataRoutes); // AI-powered market prices
 app.use('/api/schemes', governmentSchemeRoutes);
 
+// Scheme application portal links (used by SchemeRecommendations component)
+app.get('/api/scheme-links', (_req: Request, res: Response) => {
+  res.json([
+    { id: 'pmkisan',   name: 'PM-KISAN',            url: 'https://pmkisan.gov.in' },
+    { id: 'pmfby',     name: 'PMFBY Insurance',      url: 'https://pmfby.gov.in' },
+    { id: 'kcc',       name: 'Kisan Credit Card',    url: 'https://www.nabard.org/content1.aspx?id=589' },
+    { id: 'soil',      name: 'Soil Health Card',     url: 'https://soilhealth.dac.gov.in' },
+    { id: 'enam',      name: 'eNAM Market',          url: 'https://enam.gov.in' },
+    { id: 'dbt',       name: 'DBT Agriculture',      url: 'https://dbtbharat.gov.in' },
+  ]);
+});
+
+
 // New routes for database collections
 app.use('/api/chat', chatHistoryRoutes);
 app.use('/api/diseases', cropDiseaseRoutes);
@@ -130,6 +143,10 @@ connectDatabase()
   .then(async () => {
     // Create indexes for all models after successful connection
     await createIndexes();
+    // Initialize market price cron job AFTER DB is ready so the
+    // startup freshness check can actually query MongoDB.
+    const { initializePriceFetchCron } = await import('./utils/priceFetchCron.js');
+    initializePriceFetchCron();
   })
   .catch(err => {
     console.error('Failed to connect to database:', err);
@@ -142,10 +159,6 @@ const httpServer = createServer(app);
 const wsManager = new WebSocketManager(httpServer);
 app.set('wsManager', wsManager);
 console.log('✅ WebSocket manager initialized');
-
-// Initialize market price cron job
-import { initializePriceFetchCron } from './utils/priceFetchCron.js';
-initializePriceFetchCron();
 
 // Start server
 const PORT = Number(process.env.PORT) || 5001;

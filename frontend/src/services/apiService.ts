@@ -11,8 +11,9 @@ const api = axios.create({
 });
 
 // Add auth token to requests if available
+// AuthContext stores the JWT under 'auth_token' (see AuthContext.tsx TOKEN_KEY constant)
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
@@ -407,6 +408,57 @@ export const priceAlertAPI = {
     // Delete alert
     deleteAlert: async (id: string): Promise<void> => {
         await api.delete(`/api/alerts/${id}`);
+    },
+};
+
+// ============= Crop Recommendation API =============
+export interface CropRecommendationInput {
+    N: number;
+    P: number;
+    K: number;
+    temperature: number;
+    humidity: number;
+    ph: number;
+    rainfall: number;
+}
+
+export interface CropRecommendationResult {
+    crop: string;
+    probability: number;
+}
+
+export interface CropRecommendationRecord {
+    _id: string;
+    userId: string;
+    nitrogen: number;
+    phosphorus: number;
+    potassium: number;
+    temperature: number;
+    humidity: number;
+    ph: number;
+    rainfall: number;
+    recommendedCrop: string;
+    confidence?: number;
+    createdAt: Date;
+}
+
+export const cropRecommendationAPI = {
+    // Get crop recommendations from the ML model (auto-saves to DB if authenticated)
+    recommend: async (data: CropRecommendationInput): Promise<{
+        success: boolean;
+        prediction?: string;
+        recommendations?: CropRecommendationResult[];
+        confidence?: number;
+        error?: string;
+    }> => {
+        const response = await api.post('/api/crop/recommend', data);
+        return response.data;
+    },
+
+    // Get the current user's past recommendations
+    getHistory: async (limit = 20): Promise<CropRecommendationRecord[]> => {
+        const response = await api.get('/api/crop/history', { params: { limit } });
+        return response.data;
     },
 };
 

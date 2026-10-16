@@ -2,11 +2,58 @@ import { Request, Response } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { CropDiseaseModel } from '../models/CropDisease.js';
 import { ChatHistoryModel } from '../models/ChatHistory.js';
+import { UserModel } from '../models/User.js';
 import { AuthRequest } from '../middleware/auth.js';
 import mongoose from 'mongoose';
 
+/** Resolve Firebase UID or MongoDB ObjectId to a MongoDB ObjectId */
+async function resolveMongoId(userId: string): Promise<mongoose.Types.ObjectId | null> {
+    if (mongoose.Types.ObjectId.isValid(userId)) {
+        return new mongoose.Types.ObjectId(userId);
+    }
+    const user = await UserModel.findOne({ firebaseUid: userId }).lean();
+    if (!user) return null;
+    return user._id as mongoose.Types.ObjectId;
+}
+
+const DISEASE_DUPLICATE_WINDOW_MS = 60 * 1000;
+
+function normalizeText(value: unknown): string {
+    return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+async function findRecentDuplicateDetection(params: {
+    userId: mongoose.Types.ObjectId;
+    cropName: string;
+    detectedDisease: string;
+    confidence: number;
+}) {
+    const { userId, cropName, detectedDisease, confidence } = params;
+    const threshold = new Date(Date.now() - DISEASE_DUPLICATE_WINDOW_MS);
+
+    const recentDetections = await CropDiseaseModel.find({
+        userId,
+        detectedAt: { $gte: threshold }
+    })
+        .sort({ detectedAt: -1 })
+        .limit(10)
+        .lean();
+
+    const normalizedCrop = normalizeText(cropName);
+    const normalizedDisease = normalizeText(detectedDisease);
+    const normalizedConfidence = Number(confidence);
+
+    return recentDetections.find((item) => {
+        const cropMatches = normalizeText(item.cropName) === normalizedCrop;
+        const diseaseMatches = normalizeText(item.detectedDisease) === normalizedDisease;
+        const confidenceMatches = Math.abs(Number(item.confidence) - normalizedConfidence) < 0.0001;
+        return cropMatches && diseaseMatches && confidenceMatches;
+    });
+}
+
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const MAX_STORED_IMAGE_DATA_URL_LENGTH = 2_000_000;
 
 // Initialize Gemini AI
 let genAI: GoogleGenerativeAI | null = null;
@@ -59,14 +106,21 @@ export const chat = async (req: Request, res: Response): Promise<void> => {
                     // If no sessionId provided, we create a new conversation
                     const effectiveSessionId = sessionId || new mongoose.Types.ObjectId().toString();
 
+                    const mongoId = await resolveMongoId(user.id);
+                    if (!mongoId) {
+                        console.error(`User not found for AI chat: ${user.id}`);
+                        res.json({ text, sessionId: effectiveSessionId });
+                        return;
+                    }
+
                     let chatHistory = await ChatHistoryModel.findOne({
-                        userId: user.id,
+                        userId: mongoId,
                         sessionId: effectiveSessionId
                     });
 
                     if (!chatHistory) {
                         chatHistory = new ChatHistoryModel({
-                            userId: user.id,
+                            userId: mongoId,
                             sessionId: effectiveSessionId,
                             messages: []
                         });
@@ -210,18 +264,43 @@ export const analyzeImage = async (req: Request, res: Response): Promise<void> =
             // Save to database if user is authenticated
             if (user && user.id && analysisData.isPlant) {
                 try {
-                    await CropDiseaseModel.create({
-                        userId: user.id,
-                        cropName: analysisData.cropName || 'Unknown',
-                        imageUrl: '', // We don't save the base64 to DB to avoid size limits, ideally upload to S3/Cloudinary
-                        detectedDisease: analysisData.detectedDisease,
-                        confidence: analysisData.confidence,
-                        symptoms: analysisData.symptoms,
-                        treatment: analysisData.treatment,
-                        preventionTips: analysisData.preventionTips,
-                        detectedAt: new Date()
-                    });
-                    console.log(`✅ Disease analysis saved to database for user ${user.id}`);
+                    const mongoId = await resolveMongoId(user.id);
+                    if (mongoId) {
+                        const cropName = analysisData.cropName || 'Unknown';
+                        const detectedDisease = analysisData.detectedDisease || 'Unknown';
+                        const confidence = Number(analysisData.confidence ?? 0);
+                        const imageDataUrl = `data:image/jpeg;base64,${imageBase64}`;
+                        const imageUrl = imageDataUrl.length <= MAX_STORED_IMAGE_DATA_URL_LENGTH
+                            ? imageDataUrl
+                            : '';
+
+                        const duplicate = await findRecentDuplicateDetection({
+                            userId: mongoId,
+                            cropName,
+                            detectedDisease,
+                            confidence
+                        });
+
+                        if (duplicate) {
+                            console.log(`♻️ Duplicate AI disease detection ignored for user ${user.id}, existing ${duplicate._id}`);
+                        } else {
+                        await CropDiseaseModel.create({
+                            userId: mongoId,
+                            cropName,
+                            imageUrl,
+                            detectedDisease,
+                            confidence,
+                            symptoms: analysisData.symptoms,
+                            treatment: analysisData.treatment,
+                            preventionTips: analysisData.preventionTips,
+                            detectedAt: new Date()
+                        });
+                        if (!imageUrl) {
+                            console.warn(`⚠️ Skipped storing large disease image for user ${user.id}`);
+                        }
+                        console.log(`✅ Disease analysis saved to database for user ${user.id}`);
+                        }
+                    }
                 } catch (dbError) {
                     console.error('❌ Error saving disease record:', dbError);
                 }

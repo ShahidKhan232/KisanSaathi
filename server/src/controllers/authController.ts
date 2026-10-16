@@ -6,7 +6,83 @@ import { mongoReady } from '../config/database.js';
 import { signToken } from '../utils/jwt.js';
 import { RegisterSchema, LoginSchema, type RegisterInput, type LoginInput } from '../utils/validation.js';
 import type { AuthRequest } from '../middleware/auth.js';
+import { verifyFirebaseToken } from '../utils/firebaseAdmin.js';
 import mongoose from 'mongoose';
+
+/**
+ * POST /api/auth/firebase-sync
+ * Called by the frontend after Firebase sign-in.
+ * Verifies the Firebase ID token, then upserts the MongoDB user.
+ * Returns { id } — the stable MongoDB _id used for all DB saves.
+ */
+export const firebaseSync = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const authHeader = req.headers.authorization;
+        const idToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+        if (!idToken) {
+            res.status(401).json({ error: 'No Firebase ID token provided' });
+            return;
+        }
+
+        // Verify the Firebase token
+        const decoded = await verifyFirebaseToken(idToken);
+        if (!decoded) {
+            res.status(401).json({ error: 'Invalid Firebase token' });
+            return;
+        }
+
+        const { uid: firebaseUid, email, name } = decoded;
+        // firebase.sign_in_provider is only present when Firebase Admin fully verified the token
+        const signInProvider = (decoded as any).firebase?.sign_in_provider ?? '';
+        const provider = signInProvider === 'google.com' ? 'google' : 'firebase';
+
+        if (!email) {
+            res.status(400).json({ error: 'Firebase token missing email' });
+            return;
+        }
+
+        if (!mongoReady) {
+            // In-memory fallback — create or find user
+            let memUser = usersMemory.find(u => u.email === email);
+            if (!memUser) {
+                memUser = { id: firebaseUid, email, name: name ?? undefined, passwordHash: '', createdAt: new Date() };
+                usersMemory.push(memUser);
+                userIdToProfile[memUser.id] = { crops: [] };
+            }
+            res.json({ id: memUser.id, email, name: memUser.name ?? null });
+            return;
+        }
+
+        // Upsert MongoDB user by firebaseUid (or fall back to email match)
+        const user = await UserModel.findOneAndUpdate(
+            { $or: [{ firebaseUid }, { email }] },
+            {
+                $set: {
+                    firebaseUid,
+                    email,
+                    name: name ?? undefined,
+                    provider,
+                    lastActive: new Date(),
+                },
+                $setOnInsert: {
+                    passwordHash: '',
+                    createdAt: new Date(),
+                }
+            },
+            { upsert: true, new: true }
+        );
+
+        const mongoId = (user._id as mongoose.Types.ObjectId).toString();
+        console.log(`✅ Firebase user synced: ${email} → MongoDB ${mongoId}`);
+
+        res.json({ id: mongoId, email, name: user.name ?? null });
+    } catch (error) {
+        console.error('Firebase sync error:', error);
+        res.status(500).json({ error: 'Firebase sync failed' });
+    }
+};
+
 
 export const register = async (req: AuthRequest, res: Response): Promise<void> => {
     const parsed = RegisterSchema.safeParse(req.body);

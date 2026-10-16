@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Sprout, Brain, TrendingUp, Globe, Building2, ChevronRight, Menu, X, Check } from 'lucide-react';
 import { AuthForm } from './AuthForm';
 

@@ -1,7 +1,18 @@
 import { Request, Response } from 'express';
 import { WeatherDataModel } from '../models/WeatherData.js';
+import { UserModel } from '../models/User.js';
 import { AuthRequest } from '../middleware/auth.js';
 import mongoose from 'mongoose';
+
+/** Resolve Firebase UID or MongoDB ObjectId to a MongoDB ObjectId */
+async function resolveMongoId(userId: string): Promise<mongoose.Types.ObjectId | null> {
+    if (mongoose.Types.ObjectId.isValid(userId)) {
+        return new mongoose.Types.ObjectId(userId);
+    }
+    const user = await UserModel.findOne({ firebaseUid: userId }).lean();
+    if (!user) return null;
+    return user._id as mongoose.Types.ObjectId;
+}
 
 // Get current weather for a location
 export const getCurrentWeather = async (req: Request, res: Response) => {
@@ -29,16 +40,26 @@ export const getCurrentWeather = async (req: Request, res: Response) => {
     }
 };
 
-// Save weather data (typically called by backend service/cron job)
-export const saveWeatherData = async (req: Request, res: Response) => {
+// Save weather data (requires authentication — scoped to the authenticated user)
+export const saveWeatherData = async (req: AuthRequest, res: Response) => {
     try {
+        const rawUserId = req.user?.id;
+        if (!rawUserId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const mongoId = await resolveMongoId(rawUserId);
+        if (!mongoId) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
         const weatherData = req.body;
 
         if (!weatherData.location || !weatherData.temperature) {
             return res.status(400).json({ error: 'Location and temperature are required' });
         }
 
-        const weather = await WeatherDataModel.create(weatherData);
+        const weather = await WeatherDataModel.create({ ...weatherData, userId: mongoId });
 
         console.log(`💾 Saved weather data for ${weather.location}`);
         res.status(201).json(weather);
@@ -148,9 +169,14 @@ export const saveUserWeatherData = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
+        const mongoId = await resolveMongoId(userId);
+        if (!mongoId) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
         const weatherData = {
             ...req.body,
-            userId: new mongoose.Types.ObjectId(userId)
+            userId: mongoId
         };
 
         if (!weatherData.location || !weatherData.temperature) {
@@ -180,9 +206,14 @@ export const getUserWeatherHistory = async (req: AuthRequest, res: Response) => 
         const daysAgo = new Date();
         daysAgo.setDate(daysAgo.getDate() - Number(days));
 
+        const mongoId = await resolveMongoId(userId);
+        if (!mongoId) {
+            return res.json([]); // New user with no history
+        }
+
         const history = await WeatherDataModel
             .find({
-                userId: new mongoose.Types.ObjectId(userId),
+                userId: mongoId,
                 recordDate: { $gte: daysAgo }
             })
             .sort({ recordDate: -1 });
@@ -195,19 +226,30 @@ export const getUserWeatherHistory = async (req: AuthRequest, res: Response) => 
     }
 };
 
-// Delete old weather data (cleanup - can be called by cron job)
-export const cleanupOldWeatherData = async (req: Request, res: Response) => {
+// Delete old weather data for the authenticated user
+export const cleanupOldWeatherData = async (req: AuthRequest, res: Response) => {
     try {
+        const rawUserId = req.user?.id;
+        if (!rawUserId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const mongoId = await resolveMongoId(rawUserId);
+        if (!mongoId) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
         const { daysToKeep = 30 } = req.query;
 
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - Number(daysToKeep));
 
         const result = await WeatherDataModel.deleteMany({
+            userId: mongoId,
             recordDate: { $lt: cutoffDate }
         });
 
-        console.log(`🗑️  Deleted ${result.deletedCount} old weather records`);
+        console.log(`🗑️  Deleted ${result.deletedCount} old weather records for user ${rawUserId}`);
         res.json({
             message: 'Cleanup completed',
             deletedCount: result.deletedCount

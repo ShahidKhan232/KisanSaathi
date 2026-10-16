@@ -20,7 +20,8 @@ export const ProfileSchema = z.object({
     crops: z.array(z.string()).optional(),
     kccNumber: z.string().optional(),
     aadhaar: z.string().optional(),
-    bankAccount: z.string().optional()
+    bankAccount: z.string().optional(),
+    profileComplete: z.boolean().optional()
 });
 
 export const AlertSchema = z.object({

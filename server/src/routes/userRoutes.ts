@@ -1,96 +1,79 @@
-import express, { Request, Response } from 'express';
-import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
-import type { UserProfile } from '../types.js';
-
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import express, { Response } from 'express';
+import mongoose from 'mongoose';
+import { authRequired } from '../middleware/auth.js';
+import { AuthRequest } from '../middleware/auth.js';
+import { UserModel } from '../models/User.js';
 
 const router = express.Router();
 
-// Sample user data for development
-const sampleUserProfiles: Record<string, UserProfile> = {
-  '68e57559b2a0d84edd2f24a2': {
-    userId: '68e57559b2a0d84edd2f24a2',
-    landSize: '3',
-    crops: ['धान', 'गेहूं'],
-    hasKCC: true,
-    income: 'below-2.5lakh',
-    location: 'महाराष्ट्र',
-    lastUpdated: new Date().toISOString(),
-    previousApplications: []
+/**
+ * Resolve a user document by MongoDB ObjectId or Firebase UID.
+ */
+async function resolveUser(id: string) {
+  if (mongoose.Types.ObjectId.isValid(id)) {
+    return UserModel.findById(id);
   }
-};
+  return UserModel.findOne({ firebaseUid: id });
+}
 
-// Get user profile
-router.get('/:userId/profile', (req: Request, res: Response) => {
+// Get authenticated user's profile — scoped strictly to req.user.id
+router.get('/:userId/profile', authRequired, async (req: AuthRequest, res: Response) => {
   try {
-    const { userId } = req.params;
-    const authUserId = req.headers.authorization?.replace('Bearer ', '');
+    const authenticatedId = req.user!.id;
 
-    // Verify user is fetching their own profile
-    if (!authUserId || authUserId !== userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    const user = await resolveUser(authenticatedId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
-    // Return profile or create default if it doesn't exist
-    let profile = sampleUserProfiles[userId];
-    if (!profile) {
-      profile = {
-        userId,
-        landSize: '2-5',
-        crops: ['धान', 'गेहूं'],
-        hasKCC: true,
-        income: 'below-2.5lakh',
-        location: 'महाराष्ट्र',
-        lastUpdated: new Date().toISOString(),
-        previousApplications: []
-      };
-      sampleUserProfiles[userId] = profile;
-    }
-
-    res.json(profile);
+    res.json({
+      userId: String(user._id),
+      landSize: user.landSize ?? '',
+      crops: user.crops ?? [],
+      hasKCC: !!user.kccNumber,
+      income: '',
+      location: user.location ?? '',
+      lastUpdated: (user as any).updatedAt?.toISOString() ?? new Date().toISOString(),
+      previousApplications: []
+    });
   } catch (error) {
     console.error('Error fetching user profile:', error);
     res.status(500).json({ error: 'Failed to fetch user profile' });
   }
 });
 
-// Update user profile
-router.patch('/:userId/profile', (req: Request, res: Response) => {
+// Update authenticated user's profile — scoped strictly to req.user.id
+router.patch('/:userId/profile', authRequired, async (req: AuthRequest, res: Response) => {
   try {
-    const { userId } = req.params;
-    const authUserId = req.headers.authorization?.replace('Bearer ', '');
-    const updates = req.body;
+    const authenticatedId = req.user!.id;
+    const { landSize, crops, location } = req.body;
 
-    // Verify user is updating their own profile
-    if (!authUserId || authUserId !== userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    const user = await resolveUser(authenticatedId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
-    // Create default profile if it doesn't exist
-    if (!sampleUserProfiles[userId]) {
-      sampleUserProfiles[userId] = {
-        userId,
-        landSize: '2-5',
-        crops: ['धान', 'गेहूं'],
-        hasKCC: true,
-        income: 'below-2.5lakh',
-        location: 'महाराष्ट्र',
-        lastUpdated: new Date().toISOString(),
-        previousApplications: []
-      };
-    }
+    const updateFields: Record<string, any> = {};
+    if (landSize !== undefined) updateFields.landSize = String(landSize).trim();
+    if (crops !== undefined && Array.isArray(crops)) updateFields.crops = crops;
+    if (location !== undefined) updateFields.location = String(location).trim();
 
-    // Update profile
-    sampleUserProfiles[userId] = {
-      ...sampleUserProfiles[userId],
-      ...updates,
-      lastUpdated: new Date().toISOString()
-    };
+    const updated = await UserModel.findByIdAndUpdate(
+      user._id,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    );
 
-    res.json(sampleUserProfiles[userId]);
+    res.json({
+      userId: String(updated!._id),
+      landSize: updated!.landSize ?? '',
+      crops: updated!.crops ?? [],
+      hasKCC: !!updated!.kccNumber,
+      income: '',
+      location: updated!.location ?? '',
+      lastUpdated: new Date().toISOString(),
+      previousApplications: []
+    });
   } catch (error) {
     console.error('Error updating user profile:', error);
     res.status(500).json({ error: 'Failed to update user profile' });

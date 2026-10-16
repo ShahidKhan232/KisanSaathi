@@ -114,22 +114,30 @@ export function PricePrediction() {
     return () => clearTimeout(debounceTimer);
   }, [stateFilter, districtFilter, commodityFilter]);
 
-  const fetchLive = useCallback(async () => {
+  const fetchLive = useCallback(async (overrides?: {
+    state?: string;
+    district?: string;
+    commodity?: string;
+  }) => {
     setIsLoadingLive(true);
     setLiveDataRaw(null);
-    console.log('Fetching AI-generated prices with filters:', { stateFilter, districtFilter, commodityFilter });
+
+    const effectiveState = (overrides?.state ?? stateFilter)?.trim() || '';
+    const effectiveDistrict = (overrides?.district ?? districtFilter)?.trim() || '';
+    const effectiveCommodity = (overrides?.commodity ?? commodityFilter)?.trim() || '';
+
+    console.log('Fetching AI-generated prices with filters:', {
+      state: effectiveState,
+      district: effectiveDistrict,
+      commodity: effectiveCommodity
+    });
 
     try {
-      // Clean and prepare filters
-      const cleanState = stateFilter?.trim();
-      const cleanDistrict = districtFilter?.trim();
-      const cleanCommodity = commodityFilter?.trim();
-
       // Fetch from AI-generated market prices endpoint
       const params = new URLSearchParams();
-      if (cleanState) params.set('state', cleanState);
-      if (cleanDistrict) params.set('district', cleanDistrict);
-      if (cleanCommodity) params.set('commodity', cleanCommodity);
+      if (effectiveState) params.set('state', effectiveState);
+      if (effectiveDistrict) params.set('district', effectiveDistrict);
+      if (effectiveCommodity) params.set('commodity', effectiveCommodity);
       params.set('limit', '1000');
 
       const backendUrl = import.meta.env?.VITE_SERVER_URL
@@ -145,14 +153,18 @@ export function PricePrediction() {
       const records = await response.json();
 
       console.log('AI-generated records from API:', records);
-      console.log('Applied filters:', { cleanState, cleanDistrict, cleanCommodity });
+      console.log('Applied filters:', {
+        state: effectiveState,
+        district: effectiveDistrict,
+        commodity: effectiveCommodity
+      });
 
       if (!records || !Array.isArray(records)) {
         throw new Error('Invalid response format: expected array of records');
       }
 
       if (records.length === 0) {
-        setLiveDataRaw(`No data found for filters: State="${cleanState || 'any'}", District="${cleanDistrict || 'any'}", Commodity="${cleanCommodity || 'any'}". Try different search terms.`);
+        setLiveDataRaw(`No data found for filters: State="${effectiveState || 'any'}", District="${effectiveDistrict || 'any'}", Commodity="${effectiveCommodity || 'any'}". Try different search terms.`);
         setLiveMarketData([]);
         return;
       }
@@ -260,6 +272,32 @@ export function PricePrediction() {
     return (selectedCrop === 'all' || item.crop === selectedCrop) &&
       (selectedMarket === 'all' || item.market === selectedMarket);
   });
+
+  const normalizeValue = (value: string) => value.trim().toLowerCase();
+
+  const displayedLiveData = useMemo(() => {
+    return sortedLiveData.filter((record: MarketRecord) => {
+      const cropMatches = selectedCrop === 'all' || record.Commodity === selectedCrop;
+      const marketMatches = selectedMarket === 'all' || record.Market === selectedMarket;
+
+      const stateMatches = !stateFilter || normalizeValue(record.State).includes(normalizeValue(stateFilter));
+      const districtMatches = !districtFilter || normalizeValue(record.District).includes(normalizeValue(districtFilter));
+      const commodityMatches = !commodityFilter || normalizeValue(record.Commodity).includes(normalizeValue(commodityFilter));
+
+      return cropMatches && marketMatches && stateMatches && districtMatches && commodityMatches;
+    });
+  }, [sortedLiveData, selectedCrop, selectedMarket, stateFilter, districtFilter, commodityFilter]);
+
+  const clearAllFilters = () => {
+    setSelectedCrop('all');
+    setSelectedMarket('all');
+    setStateFilter('');
+    setDistrictFilter('');
+    setCommodityFilter('');
+    setLiveDataRaw(null);
+    fetchLive({ state: '', district: '', commodity: '' });
+    console.log('[PricePrediction] All filters cleared');
+  };
 
   // Trend and confidence helpers are computed inline in JSX
 
@@ -369,7 +407,7 @@ export function PricePrediction() {
               className="flex-1 min-w-[200px] px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-gray-50 hover:bg-white font-medium"
             >
               <option value="all">{t('allCrops')}</option>
-              {Array.from(new Set(priceData.map(item => item.crop))).map(crop => (
+              {Array.from(new Set(liveMarketData.map(item => item.Commodity))).sort().map(crop => (
                 <option key={crop} value={crop}>{crop}</option>
               ))}
             </select>
@@ -380,7 +418,7 @@ export function PricePrediction() {
               className="flex-1 min-w-[200px] px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-gray-50 hover:bg-white font-medium"
             >
               <option value="all">{t('allMarkets')}</option>
-              {Array.from(new Set(priceData.map(item => item.market))).map(market => (
+              {Array.from(new Set(liveMarketData.map(item => item.Market))).sort().map(market => (
                 <option key={market} value={market}>{market}</option>
               ))}
             </select>
@@ -455,13 +493,7 @@ export function PricePrediction() {
                 </button>
 
                 <button
-                  onClick={() => {
-                    setStateFilter('');
-                    setDistrictFilter('');
-                    setCommodityFilter('');
-                    setLiveDataRaw(null);
-                    console.log('[PricePrediction] Filters cleared');
-                  }}
+                  onClick={clearAllFilters}
                   className="px-3 py-2 bg-gray-500 text-white rounded-md text-sm hover:bg-gray-600 transition-colors"
                 >
                   {t('clear')}
@@ -487,11 +519,7 @@ export function PricePrediction() {
                 </button>
               ))}
               <button
-                onClick={() => {
-                  setStateFilter('');
-                  setDistrictFilter('');
-                  setCommodityFilter('');
-                }}
+                onClick={clearAllFilters}
                 className="px-3 py-1 text-xs rounded-full bg-red-100 text-red-700 border border-red-300 hover:bg-red-200 transition-colors"
               >
                 {t('clearAll')}
@@ -502,7 +530,7 @@ export function PricePrediction() {
       </div>
 
       {/* Live Market Data Cards */}
-      {sortedLiveData.length > 0 && (
+      {displayedLiveData.length > 0 && (
         <div className="space-y-6">
           {/* Enhanced Header */}
           <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl shadow-2xl px-6 py-5">
@@ -515,9 +543,9 @@ export function PricePrediction() {
                   </span>
                 </h3>
                 <p className="text-purple-100 text-sm mt-2">
-                  {i18n.language === 'en' ? `${sortedLiveData.length} markets • Powered by Gemini AI` :
-                    i18n.language === 'mr' ? `${sortedLiveData.length} बाजार • Gemini AI द्वारे समर्थित` :
-                      `${sortedLiveData.length} बाज़ार • Gemini AI द्वारा संचालित`}
+                  {i18n.language === 'en' ? `${displayedLiveData.length} markets • Powered by Gemini AI` :
+                    i18n.language === 'mr' ? `${displayedLiveData.length} बाजार • Gemini AI द्वारे समर्थित` :
+                      `${displayedLiveData.length} बाज़ार • Gemini AI द्वारा संचालित`}
                 </p>
               </div>
               <div className="text-right">
@@ -533,7 +561,7 @@ export function PricePrediction() {
 
           {/* Market Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sortedLiveData.map((record: MarketRecord, index: number) => {
+            {displayedLiveData.map((record: MarketRecord, index: number) => {
               const minPrice = parseFloat(record.Min_Price);
               const maxPrice = parseFloat(record.Max_Price);
               const modalPrice = parseFloat(record.Modal_Price);
@@ -673,7 +701,7 @@ export function PricePrediction() {
                   <span className="w-3 h-3 bg-green-500 rounded-full"></span>
                   <span>{t('liveData')}</span>
                 </span>
-                <span>{t('allAvailableMarkets', { count: sortedLiveData.length })}</span>
+                <span>{t('allAvailableMarkets', { count: displayedLiveData.length })}</span>
               </div>
               <div className="text-xs">
                 {t('poweredByGovData')}
@@ -687,23 +715,6 @@ export function PricePrediction() {
       {liveDataRaw && liveDataRaw.startsWith('Error:') && (
         <div className="bg-red-50 border border-red-200 rounded p-3 text-red-700 text-sm">
           {liveDataRaw}
-        </div>
-      )}
-
-      {/* Debug Information */}
-      {(isLoadingLive || liveMarketData.length > 0 || liveDataRaw) && (
-        <div className="bg-gray-50 border rounded p-3 text-sm">
-          <div><strong>Debug Info:</strong></div>
-          <div>Loading: {isLoadingLive ? 'Yes' : 'No'}</div>
-          <div>Raw Data Records: {liveMarketData.length}</div>
-          <div>Sorted Data Records: {sortedLiveData.length}</div>
-          <div>Filters: State="{stateFilter}", District="{districtFilter}", Commodity="{commodityFilter}"</div>
-          {liveDataRaw && !liveDataRaw.startsWith('Error:') && (
-            <div>Has Raw Data: Yes</div>
-          )}
-          {liveMarketData.length > 0 && (
-            <div>Sample Record: {JSON.stringify(liveMarketData[0], null, 2)}</div>
-          )}
         </div>
       )}
 

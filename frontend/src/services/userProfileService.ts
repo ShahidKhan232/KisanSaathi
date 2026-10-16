@@ -29,10 +29,15 @@ class UserProfileService {
     return UserProfileService.instance;
   }
 
+  private getAuthHeader(): Record<string, string> {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  }
+
   async getUserProfile(userId: string): Promise<UserProfile> {
     const response = await fetch(`/api/users/${userId}/profile`, {
       headers: {
-        'Authorization': `Bearer ${userId}`
+        ...this.getAuthHeader()
       }
     });
     if (!response.ok) {
@@ -46,7 +51,7 @@ class UserProfileService {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${userId}`
+        ...this.getAuthHeader()
       },
       body: JSON.stringify(update)
     });

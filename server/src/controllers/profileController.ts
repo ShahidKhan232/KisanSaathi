@@ -7,13 +7,26 @@ import type { AuthRequest } from '../middleware/auth.js';
 import mongoose from 'mongoose';
 import { WebSocketManager } from '../services/WebSocketManager.js';
 
+/**
+ * Find a MongoDB user document by either:
+ *  - MongoDB ObjectId (legacy JWT / firebase-sync returns mongoId)
+ *  - Firebase UID (when Firebase Admin is unconfigured and uid is passed directly)
+ */
+async function resolveUser(id: string) {
+    if (mongoose.Types.ObjectId.isValid(id)) {
+        return UserModel.findById(id);
+    }
+    // id is a Firebase UID — look up by firebaseUid field
+    return UserModel.findOne({ firebaseUid: id });
+}
+
 export const getProfile = async (req: AuthRequest, res: Response): Promise<void> => {
     const { id } = req.user!;
     console.log(`Fetching profile for user ${id}`);
 
     try {
         if (mongoReady) {
-            const user = await UserModel.findById(id).lean();
+            const user = await resolveUser(id).then(u => u?.toObject() ?? null);
             if (!user) {
                 console.log(`User ${id} not found in database`);
                 res.status(404).json({ error: 'User not found' });
@@ -21,7 +34,7 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
             }
 
             console.log(`Profile found in database for user ${id}`);
-            const { _id, email, name, phone, location, landSize, crops, kccNumber, aadhaar, bankAccount } = user as any;
+            const { _id, email, name, phone, location, landSize, crops, kccNumber, aadhaar, bankAccount, profileComplete } = user as any;
 
             res.json({
                 id: String(_id),
@@ -33,7 +46,8 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
                 crops: crops ?? [],
                 kccNumber: kccNumber ?? null,
                 aadhaar: aadhaar ?? null,
-                bankAccount: bankAccount ?? null
+                bankAccount: bankAccount ?? null,
+                profileComplete: profileComplete ?? false
             });
             return;
         }
@@ -55,7 +69,8 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
             email: mem.email,
             name: mem.name ?? null,
             ...prof,
-            crops: prof.crops ?? []
+            crops: prof.crops ?? [],
+            profileComplete: (prof as any).profileComplete ?? false
         });
     } catch (error) {
         console.error('Profile fetch error:', error);
@@ -77,11 +92,23 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
 
     try {
         if (mongoReady) {
+            // Resolve once so downstream queries always use a valid Mongo ObjectId.
+            const existing = await resolveUser(id);
+            if (!existing) {
+                console.log(`User ${id} not found for profile update (by id or firebaseUid)`);
+                res.status(404).json({ error: 'User not found' });
+                return;
+            }
+
             const update: Partial<IUser> = parsed.data as Partial<IUser>;
+
+            if (typeof update.email === 'string') {
+                update.email = update.email.trim().toLowerCase();
+            }
 
             // If email change requested, ensure uniqueness
             if (update.email) {
-                const exists = await UserModel.findOne({ email: update.email, _id: { $ne: id } }).lean();
+                const exists = await UserModel.findOne({ email: update.email, _id: { $ne: existing._id } }).lean();
                 if (exists) {
                     console.log(`Email ${update.email} already in use by another user`);
                     res.status(409).json({ error: 'Email already in use' });
@@ -95,28 +122,26 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
                     (update[key as keyof IUser] as any) = (update[key as keyof IUser] as string).trim();
                 }
             });
-
             const user = await UserModel.findByIdAndUpdate(
-                id,
+                existing._id,
                 { $set: update },
                 { new: true, runValidators: true }
             );
 
             if (!user) {
-                console.log(`User ${id} not found for profile update`);
                 res.status(404).json({ error: 'User not found' });
                 return;
             }
 
             console.log(`Profile updated successfully for user ${id}`);
-            const { _id, email, name, phone, location, landSize, crops, kccNumber, aadhaar, bankAccount } = user as any;
+            const { _id, email, name, phone, location, landSize, crops, kccNumber, aadhaar, bankAccount, profileComplete } = user as any;
 
             // Emit real-time update
             const wsManager = req.app.get('wsManager') as WebSocketManager;
             if (wsManager) {
                 wsManager.emitToUser(id, 'profile:update', {
                     profile: {
-                        name, phone, email, location, landSize, crops, kccNumber, aadhaar, bankAccount
+                        name, phone, email, location, landSize, crops, kccNumber, aadhaar, bankAccount, profileComplete
                     }
                 });
             }
@@ -131,7 +156,8 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
                 crops: crops ?? [],
                 kccNumber: kccNumber ?? null,
                 aadhaar: aadhaar ?? null,
-                bankAccount: bankAccount ?? null
+                bankAccount: bankAccount ?? null,
+                profileComplete: profileComplete ?? false
             });
             return;
         }
@@ -191,7 +217,7 @@ export const getProfileStats = async (req: AuthRequest, res: Response): Promise<
         };
 
         if (mongoReady) {
-            const user = await UserModel.findById(id).lean();
+            const user = await resolveUser(id);
             if (user && (user as any).crops) {
                 stats.totalCrops = (user as any).crops.length;
             }
